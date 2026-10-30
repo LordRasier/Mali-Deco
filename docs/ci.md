@@ -1,5 +1,18 @@
-# Integración continua
+# Validación local
 
-El workflow de GitHub Actions se ejecuta en solicitudes de cambios (`pull_request`) o manualmente; no despliega ni usa secretos del repositorio. Instala dependencias desde el lockfile sin scripts de ciclo de vida ni auditoría, y ejecuta lint, comprobación de tipos, pruebas web/API y build de producción con Node 24. La disponibilidad y el resultado deben comprobarse en la ejecución de Actions; la existencia del workflow no significa que haya pasado.
+Todas las comprobaciones deben ejecutarse localmente; este repositorio no incluye un workflow de ejecución automática en GitHub. Con Node.js 24 y las dependencias instaladas desde el lockfile, los comandos generales son:
 
-La prueba de integración usa un servicio desechable de la imagen oficial MySQL 8.4, con la base exclusiva vacía `store_integration_test` y credenciales ficticias de CI. Aplica las migraciones registradas, comprueba restricciones y operaciones seleccionadas del catálogo e identidad (incluida la sesión), y las revierte. Si falla puede dejar tablas en ese servicio, que se elimina con el job; no apunta a ninguna base del usuario. No es una prueba integral de todo el negocio ni valida pagos, envíos, integraciones externas o una puesta en producción. Crea un usuario de prueba temporal; no crea una cuenta productiva ni persistente. Para pruebas locales, seguir las precauciones del README y usar únicamente una base aislada y vacía.
+```sh
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+## Integración con MySQL
+
+La integración requiere MySQL 8.4 local y una base **exclusiva, aislada y vacía** llamada `store_integration_test`. Configure `DB_HOST=127.0.0.1` o `localhost`, `DB_PORT`, `DB_DATABASE=store_integration_test`, `DB_USERNAME`, `DB_PASSWORD` y `MYSQL_INTEGRATION=1` en el entorno; después ejecute `npm run test:integration -w @store/api`. No use datos reales ni una base compartida o productiva. Sin `MYSQL_INTEGRATION=1` la prueba se omite.
+
+La prueba comprueba que la base esté vacía, aplica las migraciones registradas, verifica operaciones y restricciones seleccionadas de catálogo e identidad, y las revierte. Crea un usuario de prueba temporal, no una cuenta productiva. MySQL hace commits implícitos para DDL: un fallo puede dejar tablas que deben inspeccionarse y repararse antes de reintentar. Véase el README principal para las precauciones completas.
+
+Estas pruebas no cubren todo el negocio, pagos, envíos, integraciones externas ni una puesta en producción. Las pruebas con MySQL real y la validación interactiva en navegador del incremento de catálogo siguen pendientes; no se infiere que hayan pasado por la existencia de estos comandos.
