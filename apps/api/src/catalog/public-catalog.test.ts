@@ -19,8 +19,8 @@ test('detail exposes only the public fields and safe integer prices', async () =
     getRepository: () => ++calls === 1 ? { findOneBy: async () => product } : { findAndCount: async () => [[variant], 1] },
   } as unknown as DataSource;
   assert.deepEqual(await new PublicCatalog(fake).detail('pieza'), {
-    id: 'p1', slug: 'pieza', name: 'Pieza', description: '',
-    variants: [{ id: 'v1', name: 'Rojo', priceMinor: 12300, currency: 'ARS', supplyMode: 'stock' }], page: 1, limit: 24, total: 1,
+    id: 'p1', slug: 'pieza', name: 'Pieza', description: '', category: null,
+    variants: [{ id: 'v1', name: 'Rojo', priceMinor: 12300, currency: 'ARS', supplyMode: 'stock', material: null, color: null }], page: 1, limit: 24, total: 1,
   });
 });
 
@@ -38,4 +38,26 @@ test('detail requests only the selected variant page', async () => {
   assert.equal(paging?.skip, 50);
   assert.equal(paging?.take, 50);
   assert.equal(result.total, 105);
+});
+
+test('detail resolves only persisted public taxonomy for the bounded variant page', async () => {
+  const product = { id: 'p1', slug: 'pieza', name: 'Pieza', description: '', categoryId: 'c1' };
+  const variants = [{ id: 'v1', productId: 'p1', name: 'Rojo', priceMinor: '123', currency: 'ARS', supplyMode: null, materialId: 'm1', colorId: 'z1' }];
+  let calls = 0;
+  const queried: string[] = [];
+  const fake = {
+    isInitialized: true,
+    getRepository: () => ++calls === 1 ? { findOneBy: async () => product } : { findAndCount: async () => [variants, 1] },
+    query: async (sql: string, ids: string[]) => {
+      queried.push(sql);
+      if (ids[0] === 'c1') return [{ id: 'c1', slug: 'decoracion', name: 'Decoración' }];
+      if (ids[0] === 'm1') return [{ id: 'm1', slug: 'pla', name: 'PLA' }];
+      return [{ id: 'z1', slug: 'rojo', name: 'Rojo', hex: '#FF0000' }];
+    },
+  } as unknown as DataSource;
+  const result = await new PublicCatalog(fake).detail('pieza');
+  assert.equal(result.category?.slug, 'decoracion');
+  assert.equal(result.variants[0].material?.slug, 'pla');
+  assert.equal(result.variants[0].color?.hex, '#FF0000');
+  assert.ok(queried.every(sql => sql.includes('archived_at IS NULL')));
 });

@@ -13,3 +13,19 @@ export const demoCatalog: StorefrontData = {
     ] }
   ]
 };
+
+// Taxonomía sintética exclusiva de la vista demo; no describe inventario real.
+const demoCategories = [
+  { id: 'deco', slug: 'decoracion', name: 'Decoración (ejemplo)', sortOrder: 1 },
+  { id: 'orden', slug: 'organizacion', name: 'Organización (ejemplo)', sortOrder: 2 },
+  { id: 'plantas', slug: 'plantas', name: 'Plantas (ejemplo)', sortOrder: 3 },
+];
+const demoMaterial = { id: 'pla', slug: 'pla-ejemplo', name: 'PLA (ejemplo)', sortOrder: 1 };
+const demoColorNames: Record<string, string> = { azul: 'Azul', coral: 'Coral', arena: 'Arena', crema: 'Crema', amarillo: 'Amarillo', negro: 'Negro', verde: 'Verde' };
+for (const [index, product] of demoCatalog.products.entries()) {
+  product.category = demoCategories[index];
+  for (const variant of product.variants) {
+    variant.material = demoMaterial;
+    variant.colorInfo = { id: variant.id, slug: variant.id, name: `${demoColorNames[variant.id]} (ejemplo)`, hex: variant.color ?? null };
+  }
+}

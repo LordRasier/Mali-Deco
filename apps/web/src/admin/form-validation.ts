@@ -34,3 +34,8 @@ export function variantInput(draft: VariantDraft): VariantInput {
   if (!draft.supplyMode) throw new Error('Elegí el modo de suministro.');
   return { sku: draft.sku, name: draft.name, currency: draft.currency, supplyMode: draft.supplyMode, priceMinor: decimalToMinor(draft.price, draft.currency) };
 }
+
+/** Leave unchanged classifications out of updates; explicit null removes one. */
+export function assignmentPatch<K extends 'categoryId' | 'materialId' | 'colorId'>(key: K, changed: boolean, value: string | null): Partial<Record<K, string | null>> {
+  return changed ? { [key]: value } as Record<K, string | null> : {};
+}

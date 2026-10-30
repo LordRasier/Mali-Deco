@@ -27,16 +27,15 @@ test('formats minor units exactly for different currency scales and large subtot
   assert.match(formatPrice(900719925474099100n, 'ARS'), /9.007.199.254.740.991,00/);
 });
 
-test('restored cart merges duplicate pairs and prunes missing products and variants', () => {
-  const products = [{ id: 'vase', variants: [{ id: 'blue' }] }];
+test('restored cart merges duplicate pairs but does not prune against a filtered page', () => {
   const restored = reconcileCart([
     { productId: 'vase', variantId: 'blue', quantity: 2 },
     { productId: 'vase', variantId: 'blue', quantity: 3 },
     { productId: 'vase', variantId: 'gone', quantity: 1 },
     { productId: 'archived', variantId: 'blue', quantity: 1 },
     { productId: 'vase', variantId: 'blue', quantity: -1 },
-  ], products);
-  assert.deepEqual(restored.lines, [{ productId: 'vase', variantId: 'blue', quantity: 5 }]);
-  assert.equal(restored.removed, 3);
-  assert.deepEqual(reconcileCart(restored.lines, []), { lines: [], removed: 1 });
+  ]);
+  assert.deepEqual(restored.lines, [{ productId: 'vase', variantId: 'blue', quantity: 5 }, { productId: 'vase', variantId: 'gone', quantity: 1 }, { productId: 'archived', variantId: 'blue', quantity: 1 }]);
+  assert.equal(restored.removed, 1);
+  assert.deepEqual(reconcileCart(restored.lines), { lines: restored.lines, removed: 0 });
 });

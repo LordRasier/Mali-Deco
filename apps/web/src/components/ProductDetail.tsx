@@ -7,15 +7,22 @@ import { Dialog } from './Dialog';
 import { Icon } from './Icons';
 import { Swatches } from './ProductCard';
 
-export function ProductDetail({ product, demo, ready, onClose, onAdd }: {
+export function ProductDetail({ product, demo, ready, preferredId, loading, error, warning, hasMore, onLoadMore, onRetry, onClose, onAdd }: {
   product: Product | null;
   demo: boolean;
   ready: boolean;
+  preferredId?: string;
+  loading?: boolean;
+  error?: string | null;
+  warning?: string | null;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  onRetry?: () => void;
   onClose: () => void;
   onAdd: (productId: string, variantId: string) => void;
 }) {
   const [variantId, setVariantId] = useState('');
-  useEffect(() => setVariantId(product?.variants[0]?.id || ''), [product]);
+  useEffect(() => setVariantId(preferredId !== undefined ? preferredId : product?.variants[0]?.id || ''), [product?.id, preferredId]);
   const variant = product?.variants.find(item => item.id === variantId);
 
   return (
@@ -38,8 +45,12 @@ export function ProductDetail({ product, demo, ready, onClose, onAdd }: {
                 <Swatches product={product} selected={variantId} onSelect={setVariantId} />
               </>
             )}
+            {warning && <p role="alert">{warning}</p>}
+            {loading && <p role="status">Cargando variantes…</p>}
+            {error && <p role="alert">{error} <button type="button" className="inline-link" onClick={onRetry}>Reintentar</button></p>}
+            {hasMore && !error && <button type="button" className="inline-link" disabled={loading} onClick={onLoadMore}>Mostrar más variantes</button>}
             {demo && <p className="fine-print">Imagen generada de ejemplo; no representa necesariamente el color seleccionado.</p>}
-            <button className="button primary add-button" disabled={!variant || !ready} onClick={() => variant && onAdd(product.id, variant.id)}>
+            <button className="button primary add-button" disabled={!variant || !ready || loading || !!error} onClick={() => variant && onAdd(product.id, variant.id)}>
               Agregar al carrito <Icon name="arrow" />
             </button>
           </div>

@@ -2,8 +2,9 @@
 
 import { useRef, useState, type FormEvent } from 'react';
 import type { Product, ProductInput, Variant, VariantInput } from './types';
-import { dimensionFields, productInput, variantInput, type ProductDraft, type VariantDraft } from './form-validation';
+import { assignmentPatch, dimensionFields, productInput, variantInput, type ProductDraft, type VariantDraft } from './form-validation';
 import { currencyFractionDigits, minorToDecimal } from './money';
+import { TaxonomySelect } from './TaxonomySelect';
 
 type FormProps<T, Input> = {
   initial?: T;
@@ -23,12 +24,14 @@ function productDraft(initial?: Product): ProductDraft {
 export function ProductForm({ initial, onSubmit, onCancel, busy }: FormProps<Product, ProductInput>) {
   const [draft, setDraft] = useState(() => productDraft(initial));
   const [error, setError] = useState('');
+  const [category, setCategory] = useState<string | null>(initial?.categoryId ?? null);
+  const [categoryChanged, setCategoryChanged] = useState(false);
   const sending = useRef(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || sending.current) return;
     try {
-      const input = productInput(draft);
+      const input = { ...productInput(draft), ...assignmentPatch('categoryId', categoryChanged, category) };
       sending.current = true;
       setError('');
       await onSubmit(input);
@@ -41,6 +44,7 @@ export function ProductForm({ initial, onSubmit, onCancel, busy }: FormProps<Pro
       <div className="admin-form-grid">
         <label>Nombre<input disabled={busy} value={draft.name} maxLength={255} onChange={e => setDraft({ ...draft, name: e.target.value })} required /></label>
         <label>Identificador (slug)<input disabled={busy} value={draft.slug} maxLength={255} onChange={e => setDraft({ ...draft, slug: e.target.value })} required /><small>Minúsculas, números y guiones; por ejemplo, florero-coral.</small></label>
+        <TaxonomySelect kind="categories" label="Categoría principal" value={category} disabled={busy} onChange={value => { setCategory(value); setCategoryChanged(true); }} />
         <label>Estado<select disabled={busy} value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value as ProductDraft['status'] })}><option value="draft">Borrador</option><option value="active">Activo</option></select></label>
       </div>
       <label>Descripción<textarea disabled={busy} value={draft.description} rows={4} onChange={e => setDraft({ ...draft, description: e.target.value })} /></label>
@@ -73,6 +77,10 @@ function variantDraft(initial?: Variant): VariantDraft {
 export function VariantForm({ initial, onSubmit, onCancel, busy }: FormProps<Variant, VariantInput>) {
   const [draft, setDraft] = useState(() => variantDraft(initial));
   const [error, setError] = useState('');
+  const [material, setMaterial] = useState<string | null>(initial?.materialId ?? null);
+  const [color, setColor] = useState<string | null>(initial?.colorId ?? null);
+  const [materialChanged, setMaterialChanged] = useState(false);
+  const [colorChanged, setColorChanged] = useState(false);
   const sending = useRef(false);
   let digits: number | null = null;
   try { digits = currencyFractionDigits(draft.currency); } catch { /* validation shown on submit */ }
@@ -80,7 +88,7 @@ export function VariantForm({ initial, onSubmit, onCancel, busy }: FormProps<Var
     event.preventDefault();
     if (busy || sending.current) return;
     try {
-      const input = variantInput(draft);
+      const input = { ...variantInput(draft), ...assignmentPatch('materialId', materialChanged, material), ...assignmentPatch('colorId', colorChanged, color) };
       sending.current = true;
       setError('');
       await onSubmit(input);
@@ -95,6 +103,8 @@ export function VariantForm({ initial, onSubmit, onCancel, busy }: FormProps<Var
         <label>Nombre de la variante<input disabled={busy} value={draft.name} maxLength={255} onChange={e => setDraft({ ...draft, name: e.target.value })} required /></label>
         <label>Moneda<input disabled={busy} value={draft.currency} maxLength={3} onChange={e => setDraft({ ...draft, currency: e.target.value.toUpperCase() })} required /><small>Código de tres letras, por ejemplo ARS.</small></label>
         <label>Precio<input disabled={busy} inputMode="decimal" value={draft.price} onChange={e => setDraft({ ...draft, price: e.target.value })} required /><small>{digits === null ? 'Indicá primero una moneda válida.' : `Hasta ${digits} decimales; no se realiza conversión de moneda.`}</small></label>
+        <TaxonomySelect kind="materials" label="Material" value={material} disabled={busy} onChange={value => { setMaterial(value); setMaterialChanged(true); }} />
+        <TaxonomySelect kind="colors" label="Color" value={color} disabled={busy} onChange={value => { setColor(value); setColorChanged(true); }} />
         <label>Modo de suministro<select disabled={busy} value={draft.supplyMode} onChange={e => setDraft({ ...draft, supplyMode: e.target.value as VariantDraft['supplyMode'] })}><option value="">Elegir…</option><option value="stock">Stock</option><option value="made_to_order">A pedido</option></select></label>
       </div>
       {error && <p className="admin-error" role="alert">{error}</p>}

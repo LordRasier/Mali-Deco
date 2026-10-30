@@ -5,8 +5,12 @@ import { databaseOptions } from './database/database-options';
 import { DataSource } from 'typeorm';
 import { CatalogController } from './catalog/catalog.controller';
 import { PublicCatalog } from './catalog/public-catalog';
+import { PublicFacets } from './catalog/public-facets';
+import { PublicCartController, PublicCartResolver } from './catalog/cart-resolver';
 import { CatalogAdmin } from './catalog/catalog-admin';
 import { AdminCatalogController } from './catalog/admin.controller';
+import { AdminCategoriesController, AdminMaterialsController, AdminColorsController } from './catalog/admin-taxonomy.controller';
+import { CatalogTaxonomy } from './catalog/catalog-taxonomy';
 import { AuthController } from './identity/auth.controller';
 import { CatalogGuard } from './identity/catalog.guard';
 import { MysqlIdentityStore } from './identity/identity-store';
@@ -19,9 +23,12 @@ if (!process.env.DB_HOST && process.env.NODE_ENV === 'production') {
 
 @Module({
   imports: process.env.DB_HOST ? [TypeOrmModule.forRoot(databaseOptions())] : [],
-  controllers: [AppController, CatalogController, AuthController, AdminCatalogController],
+  controllers: [AppController, CatalogController, PublicCartController, AuthController, AdminCatalogController, AdminCategoriesController, AdminMaterialsController, AdminColorsController],
   providers: [
+    { provide: PublicFacets, useFactory: (db?: DataSource) => new PublicFacets(db), inject: [{ token: DataSource, optional: true }] },
+    { provide: PublicCartResolver, useFactory: (db?: DataSource) => new PublicCartResolver(db), inject: [{ token: DataSource, optional: true }] },
     { provide: PublicCatalog, useFactory: (db?: DataSource) => new PublicCatalog(db), inject: [{ token: DataSource, optional: true }] },
+    { provide: CatalogTaxonomy, useFactory: (db?: DataSource) => new CatalogTaxonomy(db), inject: [{ token: DataSource, optional: true }] },
     { provide: CatalogAdmin, useFactory: (db?: DataSource) => new CatalogAdmin(db), inject: [{ token: DataSource, optional: true }] },
     { provide: IdentityService, useFactory: (db?: DataSource) => new IdentityService(new MysqlIdentityStore(db), allowedAdminOrigin(process.env)), inject: [{ token: DataSource, optional: true }] },
     CatalogGuard,

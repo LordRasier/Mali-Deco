@@ -11,7 +11,7 @@ export function Hero({ image, demo }: { image?: string; demo: boolean }) {
           <h1>Objetos que<br />salen de lo común.</h1>
           <p>Diseño e impresión 3D para darle<br className="desktop-break" /> otra forma a tus espacios.</p>
           <div className="hero-links">
-            <a className="button primary" href="#objetos">Explorar objetos <Icon name="arrow" /></a>
+            <a className="button primary" href="/catalogo">Explorar objetos <Icon name="arrow" /></a>
             <a className="text-link" href="#coleccion">Ver colección</a>
           </div>
         </div>

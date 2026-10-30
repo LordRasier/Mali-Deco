@@ -52,7 +52,7 @@ export function ProductCard({ product, demo, onOpen }: ProductCardProps) {
         <div>
           <h3><button type="button" onClick={onOpen}>{product.name}</button></h3>
           <p>
-            {product.variants[0] ? `${demo ? '' : `${product.variants[0].name}: `}${formatPrice(product.variants[0].priceMinor, product.variants[0].currency)}` : 'Sin precio disponible'}
+            {product.variants[0] ? `${product.priceRange && product.priceRange.minMinor !== product.priceRange.maxMinor ? 'Desde ' : ''}${formatPrice(product.variants[0].priceMinor, product.variants[0].currency)}` : 'Sin precio disponible'}
             {demo && <span> · precio de ejemplo</span>}
           </p>
         </div>

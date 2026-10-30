@@ -19,6 +19,10 @@ export function Dialog({ open, onClose, label, children, className = '' }: Dialo
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
   }, [open]);
 
   return (
@@ -26,7 +30,7 @@ export function Dialog({ open, onClose, label, children, className = '' }: Dialo
       ref={ref}
       aria-label={label}
       className={className}
-      onClose={onClose}
+      onClose={() => { if (!ref.current?.open) onClose(); }}
       onClick={(event) => {
         if (event.target === ref.current) onClose();
       }}

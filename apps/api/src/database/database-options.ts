@@ -1,11 +1,11 @@
 import type { DataSourceOptions } from 'typeorm';
 import { validateDatabaseConfig } from './database-config';
-import { ProductSchema, SettingsSchema, VariantSchema } from '../catalog/catalog.entities';
+import { CategorySchema, ColorSchema, MaterialSchema, ProductSchema, SettingsSchema, VariantSchema } from '../catalog/catalog.entities';
 
 export function databaseOptions(): DataSourceOptions {
   return {
     type: 'mysql', ...validateDatabaseConfig(process.env), synchronize: false, timezone: 'Z',
-    entities: [ProductSchema, VariantSchema, SettingsSchema],
+    entities: [ProductSchema, VariantSchema, SettingsSchema, CategorySchema, MaterialSchema, ColorSchema],
     migrations: [__dirname + '/migrations/*{.js,.ts}'],
   };
 }

@@ -18,4 +18,7 @@ test('guard rejects anonymous, operations role and bad CSRF while allowing autho
   session.role = 'catalog';
   await assert.rejects(guard.canActivate(context({ cookie: `store_admin=${token.token}`, origin: 'https://admin.example' }, 'POST')), { status: 403 });
   assert.equal(await guard.canActivate(context({ cookie: `store_admin=${token.token}`, origin: 'https://admin.example', 'x-csrf-token': csrf.token }, 'POST')), true);
+  session.role = 'owner';
+  await assert.rejects(guard.canActivate(context({ cookie: `store_admin=${token.token}`, origin: 'https://other.example', 'x-csrf-token': csrf.token }, 'DELETE')), { status: 403 });
+  assert.equal(await guard.canActivate(context({ cookie: `store_admin=${token.token}`, origin: 'https://admin.example', 'x-csrf-token': csrf.token }, 'DELETE')), true);
 });

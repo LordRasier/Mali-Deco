@@ -14,7 +14,7 @@ function errorMessage(status: number): string {
     case 401: return 'La sesión venció o las credenciales no son válidas.';
     case 403: return 'Acceso denegado: verificá permisos, origen o la sesión de seguridad. Si abriste otra pestaña, recargá esta página.';
     case 404: return 'No se encontró el registro o ya no está disponible.';
-    case 409: return 'Ya existe un producto con ese slug o una variante con ese SKU.';
+    case 409: return 'El registro entra en conflicto con otro existente o está en uso. Revisá sus referencias antes de reintentar.';
     case 429: return 'Demasiados intentos. Esperá antes de volver a intentar.';
     case 503: return 'El servicio no está disponible. Intentá más tarde.';
     default: return 'No se pudo completar la solicitud. Intentá de nuevo.';
@@ -63,7 +63,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   try { text = await response.text(); }
   catch { throw new ApiError(0, method === 'GET' ? connectionError : writeOutcomeUnknown); }
   // Only Nest archive endpoints are allowed to succeed without a body.
-  const archive = method === 'DELETE' && /^\/admin\/catalog\/products\/[^/?]+(?:\/variants\/[^/?]+)?$/.test(path);
+  const archive = method === 'DELETE' && /^\/admin\/catalog\/(?:products\/[^/?]+(?:\/variants\/[^/?]+)?|(?:categories|materials|colors)\/[^/?]+)$/.test(path);
   if (!text && archive && (response.status === 200 || response.status === 204)) return undefined as T;
   if (!text) throw new ApiError(502, method === 'GET' ? 'El servicio devolvió una respuesta vacía.' : writeOutcomeUnknown);
   try { return JSON.parse(text) as T; }

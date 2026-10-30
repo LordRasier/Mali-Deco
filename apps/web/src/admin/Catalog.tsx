@@ -6,6 +6,7 @@ import { ProductForm } from './forms';
 import { useSession } from './session';
 import type { Page, Product, ProductInput } from './types';
 import { ProductDetail } from './ProductDetail';
+import { TaxonomyManager } from './TaxonomyManager';
 
 const base = '/admin/catalog/products';
 
@@ -15,7 +16,7 @@ export function failureMessage(failure: unknown) {
 
 export function Catalog() {
   const { csrf } = useSession();
-  const [view, setView] = useState<'list' | 'create' | 'detail'>('list');
+  const [view, setView] = useState<'list' | 'create' | 'detail' | 'taxonomy'>('list');
   const [selectedId, setSelectedId] = useState('');
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
@@ -67,6 +68,7 @@ export function Catalog() {
     setRevision((value) => value + 1);
   }
 
+  if (view === 'taxonomy') return <TaxonomyManager onBack={backToList} />;
   if (view === 'detail') return <ProductDetail id={selectedId} onBack={backToList} />;
   if (view === 'create') {
     return (
@@ -93,7 +95,7 @@ export function Catalog() {
           <h1>Catálogo</h1>
           <p>Gestioná artículos y variantes, desde un solo lugar.</p>
         </div>
-        <button className="primary" onClick={() => { setError(''); setView('create'); }}>+ Nuevo artículo</button>
+        <div className="actions"><button onClick={() => { setError(''); setView('taxonomy'); }}>Categorías, materiales y colores</button><button className="primary" onClick={() => { setError(''); setView('create'); }}>+ Nuevo artículo</button></div>
       </div>
       <div className="panel">
         <form className="toolbar" onSubmit={submitSearch}>

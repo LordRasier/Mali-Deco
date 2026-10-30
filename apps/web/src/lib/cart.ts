@@ -26,17 +26,16 @@ export function formatPrice(priceMinor: number | bigint, currency: string): stri
   return formatter.formatToParts(whole).map(part => part.type === 'fraction' ? fraction : part.value).join('');
 }
 
-/** Validate browser storage, merge duplicate pairs, and remove entries absent from the complete catalog. */
-export function reconcileCart(value: unknown, products: Product[]): { lines: CartLine[]; removed: number } {
+/** Sanitize storage without assuming the current listing is a complete catalog. */
+export function reconcileCart(value: unknown): { lines: CartLine[]; removed: number } {
   if (!Array.isArray(value)) return { lines: [], removed: 0 };
-  const allowed = new Map(products.map(product => [product.id, new Set(product.variants.map(variant => variant.id))]));
   const byProduct = new Map<string, Map<string, CartLine>>();
   const lines: CartLine[] = [];
   let removed = 0;
   for (const item of value) {
     if (!item || typeof item.productId !== 'string' || typeof item.variantId !== 'string' ||
-      !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999 ||
-      !allowed.get(item.productId)?.has(item.variantId)) {
+      !/^[-\x21-\x7e]{1,36}$/.test(item.productId) || !/^[-\x21-\x7e]{1,36}$/.test(item.variantId) ||
+      !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999) {
       removed++;
       continue;
     }

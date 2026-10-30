@@ -29,7 +29,7 @@ function Login() {
   return (
     <main className="login-page">
       <div className="login-card">
-        <span className="eyebrow">Mali Deco · Administración</span>
+        <span className="eyebrow">Administración de la tienda</span>
         <h1>Bienvenida al taller</h1>
         <p>Ingresá con tu cuenta de administración para gestionar el catálogo.</p>
         <form onSubmit={submit} className="admin-form">
@@ -87,7 +87,7 @@ function AdminContent() {
     <div className="admin-shell">
       <header className="admin-header">
         <div>
-          <a className="brand" href="/">MALI DECO</a><span className="header-divider">/</span><span>Administración</span>
+          <a className="brand" href="/">TIENDA</a><span className="header-divider">/</span><span>Administración</span>
         </div>
         <div className="header-account">
           <span>{user.email} · {user.role}</span>
