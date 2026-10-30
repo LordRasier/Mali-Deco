@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { dimensionFields, productInput, variantInput } from '../src/admin/form-validation';
+const dimensions = Object.fromEntries(dimensionFields.map(([key]) => [key, ''])) as Record<(typeof dimensionFields)[number][0], string>;
+const product = { name: 'Florero', slug: 'florero', description: '', status: 'draft' as const, ...dimensions };
+assert.equal(productInput(product).productWidthMm, null);
+assert.equal(productInput({ ...product, productWeightG: '123', packageWeightG: '456' }).packageWeightG, 456);
+for (const invalid of [{ ...product, slug: 'No Slug' }, { ...product, name: '  ' }, { ...product, productWeightG: '0' }, { ...product, packageWidthMm: '4294967296' }, { ...product, description: 'á'.repeat(32768) }]) assert.throws(() => productInput(invalid));
+const variant = { sku: 'A-1', name: 'Rojo', price: '2.50', currency: 'ARS', supplyMode: 'stock' as const };
+assert.equal(variantInput(variant).priceMinor, 250);
+assert.throws(() => variantInput({ ...variant, sku: '' }));
+assert.throws(() => variantInput({ ...variant, supplyMode: '' }));
+assert.throws(() => variantInput({ ...variant, price: '2.501' }));
