@@ -2,12 +2,19 @@ import { reconcileCart } from './cart';
 import type { CartLine } from './storefront-types';
 
 export type CartSnapshot = { lines: CartLine[]; version: string; removed: number };
+export type CartStorageArea = 'local' | 'session';
+const areaStorage = (area: CartStorageArea) => area === 'session' ? sessionStorage : localStorage;
+
+/** Distinguish a new tab from a saved empty cart. */
+export function hasCartSnapshot(key: string, area: CartStorageArea): boolean | null {
+  try { return areaStorage(area).getItem(key) !== null; } catch { return null; }
+}
 
 /** A null result means storage is inaccessible, rather than an empty cart. */
-export function readCartSnapshot(key: string): CartSnapshot | null {
+export function readCartSnapshot(key: string, area: CartStorageArea = 'local'): CartSnapshot | null {
   try {
-    const raw = localStorage.getItem(key);
-    const version = localStorage.getItem(`${key}:revision`) ?? '';
+    const raw = areaStorage(area).getItem(key);
+    const version = areaStorage(area).getItem(`${key}:revision`) ?? '';
     let value: unknown;
     try { value = JSON.parse(raw ?? '[]'); } catch { value = []; }
     const result = reconcileCart(value);
@@ -16,20 +23,20 @@ export function readCartSnapshot(key: string): CartSnapshot | null {
 }
 
 /** Call only inside the shared lock. The array format remains compatible with existing carts. */
-export function writeCartSnapshot(key: string, lines: CartLine[]): CartSnapshot | null {
+export function writeCartSnapshot(key: string, lines: CartLine[], area: CartStorageArea = 'local'): CartSnapshot | null {
   try {
-    localStorage.setItem(`${key}:revision`, `${Date.now()}-${Math.random()}`);
-    localStorage.setItem(key, JSON.stringify(lines));
-    return readCartSnapshot(key);
+    areaStorage(area).setItem(`${key}:revision`, `${Date.now()}-${Math.random()}`);
+    areaStorage(area).setItem(key, JSON.stringify(lines));
+    return readCartSnapshot(key, area);
   } catch { return null; }
 }
 
-/** Without Web Locks the hook stays in memory, avoiding unsafe shared writes. */
+/** Web Locks protect shared local storage; session storage is scoped to one tab. */
 export function cartLocksAvailable(): boolean {
   return typeof navigator !== 'undefined' && !!navigator.locks;
 }
 
-/** Serialize cooperating tabs; memory-only fallback does not persist. */
+/** Serialize shared writes; the session fallback is isolated to this tab. */
 export function withCartLock<T>(key: string, task: () => T): Promise<T> {
   if (cartLocksAvailable()) {
     return navigator.locks.request(`cart:${key}`, task);

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addToCart, changeQuantity } from '../lib/cart';
 import { acceptsCartResolution, pairKey, resolveCartPairs, type ResolvedPair } from '../lib/cart-resolution';
-import { cartChangedEvent, cartLocksAvailable, readCartSnapshot, withCartLock, writeCartSnapshot, type CartSnapshot } from '../lib/cart-storage';
+import { cartChangedEvent, cartLocksAvailable, hasCartSnapshot, readCartSnapshot, withCartLock, writeCartSnapshot, type CartStorageArea, type CartSnapshot } from '../lib/cart-storage';
 import type { CartLine, StorefrontData } from '../lib/storefront-types';
 
 type SavedCart = CartSnapshot & { key: string };
@@ -16,11 +16,13 @@ export function useCart(mode: StorefrontData['mode']) {
   const modeRef = useRef(storageKey); modeRef.current = storageKey;
   const active = useRef(false);
   const memoryOnly = useRef(false);
+  const storageArea = useRef<CartStorageArea>('local');
   const revision = useRef(0);
   const [cache, setCache] = useState<{ key: string; values: Map<string, ResolvedPair> }>({ key: '', values: new Map() });
   const [removedNotice, setRemovedNotice] = useState(0);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [storageUnavailable, setStorageUnavailable] = useState(false);
+  const [storageTabOnly, setStorageTabOnly] = useState(false);
   const [retry, setRetry] = useState(0);
 
   const adopt = useCallback((snapshot: CartSnapshot) => {
@@ -32,16 +34,24 @@ export function useCart(mode: StorefrontData['mode']) {
 
   useEffect(() => {
     active.current = true;
-    const initial = readCartSnapshot(storageKey);
-    memoryOnly.current = !initial || !cartLocksAvailable(); setStorageUnavailable(memoryOnly.current);
-    const snapshot = initial ?? { lines: [], version: 'memory:0', removed: 0 };
+    const shared = readCartSnapshot(storageKey, 'local');
+    const hasTabCart = hasCartSnapshot(storageKey, 'session');
+    const useTab = hasTabCart === true || !cartLocksAvailable() || !shared;
+    storageArea.current = useTab ? 'session' : 'local';
+    const initial = useTab
+      ? hasTabCart ? readCartSnapshot(storageKey, 'session') : writeCartSnapshot(storageKey, shared?.lines ?? [], 'session')
+      : shared;
+    memoryOnly.current = !initial;
+    setStorageUnavailable(useTab || memoryOnly.current);
+    setStorageTabOnly(useTab && !memoryOnly.current);
+    const snapshot = initial ?? shared ?? { lines: [], version: 'memory:0', removed: 0 };
     savedRef.current = null; adopt(snapshot);
     setCache({ key: storageKey, values: new Map() }); setRemovedNotice(snapshot.removed);
     const sync = () => {
       if (memoryOnly.current) return;
-      const current = readCartSnapshot(storageKey);
+      const current = readCartSnapshot(storageKey, storageArea.current);
       if (current) adopt(current);
-      else { memoryOnly.current = true; setStorageUnavailable(true); }
+      else { memoryOnly.current = true; setStorageUnavailable(true); setStorageTabOnly(false); }
     };
     window.addEventListener('storage', sync);
     window.addEventListener('pageshow', sync);
@@ -68,19 +78,19 @@ export function useCart(mode: StorefrontData['mode']) {
     setStatus('loading');
     resolveCartPairs(lines, mode, controller.signal).then(async result => {
       if (!isCurrent()) return;
-      const latest = memoryOnly.current ? null : readCartSnapshot(storageKey);
+      const latest = memoryOnly.current ? null : readCartSnapshot(storageKey, storageArea.current);
       if (latest && latest.version !== stateVersion) { adopt(latest); return; }
-      if (!memoryOnly.current && !latest) { memoryOnly.current = true; setStorageUnavailable(true); setStatus('error'); return; }
+      if (!memoryOnly.current && !latest) { memoryOnly.current = true; setStorageUnavailable(true); setStorageTabOnly(false); setStatus('error'); return; }
       if (result.missing.length) {
         await withCartLock(storageKey, () => {
           if (!isCurrent()) return;
-          const current = memoryOnly.current ? savedRef.current : readCartSnapshot(storageKey);
+          const current = memoryOnly.current ? savedRef.current : readCartSnapshot(storageKey, storageArea.current);
           if (!current) { setStatus('error'); return; }
           if (current.version !== stateVersion) { adopt(current); return; }
           const missing = new Set(result.missing.map(pairKey));
           const nextLines = current.lines.filter(line => !missing.has(pairKey(line)));
-          const next = memoryOnly.current ? null : writeCartSnapshot(storageKey, nextLines);
-          if (!next) { memoryOnly.current = true; setStorageUnavailable(true); }
+          const next = memoryOnly.current ? null : writeCartSnapshot(storageKey, nextLines, storageArea.current);
+          if (!next) { memoryOnly.current = true; setStorageUnavailable(true); setStorageTabOnly(false); }
           adopt(next ?? { lines: nextLines, version: `memory:${++revision.current}`, removed: 0 });
           if (next) window.dispatchEvent(new Event(cartChangedEvent));
           setRemovedNotice(count => count + result.missing.length);
@@ -104,11 +114,11 @@ export function useCart(mode: StorefrontData['mode']) {
   const update = useCallback((transform: (current: CartLine[]) => CartLine[]) => {
     void withCartLock(storageKey, () => {
       if (!active.current || savedRef.current?.key !== storageKey || modeRef.current !== storageKey) return;
-      let current = memoryOnly.current ? savedRef.current : readCartSnapshot(storageKey);
-      if (!current) { memoryOnly.current = true; setStorageUnavailable(true); current = savedRef.current; }
+      let current = memoryOnly.current ? savedRef.current : readCartSnapshot(storageKey, storageArea.current);
+      if (!current) { memoryOnly.current = true; setStorageUnavailable(true); setStorageTabOnly(false); current = savedRef.current; }
       const nextLines = transform(current.lines);
-      const next = memoryOnly.current ? null : writeCartSnapshot(storageKey, nextLines);
-      if (!next) { memoryOnly.current = true; setStorageUnavailable(true); }
+      const next = memoryOnly.current ? null : writeCartSnapshot(storageKey, nextLines, storageArea.current);
+      if (!next) { memoryOnly.current = true; setStorageUnavailable(true); setStorageTabOnly(false); }
       adopt(next ?? { lines: nextLines, version: `memory:${++revision.current}`, removed: 0 });
       if (next) window.dispatchEvent(new Event(cartChangedEvent));
     }).catch(() => { if (active.current) setStatus('error'); });
@@ -122,5 +132,5 @@ export function useCart(mode: StorefrontData['mode']) {
     const existing = current.find(line => line.productId === productId && line.variantId === variantId);
     return existing ? changeQuantity(current, productId, variantId, Math.min(999, existing.quantity + difference)) : current;
   }), [update]);
-  return { ready, items, count, totals, add, adjust, removedNotice, status, storageUnavailable, retry: () => setRetry(n => n + 1), unresolved: items.some(item => !item.product || !item.variant) || status !== 'idle' };
+  return { ready, items, count, totals, add, adjust, removedNotice, status, storageUnavailable, storageTabOnly, retry: () => setRetry(n => n + 1), unresolved: items.some(item => !item.product || !item.variant) || status !== 'idle' };
 }

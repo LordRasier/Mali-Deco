@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import ProductNotFound from '../src/app/productos/not-found';
 import { parseVariantQuery, resolveRequestedVariant } from '../src/lib/product-selection';
 import { CatalogHttpError, catalogRequest, fetchProductDetail } from '../src/lib/api-catalog';
 import { canonicalProductUrl, loadProductPage } from '../src/lib/product-page';
 
 async function main() {
+const missingPage = renderToStaticMarkup(createElement(ProductNotFound));
+assert.match(missingPage, /No encontramos este producto/);
+assert.match(missingPage, /href="\/catalogo"/);
 const valid = { id: 'v1', name: 'Azul', priceMinor: 100, currency: 'ARS' };
 assert.deepEqual(parseVariantQuery(new URLSearchParams()), { kind: 'none' });
 assert.deepEqual(parseVariantQuery(new URLSearchParams('variant=v1')), { kind: 'id', id: 'v1' });

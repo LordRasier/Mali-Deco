@@ -20,3 +20,7 @@
   .product-card .mobile-plus { width: 44px; height: 44px; }
   .product-card .card-info h3 { padding-right: 48px; }
 }
+
+.product-not-found { min-height: 75vh; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding-top: 48px; padding-bottom: 70px; }
+.product-not-found h1 { max-width: 11ch; font-size: clamp(46px, 6vw, 82px); margin: 18px 0; }
+.product-not-found > p:not(.eyebrow) { max-width: 46ch; line-height: 1.55; margin-bottom: 28px; }

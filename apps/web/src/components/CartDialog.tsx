@@ -17,11 +17,12 @@ type CartDialogProps = {
   onAdjust: (productId: string, variantId: string, difference: number) => void;
   status: 'idle' | 'loading' | 'error';
   storageUnavailable: boolean;
+  storageTabOnly: boolean;
   unresolved: boolean;
   onRetry: () => void;
 };
 
-export function CartDialog({ open, onClose, items, count, totals, mode, onAdjust, removedNotice, status, storageUnavailable, unresolved, onRetry }: CartDialogProps) {
+export function CartDialog({ open, onClose, items, count, totals, mode, onAdjust, removedNotice, status, storageUnavailable, storageTabOnly, unresolved, onRetry }: CartDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} label="Tu carrito" className="cart-dialog">
       <div className="cart-inner">
@@ -35,7 +36,7 @@ export function CartDialog({ open, onClose, items, count, totals, mode, onAdjust
           </button>
         </div>
         {removedNotice > 0 && <p className="cart-notice" role="status">Algunos artículos guardados no pudieron recuperarse y se quitaron del carrito.</p>}
-        {storageUnavailable && <p className="cart-notice" role="status">No pudimos guardar el carrito en este navegador. Se conservará solo mientras esta página esté abierta.</p>}
+        {storageUnavailable && <p className="cart-notice" role="status">{storageTabOnly ? 'Este carrito se guarda solo en esta pestaña; no se sincroniza con otras.' : 'No pudimos guardar el carrito en este navegador. Se conservará solo mientras esta página esté abierta.'}</p>}
         {status === 'error' && <p className="cart-notice" role="alert">No pudimos verificar todo el carrito. Conservamos tus artículos. <button type="button" className="inline-link" onClick={onRetry}>Reintentar</button></p>}
         {status === 'loading' && <p className="cart-notice" role="status">Verificando artículos…</p>}
         {items.length ? (

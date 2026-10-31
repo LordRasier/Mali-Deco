@@ -16,6 +16,7 @@ const initial = { id: 'p1', slug: 'p1', name: 'P1', description: '', variants: A
 const json = value => new Response(JSON.stringify(value), { status: 200 });
 let events;
 let storage;
+let tabStorage;
 const active = [];
 
 function browser(url) {
@@ -24,6 +25,8 @@ function browser(url) {
   events = new EventTarget();
   const values = new Map();
   storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+  const tabValues = new Map();
+  tabStorage = { getItem: key => tabValues.get(key) ?? null, setItem: (key, value) => tabValues.set(key, value) };
   const window = {
     location: new URL(url), localStorage: storage,
     addEventListener: events.addEventListener.bind(events), removeEventListener: events.removeEventListener.bind(events), dispatchEvent: events.dispatchEvent.bind(events),
@@ -31,6 +34,7 @@ function browser(url) {
   window.history = { pushState(_state, _unused, relative) { window.location = new URL(relative, window.location); } };
   globalThis.window = window;
   globalThis.localStorage = storage;
+  globalThis.sessionStorage = tabStorage;
 }
 function mounted(renderHook) { const runner = hookRunner(React, renderHook); active.push(runner); return runner; }
 function resolved(lines) {
@@ -212,19 +216,44 @@ async function main() {
   storage.setItem(key, JSON.stringify(one));
   Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
   const noLocks = mounted(() => useCart('api'));
-  await noLocks.settle(); noLocks.output.add('p2', 'v002'); await noLocks.settle();
+  await noLocks.settle();
+  noLocks.output.adjust('p1', 'v001', -1); await noLocks.settle();
+  noLocks.output.add('p2', 'v002'); await noLocks.settle();
   assert.equal(noLocks.output.storageUnavailable, true);
-  assert.equal(noLocks.output.count, 2);
   assert.deepEqual(JSON.parse(storage.getItem(key)), one);
   noLocks.unmount();
-  console.log('PASS missing Web Locks uses memory and does not write shared storage');
+  const nextRoute = mounted(() => useCart('api'));
+  await nextRoute.settle();
+  assert.equal(nextRoute.output.count, 1);
+  assert.equal(nextRoute.output.items[0].productId, 'p2');
+  nextRoute.output.adjust('p2', 'v002', -1); await nextRoute.settle();
+  nextRoute.unmount();
+  const emptyRoute = mounted(() => useCart('api'));
+  await emptyRoute.settle(); assert.equal(emptyRoute.output.count, 0); emptyRoute.unmount();
+  assert.deepEqual(JSON.parse(storage.getItem(key)), one);
+  console.log('PASS no-lock cart survives navigation and a saved empty cart does not resurrect');
+  browser('http://review.invalid/catalogo');
+  storage.setItem(key, JSON.stringify(one));
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+  const tabA = mounted(() => useCart('api'));
+  const tabB = mounted(() => useCart('api'));
+  await tabA.settle(); await tabB.settle();
+  tabA.output.adjust('p1', 'v001', 1); tabB.output.add('p2', 'v002');
+  await tabA.settle(); await tabB.settle();
+  assert.deepEqual(JSON.parse(tabStorage.getItem(key)), [{ productId: 'p1', variantId: 'v001', quantity: 2 }, { productId: 'p2', variantId: 'v002', quantity: 1 }]);
+  assert.deepEqual(JSON.parse(storage.getItem(key)), one);
+  tabA.unmount(); tabB.unmount();
+  console.log('PASS no-lock instances coordinate within their tab without shared writes');
   browser('http://review.invalid/catalogo');
   storage.getItem = () => { throw new Error('storage denied'); };
+  tabStorage.getItem = () => { throw new Error('session storage denied'); };
+  tabStorage.setItem = () => { throw new Error('session storage denied'); };
   const transient = mounted(() => useCart('demo'));
   await transient.settle();
   transient.output.add('ondas', 'coral'); await transient.settle();
   assert.equal(transient.output.count, 1);
   assert.equal(transient.output.storageUnavailable, true);
+  assert.equal(transient.output.storageTabOnly, false);
   transient.unmount();
   console.log('PASS unavailable storage leaves an explicitly temporary in-memory cart');
   browser('http://review.invalid/productos/p1');
