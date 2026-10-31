@@ -9,7 +9,7 @@ export function Header({ brand, demo, count, onCartOpen }: { brand: string; demo
   return <>
     {demo && <div className="demo-notice">Vista de demostración · Imágenes, categorías y precios de ejemplo</div>}
     <header className={`site-header ${demo ? 'with-notice' : ''}`}>
-      <a className="brand" href="/">{brand}</a>
+      <a className="brand" href="/" aria-label={brand} title={brand}>{brand}</a>
       <nav id="main-nav" className={menuOpen ? 'main-nav open' : 'main-nav'} aria-label="Navegación principal">
         <a href="/catalogo">Objetos</a><a href="/#coleccion">Colecciones</a><a href="/#historia">Cómo lo hacemos</a>
       </nav>

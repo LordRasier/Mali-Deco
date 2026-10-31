@@ -98,9 +98,11 @@ dialog::backdrop { background:#1119; }
 .dialog-close { position:absolute; z-index:1; right:18px; top:18px; }
 .dialog-close.static { position:static; }
 @media (max-width:700px) {
- .site-header { height:64px; top:0; padding:0 20px; }
+ .site-header { height:64px; top:0; padding:0 20px; gap:8px; }
  .brand { font-size:15px; }
- .header-actions { gap:10px; }
+ .site-header > .brand { flex:1 1 auto; min-width:0; white-space:normal; overflow-wrap:anywhere; line-height:1.15; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+ .header-actions { gap:2px; flex:0 0 auto; }
+ .header-actions .icon-button { display:grid; place-items:center; flex:0 0 44px; width:44px; height:44px; }
  .menu-button { display:block; }
  .main-nav { display:none; position:absolute; top:64px; left:0; right:0; background:var(--cream); padding:22px; flex-direction:column; align-items:flex-start; gap:22px; box-shadow:0 10px 20px #0001; }
  .main-nav.open { display:flex; }
@@ -140,6 +142,7 @@ dialog::backdrop { background:#1119; }
  .story-copy p,.about p { font-size:15px; }
  .about { padding:65px 0; }
  footer { padding:35px 20px; align-items:flex-start; flex-direction:column; gap:10px; }
+ footer .brand { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
  footer p { margin:5px 0 12px; }
  .detail-layout { grid-template-columns:1fr; }
  .detail-image { min-height:0; height:260px; }

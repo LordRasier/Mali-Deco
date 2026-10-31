@@ -11,6 +11,10 @@ import type { CartState } from '../src/hooks/useCart';
 
 const header = renderToStaticMarkup(createElement(Header, { brand: 'Tienda', demo: false, count: 2, onCartOpen: () => {} }));
 assert.match(header, /Abrir carrito, 2 unidades/);
+const longBrand = 'Identidad configurable extensa para una tienda de objetos';
+const longHeader = renderToStaticMarkup(createElement(Header, { brand: longBrand, demo: false, count: 0, onCartOpen: () => {} }));
+assert.ok(longHeader.includes(`aria-label="${longBrand}"`));
+assert.ok(longHeader.includes(`title="${longBrand}"`));
 assert.equal(cartCountLabel(1, 1), '1 artículo · 1 unidad');
 assert.equal(cartCountLabel(2, 3), '2 artículos · 3 unidades');
 const item = {
