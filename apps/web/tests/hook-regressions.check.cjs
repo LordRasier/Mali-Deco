@@ -151,7 +151,7 @@ async function main() {
   await firstDocument.settle();
   assert.equal(JSON.parse(storage.getItem(key)).length, 2);
   // A stale view must not resurrect a line that the other instance removed.
-  firstDocument.output.adjust('p1', 'v001', -2);
+  firstDocument.output.remove('p1', 'v001');
   await firstDocument.settle();
   secondDocument.output.adjust('p1', 'v001', 1);
   await secondDocument.settle();

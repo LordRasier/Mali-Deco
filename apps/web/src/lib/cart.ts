@@ -15,6 +15,11 @@ export function resolveCart(lines: CartLine[], products: Product[]) {
     return product && variant ? [{ ...line, product, variant }] : [];
   });
 }
+/** Describe distinct cart lines and unit count without implying stock. */
+export function cartCountLabel(items: number, units: number): string {
+  return `${items} artículo${items === 1 ? '' : 's'} · ${units} unidad${units === 1 ? '' : 'es'}`;
+}
+
 /** Preserve exact minor units, including cart subtotals larger than Number.MAX_SAFE_INTEGER. */
 export function formatPrice(priceMinor: number | bigint, currency: string): string {
   const formatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency });

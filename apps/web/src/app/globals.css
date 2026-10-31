@@ -97,19 +97,6 @@ dialog::backdrop { background:#1119; }
 .add-button { width:100%; margin-top:18px; }
 .dialog-close { position:absolute; z-index:1; right:18px; top:18px; }
 .dialog-close.static { position:static; }
-.cart-dialog { position:fixed; margin:0 0 0 auto; width:min(460px,100%); height:100%; max-height:none; max-width:none; inset:0 0 0 auto; }
-.cart-inner { height:100%; overflow:auto; padding:34px; }
-.cart-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid #d8ccbe; padding-bottom:20px; }
-.cart-header h2 { font-size:36px; margin-bottom:0; }
-.cart-header h2 span { font:14px Arial,sans-serif; letter-spacing:0; }
-.cart-list { list-style:none; padding:0; margin:0; }
-.cart-list li { display:grid; grid-template-columns:105px 1fr; gap:18px; padding:20px 0; border-bottom:1px solid #ded2c4; font-size:14px; }
-.cart-list img { width:105px; height:105px; object-fit:cover; }
-.cart-list p { margin:7px 0; color:#625e59; }
-.quantity { display:flex; align-items:center; gap:14px; margin-top:10px; }
-.quantity button { background:transparent; border:1px solid #b7aa9b; width:27px; height:27px; border-radius:50%; cursor:pointer; }
-.cart-total { display:flex; justify-content:space-between; margin-top:25px; }
-.empty-cart { padding:55px 0; }
 @media (max-width:700px) {
  .site-header { height:64px; top:0; padding:0 20px; }
  .brand { font-size:15px; }
@@ -158,12 +145,10 @@ dialog::backdrop { background:#1119; }
  .detail-image { min-height:0; height:260px; }
  .detail-copy { padding:30px 24px; }
  .dialog-close { background:var(--cream); border-radius:50%; }
- .cart-inner { padding:24px; }
 }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; } }
 
-.image-placeholder, .cart-placeholder { display:block; width:100%; height:100%; background:linear-gradient(140deg, #f2dfcb, #eec1a9); }
-.cart-placeholder { width:105px; height:105px; }
+.image-placeholder { display:block; width:100%; height:100%; background:linear-gradient(140deg, #f2dfcb, #eec1a9); }
 .variant-options { display:flex; flex-wrap:wrap; gap:8px; }
 .variant-option { background:transparent; border:1px solid #9c9185; border-radius:999px; padding:8px 13px; cursor:pointer; }
 .variant-option.selected { background:#111217; border-color:#111217; color:white; }

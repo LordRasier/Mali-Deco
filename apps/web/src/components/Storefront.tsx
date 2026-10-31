@@ -56,7 +56,7 @@ export default function Storefront({ data }: { data: StorefrontData }) {
         <a href="/">Volver arriba ↑</a>
       </footer>
 
-      <CartDialog open={cartOpen} onClose={() => setCartOpen(false)} mode={data.mode} items={cart.items} count={cart.count} totals={cart.totals} onAdjust={cart.adjust} removedNotice={cart.removedNotice} status={cart.status} storageUnavailable={cart.storageUnavailable} storageTabOnly={cart.storageTabOnly} unresolved={cart.unresolved} onRetry={cart.retry} />
+      <CartDialog open={cartOpen} onClose={() => setCartOpen(false)} cart={cart} demo={data.mode === 'demo'} />
     </>
   );
 }

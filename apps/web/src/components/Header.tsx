@@ -15,7 +15,7 @@ export function Header({ brand, demo, count, onCartOpen }: { brand: string; demo
       </nav>
       <div className="header-actions">
         <button className="icon-button" aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar'} aria-expanded={searchOpen} aria-controls="store-search" onClick={() => { setSearchOpen(!searchOpen); setMenuOpen(false); }}><Icon name="search" /></button>
-        <button className="icon-button bag-button" aria-label={`Abrir carrito, ${count} productos`} onClick={onCartOpen}><Icon name="bag" />{count > 0 && <span>{count}</span>}</button>
+        <button className="icon-button bag-button" aria-label={`Abrir carrito, ${count} ${count === 1 ? 'unidad' : 'unidades'}`} onClick={onCartOpen}><Icon name="bag" />{count > 0 && <span>{count}</span>}</button>
         <button className="icon-button menu-button" aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={menuOpen} aria-controls="main-nav" onClick={() => { setMenuOpen(!menuOpen); setSearchOpen(false); }}><Icon name={menuOpen ? 'close' : 'menu'} /></button>
       </div>
       {searchOpen && <form id="store-search" className="search-form" action="/catalogo" method="get">

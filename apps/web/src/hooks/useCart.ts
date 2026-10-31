@@ -132,5 +132,9 @@ export function useCart(mode: StorefrontData['mode']) {
     const existing = current.find(line => line.productId === productId && line.variantId === variantId);
     return existing ? changeQuantity(current, productId, variantId, Math.min(999, existing.quantity + difference)) : current;
   }), [update]);
-  return { ready, items, count, totals, add, adjust, removedNotice, status, storageUnavailable, storageTabOnly, retry: () => setRetry(n => n + 1), unresolved: items.some(item => !item.product || !item.variant) || status !== 'idle' };
+  const remove = useCallback((productId: string, variantId: string) => update(current =>
+    current.filter(line => line.productId !== productId || line.variantId !== variantId)), [update]);
+  return { ready, items, count, totals, add, adjust, remove, removedNotice, status, storageUnavailable, storageTabOnly, retry: () => setRetry(n => n + 1), unresolved: items.some(item => !item.product || !item.variant) || status !== 'idle' };
 }
+
+export type CartState = ReturnType<typeof useCart>;
