@@ -14,6 +14,7 @@ export function useProductRoute(initial: Product, total: number, mode: 'demo' | 
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [pageError, setPageError] = useState(false);
+  const [pageConflict, setPageConflict] = useState(false);
   const [revision, setRevision] = useState(0);
   const request = useRef(0);
   const controller = useRef<AbortController | null>(null);
@@ -50,12 +51,15 @@ export function useProductRoute(initial: Product, total: number, mode: 'demo' | 
   const loadMore = useCallback(async () => {
     if (loadingMore || mode !== 'api') return;
     const current = new AbortController(); moreController.current?.abort(); moreController.current = current;
-    setLoadingMore(true); setPageError(false);
+    setLoadingMore(true); setPageError(false); setPageConflict(false);
     try {
       const response = await fetchProductDetail('/api/v1/', initial.slug, page + 1, current.signal);
       if (current.signal.aborted) return;
       if (response.product.id !== initial.id || response.total !== total) throw new Error('El producto cambió');
       const combined = new Map(variantsRef.current.map(item => [item.id, item]));
+      if (response.product.variants.some(item => combined.has(item.id))) {
+        setPageConflict(true); setPageError(true); return;
+      }
       response.product.variants.forEach(item => combined.set(item.id, item));
       variantsRef.current = [...combined.values()]; setVariants(variantsRef.current); setPage(page + 1);
       setSelected(item => item ? combined.get(item.id) ?? item : null);
@@ -63,5 +67,5 @@ export function useProductRoute(initial: Product, total: number, mode: 'demo' | 
     finally { if (!current.signal.aborted) setLoadingMore(false); }
   }, [initial.id, initial.slug, loadingMore, mode, page, total]);
   return { variants, selected, status, warning, choose, retry: () => setRevision(value => value + 1),
-    hasMore: mode === 'api' && page * 100 < total, loadingMore, pageError, loadMore };
+    hasMore: mode === 'api' && page * 100 < total, loadingMore, pageError, pageConflict, loadMore };
 }

@@ -40,8 +40,8 @@ export default function ProductPageView({ data }: { data: { mode: 'demo' | 'api'
           {detail.warning && <p role="alert">{detail.warning}</p>}
           {detail.status === 'loading' && <p role="status">Verificando variante…</p>}
           {detail.status === 'error' && <p role="alert">No pudimos verificar la variante. <button type="button" className="inline-link" onClick={detail.retry}>Reintentar</button></p>}
-          {detail.hasMore && <button type="button" className="inline-link" disabled={detail.loadingMore} onClick={detail.loadMore}>{detail.loadingMore ? 'Cargando variantes…' : 'Mostrar más variantes'}</button>}
-          {detail.pageError && <p role="alert">No pudimos cargar más variantes. <button type="button" className="inline-link" onClick={detail.loadMore}>Reintentar</button></p>}
+          {detail.hasMore && !detail.pageConflict && <button type="button" className="inline-link" disabled={detail.loadingMore} onClick={detail.loadMore}>{detail.loadingMore ? 'Cargando variantes…' : 'Mostrar más variantes'}</button>}
+          {detail.pageError && <p role="alert">{detail.pageConflict ? <>El catálogo cambió durante la carga. <button type="button" className="inline-link" onClick={() => window.location.reload()}>Reiniciar carga</button></> : <>No pudimos cargar más variantes. <button type="button" className="inline-link" onClick={detail.loadMore}>Reintentar</button></>}</p>}
           <button className="button primary add-button" disabled={!selected || !cart.ready || detail.status !== 'ready' || detail.loadingMore || detail.pageError}
             onClick={() => { if (!selected) return; cart.add(product.id, selected.id); setCartOpen(true); }}>Agregar al carrito ↗</button>
           <div className="product-measurements"><h2>Medidas del producto</h2>
@@ -51,6 +51,6 @@ export default function ProductPageView({ data }: { data: { mode: 'demo' | 'api'
       </div>
     </main>
     <footer><a className="brand" href="/">{data.brand}</a><p>Diseño, color y objetos para vivir distinto.</p><a href="#contenido">Volver arriba ↑</a></footer>
-    <CartDialog open={cartOpen} onClose={() => setCartOpen(false)} mode={data.mode} items={cart.items} count={cart.count} totals={cart.totals} onAdjust={cart.adjust} removedNotice={cart.removedNotice} status={cart.status} unresolved={cart.unresolved} onRetry={cart.retry} />
+    <CartDialog open={cartOpen} onClose={() => setCartOpen(false)} mode={data.mode} items={cart.items} count={cart.count} totals={cart.totals} onAdjust={cart.adjust} removedNotice={cart.removedNotice} status={cart.status} storageUnavailable={cart.storageUnavailable} unresolved={cart.unresolved} onRetry={cart.retry} />
   </>;
 }

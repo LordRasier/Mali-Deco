@@ -123,6 +123,6 @@ export default function CatalogListing({ mode, brand }: { mode: StorefrontData['
     <footer><a className="brand" href="/">{brand}</a><p>Diseño, color y objetos para vivir distinto.</p><a href="#contenido">Volver arriba ↑</a></footer>
     <Dialog open={drawer} onClose={() => setDrawer(false)} label="Filtros del catálogo" className="filter-dialog"><div className="filter-dialog-inner"><button className="dialog-close" aria-label="Cerrar filtros" onClick={() => setDrawer(false)}><Icon name="close" /></button>{drawer && query && facets && <FilterControls value={query} facets={facets} mobile onApply={update} onCancel={() => setDrawer(false)} onClear={clear} />}</div></Dialog>
 
-    <CartDialog open={cartOpen} onClose={() => setCartOpen(false)} mode={mode} items={cart.items} count={cart.count} totals={cart.totals} onAdjust={cart.adjust} removedNotice={cart.removedNotice} status={cart.status} unresolved={cart.unresolved} onRetry={cart.retry} />
+    <CartDialog open={cartOpen} onClose={() => setCartOpen(false)} mode={mode} items={cart.items} count={cart.count} totals={cart.totals} onAdjust={cart.adjust} removedNotice={cart.removedNotice} status={cart.status} storageUnavailable={cart.storageUnavailable} unresolved={cart.unresolved} onRetry={cart.retry} />
   </>;
 }
