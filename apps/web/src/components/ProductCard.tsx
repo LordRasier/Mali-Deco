@@ -33,38 +33,38 @@ export function Swatches({ product, selected, onSelect }: SwatchesProps) {
 interface ProductCardProps {
   product: Product;
   demo: boolean;
-  onOpen: () => void;
+  onOpen?: () => void;
 }
 
-export function ProductCard({ product, demo, onOpen }: ProductCardProps) {
+export function ProductCard({ product, demo }: ProductCardProps) {
+  const variant = product.variants[0]?.id;
+  const href = `/productos/${encodeURIComponent(product.slug)}${variant ? `?variant=${encodeURIComponent(variant)}` : ''}`;
   return (
     <article className="product-card">
-      <button
+      <a
         className="product-image"
-        type="button"
-        onClick={onOpen}
+        href={href}
         aria-label={`Ver ${product.name}`}
       >
         {product.image ? <img src={product.image} alt="" loading="lazy" decoding="async" /> : <span className="image-placeholder" aria-hidden="true" />}
         <span className="card-plus" aria-hidden="true">+</span>
-      </button>
+      </a>
       <div className="card-info">
         <div>
-          <h3><button type="button" onClick={onOpen}>{product.name}</button></h3>
+          <h3><a href={href}>{product.name}</a></h3>
           <p>
             {product.variants[0] ? `${product.priceRange && product.priceRange.minMinor !== product.priceRange.maxMinor ? 'Desde ' : ''}${formatPrice(product.variants[0].priceMinor, product.variants[0].currency)}` : 'Sin precio disponible'}
             {demo && <span> · precio de ejemplo</span>}
           </p>
         </div>
         <Swatches product={product} />
-        <button
+        <a
           className="mobile-plus"
-          type="button"
-          onClick={onOpen}
+          href={href}
           aria-label={`Ver ${product.name}`}
         >
           +
-        </button>
+        </a>
       </div>
     </article>
   );

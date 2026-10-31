@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './product-page.css';
 import type { ReactNode } from 'react';
 
 export const dynamic = 'force-dynamic';

@@ -5,6 +5,12 @@ import { parseCatalogQuery } from './catalog-validation';
 import { assertMinorUnits } from './price';
 import { listPublicProducts } from './public-listing';
 
+function publicDimension(value: number | null | undefined): number | null {
+  if (value == null) return null;
+  if (!Number.isSafeInteger(value) || value <= 0) throw new Error('Invalid public product dimension');
+  return value;
+}
+
 export class PublicCatalog {
   constructor(private readonly db?: DataSource) {}
 
@@ -43,6 +49,8 @@ export class PublicCatalog {
       readLookups('categories', [product.categoryId]), readLookups('materials', variants.map(v => v.materialId)), readLookups('colors', variants.map(v => v.colorId)),
     ]);
     return { id: product.id, slug: product.slug, name: product.name, description: product.description,
+      productWidthMm: publicDimension(product.productWidthMm), productHeightMm: publicDimension(product.productHeightMm),
+      productLengthMm: publicDimension(product.productLengthMm),
       category: product.categoryId ? categories.get(product.categoryId) ?? null : null,
       variants: variants.filter(v => v.productId === product.id).map(v => {
         const priceMinor = Number(v.priceMinor); assertMinorUnits(priceMinor);

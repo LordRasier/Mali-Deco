@@ -4,6 +4,9 @@ import type { CatalogPage, ColorLookup, Facets, Lookup, PriceRange, Product, Sto
 
 type Fetcher = typeof fetch;
 type JsonObject = Record<string, unknown>;
+export class CatalogHttpError extends Error {
+  constructor(readonly status: number) { super(`La API del catálogo respondió HTTP ${status}.`); }
+}
 function object(value: unknown, context: string): JsonObject {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Respuesta inválida del catálogo: ${context}`);
   return value as JsonObject;
@@ -68,7 +71,7 @@ export async function catalogRequest(baseUrl: string, path: string, options: Req
   const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
   try { response = await fetcher(new URL(path, base), { ...options, cache: 'no-store', signal }); }
   catch (error) { if ((error as Error).name === 'AbortError') throw error; throw new Error('La API del catálogo no está disponible.', { cause: error }); }
-  if (!response.ok) throw new Error(`La API del catálogo respondió HTTP ${response.status}.`);
+  if (!response.ok) throw new CatalogHttpError(response.status);
   try { return await response.json(); } catch { throw new Error('La API devolvió JSON inválido.'); }
 }
 export async function fetchCatalogPage(base: string, query: CatalogQuery, signal?: AbortSignal, fetcher: Fetcher = fetch): Promise<CatalogPage> {
@@ -103,9 +106,15 @@ export async function fetchFacets(base: string, currency: string, signal?: Abort
 export async function fetchProductDetail(base: string, slug: string, page = 1, signal?: AbortSignal, fetcher: Fetcher = fetch) {
   const limit = 100, params = new URLSearchParams({ page: String(page), limit: String(limit) });
   const result = pageMeta(await catalogRequest(base, `catalog/products/${encodeURIComponent(slug)}?${params}`, { signal }, fetcher), page, limit, 'variants');
+  const dimensions: Record<string, number | null> = {};
+  for (const key of ['productWidthMm', 'productHeightMm', 'productLengthMm']) {
+    const value = result.response[key];
+    if (value !== null && (!Number.isSafeInteger(value) || (value as number) <= 0)) throw new Error('Dimensión de producto inválida');
+    dimensions[key] = value as number | null;
+  }
   const variants = result.items.map(parseVariant);
   if (new Set(variants.map(v => v.id)).size !== variants.length) throw new Error('Variantes duplicadas en el catálogo.');
-  return { product: { ...productBase(result.response), category: parseLookup(result.response.category) as Lookup | null, variants }, page, total: result.total, limit };
+  return { product: { ...productBase(result.response), productWidthMm: dimensions.productWidthMm, productHeightMm: dimensions.productHeightMm, productLengthMm: dimensions.productLengthMm, category: parseLookup(result.response.category) as Lookup | null, variants }, page, total: result.total, limit };
 }
 /** Landing loads one summary page; opening a card fetches detail on demand. No demo fallback. */
 export async function loadApiCatalog(base: string, fetcher: Fetcher = fetch): Promise<StorefrontData> {

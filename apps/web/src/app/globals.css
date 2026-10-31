@@ -238,10 +238,10 @@ dialog::backdrop { background:#1119; }
  .catalog-intro > p:last-child { font-size:14px; line-height:1.5; }
  .catalog-shell { display:block; padding-bottom:55px; }
  .desktop-filters { display:none; }
- .catalog-toolbar { display:grid; grid-template-columns:1fr auto; gap:12px; }
+ .catalog-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; }
  .catalog-search { width:100%; grid-column:1 / -1; }
- .sort-control { justify-content:space-between; }
- .sort-control select { max-width:none; }
+ .sort-control { min-width:0; justify-content:space-between; }
+ .sort-control select { min-width:0; width:100%; max-width:none; }
  .mobile-filter-button { display:block; }
  .listing-grid { grid-template-columns:1fr; }
  .listing-state { padding:30px 0; }

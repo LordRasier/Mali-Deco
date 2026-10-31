@@ -8,6 +8,7 @@ export type Variant = {
 export type Product = {
   id: string; slug: string; name: string; description: string; image?: string; variants: Variant[];
   category?: Lookup | null; priceRange?: PriceRange | null;
+  productWidthMm?: number | null; productHeightMm?: number | null; productLengthMm?: number | null;
 };
 export type StorefrontData = { brand: string; heroImage?: string; products: Product[]; mode: 'demo' | 'api' };
 export type CartLine = { productId: string; variantId: string; quantity: number };

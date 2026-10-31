@@ -6,13 +6,10 @@ import { Header } from './Header';
 import { Hero } from './Hero';
 import { Icon } from './Icons';
 import { ProductCard } from './ProductCard';
-import { ProductDetail } from './ProductDetail';
 import { CartDialog } from './CartDialog';
 import { useCart } from '../hooks/useCart';
-import { useProductDetail } from '../hooks/useProductDetail';
 
 export default function Storefront({ data }: { data: StorefrontData }) {
-  const detail = useProductDetail(data.mode);
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart(data.mode);
   const storyImage = data.mode === 'demo' ? '/storefront/organizador-arco.webp' : data.products[0]?.image;
@@ -32,7 +29,7 @@ export default function Storefront({ data }: { data: StorefrontData }) {
           {data.products.length ? (
             <div className="product-grid">
               {data.products.map(item => (
-                <ProductCard key={item.id} product={item} demo={data.mode === 'demo'} onOpen={() => detail.open(item)} />
+                <ProductCard key={item.id} product={item} demo={data.mode === 'demo'} />
               ))}
             </div>
           ) : <p className="empty">Todavía no hay objetos publicados.</p>}
@@ -58,12 +55,7 @@ export default function Storefront({ data }: { data: StorefrontData }) {
         <p>Diseño, color y objetos para vivir distinto.</p>
         <a href="/">Volver arriba ↑</a>
       </footer>
-      <ProductDetail product={detail.state?.product ?? null} preferredId={detail.state?.preferredId} loading={detail.state?.loading} error={detail.state?.error} warning={detail.state?.warning} hasMore={detail.hasMore} onLoadMore={detail.next} onRetry={detail.retry} demo={data.mode === 'demo'} ready={cart.ready} onClose={detail.close} onAdd={(productId, variantId) => {
-        if (!cart.ready) return;
-        cart.add(productId, variantId);
-        detail.close();
-        setCartOpen(true);
-      }} />
+
       <CartDialog open={cartOpen} onClose={() => setCartOpen(false)} mode={data.mode} items={cart.items} count={cart.count} totals={cart.totals} onAdjust={cart.adjust} removedNotice={cart.removedNotice} status={cart.status} unresolved={cart.unresolved} onRetry={cart.retry} />
     </>
   );

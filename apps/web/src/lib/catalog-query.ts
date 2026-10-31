@@ -45,6 +45,10 @@ export function parseCatalogQuery(params: URLSearchParams): { query: CatalogQuer
     return { query: q, error: null };
   } catch { return { query: emptyCatalogQuery(), error: 'Este enlace contiene filtros inválidos. Borrá los filtros para continuar.' }; }
 }
+/** Invalid URLs require an explicit clear before changes can broaden the query. */
+export function canMutateCatalog(parsed: ReturnType<typeof parseCatalogQuery> | null): boolean {
+  return !!parsed && !parsed.error;
+}
 export function catalogQueryParams(q: CatalogQuery): URLSearchParams {
   const p = new URLSearchParams();
   if (q.search) p.set('search', q.search);
