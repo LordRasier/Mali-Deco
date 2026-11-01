@@ -1,0 +1,11 @@
+# Cotización Zipnova: base desconectada
+
+Este corte agrega un adaptador de opciones múltiples, un contrato para resolver datos confiables de catálogo y embalaje, y pruebas con transporte ficticio. No registra una ruta, transporte de red ni credenciales. El proveedor deshabilitado devuelve `DISABLED`. La implementación existente de Andreani no cambia.
+
+El adaptador recibe identificadores, cantidades y destino; un resolver inyectado debe consultar precios, productos y embalaje del servidor. Sin catálogo o embalaje devuelve indisponibilidad antes de invocar el transporte. El usuario indicó que agrupa los artículos; todavía se deben verificar capacidad real, protección, medidas y pesos de cajas y productos. No se usa cada unidad como bulto ni se inventa una caja.
+
+Se preparan paquetes ya resueltos, con `account_id` y `origin_id` explícitos. Peso en gramos y medidas en centímetros enteros: milímetros no divisibles por diez se rechazan, sin truncamiento. El valor declarado usa precisión monetaria configurada. Se toma `amounts.price_incl_tax` del comprador, sin sumar IVA; la moneda debe configurarse explícitamente. Se ignoran resultados no seleccionables y puntos de retiro ausentes; para retiro se conserva `point_id`. El adaptador separa fallos de configuración, catálogo, logística, destino, autorización, límite, timeout, respuesta y ausencia de opciones. `QuoteSession` invalida el resultado cuando cambia el carrito o destino y descarta respuestas anteriores; debe integrarse con la interfaz al conectar el flujo.
+
+La cuenta tiene cajas configuradas, pero requieren validación física; en una la dimensión interior informada difiere de la exterior y las demás no muestran holgura para protección. La API no documenta moneda en la respuesta de cotización. No hay sandbox confirmado. No se probó tarifa real, ni se creó o pagó envío. Antes de activar: validar catálogo y precios con la base de datos elegida, embalaje, moneda, origen, credenciales y permisos; implementar transporte seguro y límites; probar el flujo completo. No incluir credenciales en archivos versionados, logs o cliente.
+
+Fuentes: [Cotizar envíos, API Zipnova](https://docs.zipnova.com/envios/recursos-api/envios/cotizar-envios) y [autenticación](https://docs.zipnova.com/envios/principios/urls-y-autenticacion).
