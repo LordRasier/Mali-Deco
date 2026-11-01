@@ -52,6 +52,9 @@ const drawer = renderToStaticMarkup(createElement(ShippingProvider,{children:cre
 assert.match(drawer,/Código postal/); assert.match(drawer,/Resumen/); assert.match(drawer,/Ver carrito/);
 assert.match(drawer,/Envío estimado/); assert.match(drawer,/Total estimado/);
 assert.doesNotMatch(drawer,/Opciones de entrega|Calculado en|Subtotal ARS|El pago todavía no está disponible/);
+const compactHeading = drawer.match(/<section class="shipping-estimate shipping-estimate-compact" aria-labelledby="([^"]+)"><h2 id="([^"]+)" class="sr-only">Envío estimado<\/h2>/);
+assert.ok(compactHeading, 'the compact shipping section keeps its accessible heading');
+assert.equal(compactHeading[1],compactHeading[2]);
 const twoViews = renderToStaticMarkup(createElement(ShippingProvider,{children:[createElement(ShippingEstimate,{key:'a',mode:'api',coherent:true,unresolved:false}),createElement(ShippingEstimate,{key:'b',mode:'api',coherent:true,unresolved:false})]}));
 const ids=[...twoViews.matchAll(/id="([^"]+-postal)"/g)].map(match => match[1]);
 assert.equal(ids.length,2); assert.notEqual(ids[0],ids[1]);
