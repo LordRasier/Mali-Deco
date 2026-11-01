@@ -9,7 +9,7 @@ async function bootstrap() {
   }
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1');
-  await app.listen(port);
+  await app.listen(port, '127.0.0.1');
 }
 
 void bootstrap();

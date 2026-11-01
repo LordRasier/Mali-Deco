@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { databaseOptions } from './database/database-options';
 import { DataSource } from 'typeorm';
+import type { DataSourceOptions } from 'typeorm';
+import { StrictDataSource } from './database/strict-data-source';
 import { CatalogController } from './catalog/catalog.controller';
 import { PublicCatalog } from './catalog/public-catalog';
 import { PublicFacets } from './catalog/public-facets';
@@ -23,7 +25,10 @@ if (!process.env.DB_HOST && process.env.NODE_ENV === 'production') {
 }
 
 @Module({
-  imports: process.env.DB_HOST ? [TypeOrmModule.forRoot(databaseOptions())] : [],
+  imports: process.env.DB_HOST ? [TypeOrmModule.forRootAsync({
+    useFactory: databaseOptions,
+    dataSourceFactory: async options => new StrictDataSource(options as DataSourceOptions),
+  })] : [],
   controllers: [AppController, CatalogController, PublicCartController, ShippingQuoteController, AuthController, AdminCatalogController, AdminCategoriesController, AdminMaterialsController, AdminColorsController],
   providers: [
     { provide: PublicFacets, useFactory: (db?: DataSource) => new PublicFacets(db), inject: [{ token: DataSource, optional: true }] },
