@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { validateDatabaseConfig } from './database-config';
 
-test('rejects malformed or incomplete MySQL configuration', () => {
+test('rejects malformed or incomplete MariaDB configuration', () => {
   const valid = { DB_HOST: 'localhost', DB_PORT: '3306', DB_USERNAME: 'dev', DB_PASSWORD: 'example', DB_DATABASE: 'store' };
   assert.deepEqual(validateDatabaseConfig(valid), {
     host: 'localhost', port: 3306, username: 'dev', password: 'example', database: 'store',

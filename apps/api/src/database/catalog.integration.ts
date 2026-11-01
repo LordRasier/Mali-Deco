@@ -11,8 +11,8 @@ import { IdentityService } from '../identity/identity-service';
 import { MysqlIdentityStore } from '../identity/identity-store';
 import { hashPassword } from '../identity/security';
 
-test('migration creates constraints and can be reverted on empty isolated MySQL', {
-  skip: process.env.MYSQL_INTEGRATION !== '1' ? 'requires explicit isolated MySQL configuration' : false,
+test('migration creates constraints and can be reverted on empty isolated MariaDB', {
+  skip: process.env.MARIADB_INTEGRATION !== '1' ? 'requires explicit isolated MariaDB configuration' : false,
 }, async () => {
   if (process.env.DB_DATABASE !== 'store_integration_test' || !['127.0.0.1', 'localhost'].includes(process.env.DB_HOST ?? '')) {
     throw new Error('Integration test requires local store_integration_test database');
@@ -20,6 +20,10 @@ test('migration creates constraints and can be reverted on empty isolated MySQL'
   const db = new DataSource(databaseOptions());
   await db.initialize();
   try {
+    const [server]: Array<{ version: string; checks: number; mode: string }> = await db.query('SELECT VERSION() AS version, @@SESSION.check_constraint_checks AS checks, @@SESSION.sql_mode AS mode');
+    if (!/MariaDB/i.test(server.version) || Number(server.checks) !== 1 || !/STRICT_(?:TRANS|ALL)_TABLES/.test(server.mode)) {
+      throw new Error('Integration test requires MariaDB with CHECK constraints and strict SQL mode enabled');
+    }
     const existing: unknown[] = await db.query('SHOW TABLES');
     if (existing.length) throw new Error('Integration database must be empty');
     await db.runMigrations();
@@ -28,10 +32,14 @@ test('migration creates constraints and can be reverted on empty isolated MySQL'
     await db.query(insert, ['v1', 'p1', 'SKU-1', 'Rojo', 100, 'ARS']);
     await assert.rejects(db.query(insert, ['v2', 'p1', 'SKU-1', 'Azul', 100, 'ARS']), { code: 'ER_DUP_ENTRY' });
     await assert.rejects(db.query(insert, ['v3', 'missing', 'SKU-2', 'Azul', 100, 'ARS']), { code: 'ER_NO_REFERENCED_ROW_2' });
-    await assert.rejects(db.query(insert, ['v4', 'p1', 'SKU-3', 'Azul', 100, 'ar']), { code: 'ER_CHECK_CONSTRAINT_VIOLATED' });
-    await assert.rejects(db.query(insert, ['v5', 'p1', 'SKU-4', 'Azul', '9007199254740992', 'ARS']), { code: 'ER_CHECK_CONSTRAINT_VIOLATED' });
+    await assert.rejects(db.query(insert, ['v4', 'p1', 'SKU-3', 'Azul', 100, 'ars']), { errno: 4025 });
+    await assert.rejects(db.query(insert, ['v5', 'p1', 'SKU-4', 'Azul', '9007199254740992', 'ARS']), { errno: 4025 });
+    await db.query(insert, ['v6', 'p1', 'sku-1', 'Azul', 100, 'ARS']);
+    await assert.rejects(db.query('INSERT INTO products (id, name, description, slug) VALUES (?, ?, ?, ?)', ['p2', 'Pieza', '', 'PIÉZA']), { code: 'ER_DUP_ENTRY' });
     await db.query('INSERT INTO store_settings (id, store_name) VALUES (1, ?)', ['Tienda']);
-    await assert.rejects(db.query('INSERT INTO store_settings (id, store_name) VALUES (2, ?)', ['Otra']), { code: 'ER_CHECK_CONSTRAINT_VIOLATED' });
+    await assert.rejects(db.query('INSERT INTO store_settings (id, store_name) VALUES (2, ?)', ['Otra']), { errno: 4025 });
+    await assert.rejects(db.query('INSERT INTO categories (id, slug, name) VALUES (?, ?, ?)', ['bad-slug', 'MAYUS', 'Inválida']), { errno: 4025 });
+    await assert.rejects(db.query('INSERT INTO colors (id, slug, name, hex) VALUES (?, ?, ?, ?)', ['bad-color', 'color', 'Inválido', '#ff0000']), { errno: 4025 });
     const admin = new CatalogAdmin(db);
     const publicCatalog = new PublicCatalog(db);
     const taxonomy = new CatalogTaxonomy(db);
@@ -89,7 +97,11 @@ test('migration creates constraints and can be reverted on empty isolated MySQL'
     await db.query('INSERT INTO admin_users (id, email, password_hash, role) VALUES (?, ?, ?, ?)', ['owner-test', 'owner@example.test', await hashPassword('temporary-password-only'), 'owner']);
     const store = new MysqlIdentityStore(db);
     assert.equal(await store.user('ówner@example.test'), null);
-    await assert.rejects(db.query('INSERT INTO admin_users (id, email, password_hash, role) VALUES (?, ?, ?, ?)', ['noncanonical', 'ówner@example.test', 'unused', 'owner']), { code: 'ER_CHECK_CONSTRAINT_VIOLATED' });
+    await assert.rejects(db.query('INSERT INTO admin_users (id, email, password_hash, role) VALUES (?, ?, ?, ?)', ['noncanonical', 'ówner@example.test', 'unused', 'owner']), { errno: 4025 });
+    await assert.rejects(db.query('INSERT INTO admin_users (id, email, password_hash, role) VALUES (?, ?, ?, ?)', ['uppercase', 'OTHER@example.test', 'unused', 'owner']), { errno: 4025 });
+    await assert.rejects(db.query('INSERT INTO admin_users (id, email, password_hash, role) VALUES (?, ?, ?, ?)', ['spaces', 'other@example.test ', 'unused', 'owner']), { errno: 4025 });
+    assert.equal(await store.user('OWNER@example.test'), null);
+    assert.equal(await store.user('owner@example.test '), null);
     const identity = new IdentityService(store, 'https://admin.example');
     const login = await identity.login(' OWNER@EXAMPLE.TEST ', 'temporary-password-only', '127.0.0.1', 'https://admin.example');
     assert.equal((await identity.me(login.token)).user.role, 'owner');

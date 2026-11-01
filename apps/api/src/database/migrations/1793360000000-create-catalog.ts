@@ -8,7 +8,7 @@ export class CreateCatalog1793360000000 implements MigrationInterface {
       description TEXT NOT NULL,
       status ENUM('draft', 'active') NOT NULL DEFAULT 'draft',
       CONSTRAINT chk_products_name CHECK (CHAR_LENGTH(TRIM(name)) > 0)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
     await queryRunner.query(`CREATE TABLE product_variants (
       id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
       product_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -21,14 +21,14 @@ export class CreateCatalog1793360000000 implements MigrationInterface {
       CONSTRAINT chk_variants_sku CHECK (CHAR_LENGTH(TRIM(sku)) > 0),
       CONSTRAINT chk_variants_name CHECK (CHAR_LENGTH(TRIM(name)) > 0),
       CONSTRAINT chk_variants_price CHECK (price_minor <= 9007199254740991),
-      CONSTRAINT chk_variants_currency CHECK (REGEXP_LIKE(currency, '^[A-Z]{3}$', 'c'))
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+      CONSTRAINT chk_variants_currency CHECK (currency REGEXP BINARY '^[A-Z]{3}$')
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
     await queryRunner.query(`CREATE TABLE store_settings (
       id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
       store_name VARCHAR(255) NOT NULL,
       CONSTRAINT chk_settings_singleton CHECK (id = 1),
       CONSTRAINT chk_settings_name CHECK (CHAR_LENGTH(TRIM(store_name)) > 0)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {

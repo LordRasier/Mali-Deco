@@ -32,7 +32,7 @@ export class MysqlIdentityStore implements IdentityStore {
     });
   }
   async user(email: string): Promise<AdminUser | null> {
-    const rows: AdminUser[] = await this.database().query('SELECT id, email, password_hash AS passwordHash, role, disabled_at AS disabledAt FROM admin_users WHERE email COLLATE utf8mb4_0900_bin = ? LIMIT 1', [email]);
+    const rows: AdminUser[] = await this.database().query('SELECT id, email, password_hash AS passwordHash, role, disabled_at AS disabledAt FROM admin_users WHERE BINARY email = BINARY ? LIMIT 1', [email]);
     return rows[0] ?? null;
   }
   async createSession(hash: string, userId: string, csrfHash: string, expires: Date, previousHash?: string): Promise<void> {

@@ -4,7 +4,7 @@ import { CategorySchema, ColorSchema, MaterialSchema, ProductSchema, SettingsSch
 
 export function databaseOptions(): DataSourceOptions {
   return {
-    type: 'mysql', ...validateDatabaseConfig(process.env), synchronize: false, timezone: 'Z',
+    type: 'mariadb', ...validateDatabaseConfig(process.env), synchronize: false, timezone: 'Z',
     entities: [ProductSchema, VariantSchema, SettingsSchema, CategorySchema, MaterialSchema, ColorSchema],
     migrations: [__dirname + '/migrations/*{.js,.ts}'],
   };

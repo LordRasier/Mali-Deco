@@ -1,6 +1,6 @@
 # Taxonomías del catálogo (API administrativa)
 
-La migración `1793360400000-CatalogTaxonomy` crea categorías, materiales y colores sin datos de ejemplo. Añade referencias opcionales a productos y variantes, por lo que las filas previas conservan `NULL` y no necesitan un backfill ficticio. Debe aplicarse la migración antes de iniciar la versión de API que usa estas columnas. Como MySQL ejecuta DDL con confirmaciones implícitas, se debe respaldar la base y planificar el despliegue y su recuperación. La reversión elimina las asignaciones y las tres tablas: úsese solo con una copia de seguridad y un plan explícito para esos datos.
+La migración `1793360400000-CatalogTaxonomy` crea categorías, materiales y colores sin datos de ejemplo. Añade referencias opcionales a productos y variantes, por lo que las filas previas conservan `NULL` y no necesitan un backfill ficticio. La adaptación a MariaDB no fue validada contra un servidor real y se limita a una instalación nueva; no usarla sobre bases existentes sin un plan revisado. Como MariaDB ejecuta DDL con confirmaciones implícitas, se debe respaldar la base y planificar el despliegue y su recuperación. La reversión elimina las asignaciones y las tres tablas: úsese solo con una copia de seguridad y un plan explícito para esos datos.
 
 Con el prefijo habitual `/api/v1`, los grupos son `/admin/catalog/categories`, `/admin/catalog/materials` y `/admin/catalog/colors`:
 

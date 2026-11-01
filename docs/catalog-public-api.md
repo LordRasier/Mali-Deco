@@ -1,6 +1,6 @@
 # Catálogo público y carrito
 
-Las rutas conservan el prefijo de la API configurado. Los datos proceden de MySQL; no se crean artículos ni taxonomías de demostración mediante migraciones. Una base no configurada responde 503. Los campos sin clasificar siguen siendo `null` y no se infieren del nombre ni de `supplyMode`.
+Las rutas conservan el prefijo de la API configurado. Los datos proceden de MariaDB; no se crean artículos ni taxonomías de demostración mediante migraciones. Una base no configurada responde 503. Los campos sin clasificar siguen siendo `null` y no se infieren del nombre ni de `supplyMode`.
 
 ## `GET /catalog/products`
 

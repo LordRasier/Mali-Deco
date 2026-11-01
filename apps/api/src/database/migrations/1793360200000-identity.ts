@@ -7,7 +7,7 @@ export class Identity1793360200000 implements MigrationInterface {
       email VARCHAR(255) NOT NULL UNIQUE, password_hash VARCHAR(200) NOT NULL,
       role ENUM('owner', 'catalog', 'operations') NOT NULL,
       disabled_at DATETIME(6) NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
     await q.query(`CREATE TABLE admin_sessions (
       token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
       user_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,

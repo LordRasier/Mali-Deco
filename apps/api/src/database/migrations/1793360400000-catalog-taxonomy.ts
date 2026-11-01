@@ -13,9 +13,9 @@ export class CatalogTaxonomy1793360400000 implements MigrationInterface {
         archived_at DATETIME(6) NULL${hex},
         CONSTRAINT uq_${table}_slug UNIQUE (slug),
         CONSTRAINT chk_${table}_name CHECK (CHAR_LENGTH(TRIM(name)) > 0),
-        CONSTRAINT chk_${table}_slug CHECK (REGEXP_LIKE(slug, '^[a-z0-9]+(-[a-z0-9]+)*$', 'c'))
-        ${table === 'colors' ? ", CONSTRAINT chk_colors_hex CHECK (hex IS NULL OR REGEXP_LIKE(hex, '^#[0-9A-F]{6}$', 'c'))" : ''}
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+        CONSTRAINT chk_${table}_slug CHECK (slug REGEXP BINARY '^[a-z0-9]+(-[a-z0-9]+)*$')
+        ${table === 'colors' ? ", CONSTRAINT chk_colors_hex CHECK (hex IS NULL OR hex REGEXP BINARY '^#[0-9A-F]{6}$')" : ''}
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
     }
     await q.query(`ALTER TABLE products ADD category_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
       ADD CONSTRAINT fk_products_category FOREIGN KEY (category_id) REFERENCES categories(id),

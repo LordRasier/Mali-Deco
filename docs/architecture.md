@@ -1,10 +1,10 @@
 # Decisiones para próximas entregas
 
-La base adopta un monolito modular NestJS, MySQL 8.4 LTS con InnoDB y un frontend Next.js. Las fronteras previstas son identidad, catálogo, inventario, checkout, pedidos, pagos, envíos, medios, ajustes y auditoría. Crear módulos al implementar funcionalidad, no como capas vacías. La API usará `/api/v1` y OpenAPI; generar el cliente desde el contrato, sin compartir entidades ORM con la web.
+La base adopta un monolito modular NestJS, MariaDB 10.4 con InnoDB como objetivo de desarrollo y un frontend Next.js. La compatibilidad con MariaDB aún requiere una prueba real; véase [compatibilidad MariaDB](mariadb-local.md). Las fronteras previstas son identidad, catálogo, inventario, checkout, pedidos, pagos, envíos, medios, ajustes y auditoría. Crear módulos al implementar funcionalidad, no como capas vacías. La API usará `/api/v1` y OpenAPI; generar el cliente desde el contrato, sin compartir entidades ORM con la web.
 
 ## Pedidos, dinero y stock
 
-El dinero se expresa en unidades menores enteras y moneda; no usar flotantes. Conservar snapshots inmutables de artículos, dirección y envío en el pedido. Las reservas de stock por SKU deben usar transacciones y bloqueos en orden estable, sin llamadas de red dentro de la transacción. Un pago tardío con reserva liberada requiere incidencia, no sobreventa. Un inbox/outbox durable en MySQL permitirá procesar eventos de manera recuperable.
+El dinero se expresa en unidades menores enteras y moneda; no usar flotantes. Conservar snapshots inmutables de artículos, dirección y envío en el pedido. Las reservas de stock por SKU deben usar transacciones y bloqueos en orden estable, sin llamadas de red dentro de la transacción. Un pago tardío con reserva liberada requiere incidencia, no sobreventa. Un inbox/outbox durable en MariaDB permitirá procesar eventos de manera recuperable.
 
 ## Pagos
 

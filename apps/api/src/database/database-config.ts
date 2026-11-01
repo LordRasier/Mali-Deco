@@ -1,7 +1,7 @@
 export function validateDatabaseConfig(env: NodeJS.ProcessEnv) {
   function required(name: string): string {
     const value = env[name];
-    if (!value) throw new Error(`${name} is required for MySQL`);
+    if (!value) throw new Error(`${name} is required for MariaDB`);
     return value;
   }
   const port = Number(env.DB_PORT || '3306');
