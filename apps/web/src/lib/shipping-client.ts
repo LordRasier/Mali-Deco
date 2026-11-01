@@ -2,6 +2,14 @@ export type QuoteLine = { productId: string; variantId: string; quantity: number
 export type ShippingDestination = { country: 'AR'; city: string; state: string; postalCode: string };
 export type ShippingOption = { carrierId: number; carrierName: string; serviceCode: string; serviceName: string; logisticType: string; amountMinor: string; currency: string; pickupPoints?: { id: number; description: string }[] };
 export type ShippingResult = { status: 'quoted'; options: ShippingOption[]; packageCount: number } | { status: 'unavailable'; reason: string };
+export type SelectedShipping = { amountMinor: string; currency: string };
+
+/** Never combine amounts in different currencies or treat a missing quote as free. */
+export function selectedShippingTotal(totals: Record<string, bigint>, shipping: SelectedShipping | null): { currency: string; amountMinor: bigint } | null {
+  const entries = Object.entries(totals);
+  if (!shipping || entries.length !== 1 || entries[0][0] !== shipping.currency || !/^(0|[1-9]\d*)$/.test(shipping.amountMinor)) return null;
+  return { currency: shipping.currency, amountMinor: entries[0][1] + BigInt(shipping.amountMinor) };
+}
 
 export function shippingKey(lines: QuoteLine[], destination: ShippingDestination): string {
   return JSON.stringify([lines.map(line => [line.productId, line.variantId, line.quantity]), destination.country, destination.city, destination.state, destination.postalCode]);

@@ -9,7 +9,7 @@ const destination = { country: 'AR' as const, postalCode: '7600', city: 'Mar del
 const parcel = { widthMm: 160, heightMm: 120, lengthMm: 190, weightGrams: 1000, classificationId: '1' };
 const resolved = { destination, packages: [parcel], declaredValue: 123.45 };
 const intent: QuoteIntent = { destination, lines: [{ productId: 'p1', variantId: 'v1', quantity: 2 }] };
-const option = { selectable: true, impediments: null, logistic_type: 'carrier_dropoff', carrier: { id: 1, name: 'Correo' }, service_type: { code: 'standard_delivery', name: 'Domicilio' }, amounts: { price_incl_tax: 121.25, seller_price: 1 } };
+const option = { selectable: true, impediments: null, logistic_type: 'carrier_dropoff', carrier: { id: 1, name: 'Correo' }, service_type: { code: 'standard_delivery', name: 'Domicilio' }, amounts: { price_incl_tax: '121.25', seller_price: 1 } };
 
 test('serializes trusted, already packed parcels with exact units', () => {
   const result = serializeZipnovaQuote(resolved, config);
@@ -18,6 +18,7 @@ test('serializes trusted, already packed parcels with exact units', () => {
   for (const widthMm of [161, 0, -1, 1.5, 50001]) assert.throws(() => serializeZipnovaQuote({ ...resolved, packages: [{ ...parcel, widthMm }] }, config));
   assert.throws(() => serializeZipnovaQuote({ ...resolved, packages: [] }, config));
   assert.throws(() => serializeZipnovaQuote({ ...resolved, declaredValue: 12.345 }, config));
+  assert.throws(() => serializeZipnovaQuote({ ...resolved, declaredValue: Number('70368744177664.01') }, config));
 });
 
 test('dynamic packaging sends one trusted item per purchased unit, never one package per unit', () => {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createZipnovaTransport } from './zipnova-transport';
-import { serializeZipnovaQuote } from './zipnova';
+import { parseZipnovaQuote, serializeZipnovaQuote } from './zipnova';
 
 const config = { accountId: 4, originId: 8, source: 'test', currency: 'ARS', exponent: 2 };
 const payload = serializeZipnovaQuote({ destination: { country: 'AR', postalCode: '7600', city: 'Mar del Plata', state: 'Buenos Aires' }, declaredValue: 5, packages: [{ widthMm: 100, heightMm: 100, lengthMm: 100, weightGrams: 100, classificationId: '1' }] }, config);
@@ -43,5 +43,26 @@ test('rejects oversized or malformed successful responses', async () => {
     const transport = createZipnovaTransport(env, async () => new Response(body, { status: 200 }));
     assert.ok(transport);
     assert.deepEqual(await transport(payload), { status: 200, body: null });
+  }
+});
+
+test('preserves the original JSON monetary digits even when Number would round them', async () => {
+  const env = { ZIPNOVA_ENABLED: 'true', ZIPNOVA_API_TOKEN: 'test-token', ZIPNOVA_API_SECRET: 'test-secret' };
+  const body = '{"all_results":[{"selectable":true,"impediments":null,"logistic_type":"carrier_dropoff","carrier":{"id":1,"name":"Correo"},"service_type":{"code":"standard_delivery","name":"Domicilio"},"amounts":{"price_incl_tax":70368744177664.01}}]}';
+  const transport = createZipnovaTransport(env, async () => new Response(body, { status: 200 }));
+  assert.ok(transport);
+  const response = await transport(payload);
+  assert.equal(parseZipnovaQuote(response.body, config)[0].amountMinor, '7036874417766401');
+});
+
+test('cancels error response streams for each unsuccessful status', async () => {
+  const env = { ZIPNOVA_ENABLED: 'true', ZIPNOVA_API_TOKEN: 'test-token', ZIPNOVA_API_SECRET: 'test-secret' };
+  for (const status of [401, 403, 422, 429, 500]) {
+    let cancelled = false;
+    const stream = new ReadableStream({ cancel() { cancelled = true; } });
+    const transport = createZipnovaTransport(env, async () => new Response(stream, { status }));
+    assert.ok(transport);
+    assert.deepEqual(await transport(payload), { status, body: null });
+    assert.equal(cancelled, true);
   }
 });

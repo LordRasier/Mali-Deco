@@ -36,6 +36,10 @@ assert.match(unresolvedRow, /Artículo 2 pendiente de verificación/); assert.ma
 const summary = renderToStaticMarkup(createElement(CartSummary, { totals: { ARS: 100n, USD: 200n }, unresolved: true }));
 assert.match(summary, /Subtotal ARS/); assert.match(summary, /Subtotal USD/);
 assert.match(summary, /Subtotal parcial/); assert.match(summary, /A calcular/);
+const selectedSummary = renderToStaticMarkup(createElement(CartSummary, { totals: { ARS: 2000n }, unresolved: false, shipping: { amountMinor: '500', currency: 'ARS' } }));
+assert.match(selectedSummary, /Total estimado/); assert.match(selectedSummary, /25,00/);
+const mixedSummary = renderToStaticMarkup(createElement(CartSummary, { totals: { ARS: 2000n, USD: 100n }, unresolved: false, shipping: { amountMinor: '500', currency: 'ARS' } }));
+assert.doesNotMatch(mixedSummary, /Total estimado<\/dt>/); assert.match(mixedSummary, /monedas diferentes/);
 const shipping = renderToStaticMarkup(createElement(ShippingEstimate, { mode: 'demo', lines: [{ productId: 'p1', variantId: 'coral', quantity: 2 }], unresolved: false }));
 assert.match(shipping, /Código postal/); assert.match(shipping, /modo de demostración/);
 assert.match(shipping, /disabled/); assert.doesNotMatch(shipping, /gratis|Andreani/i);

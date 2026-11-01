@@ -22,7 +22,14 @@ async function readJson(response: Response): Promise<unknown> {
       if (size > maxResponseBytes) { await reader.cancel(); return null; }
       chunks.push(part.value);
     }
-    try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return null; }
+    try {
+      return JSON.parse(Buffer.concat(chunks).toString('utf8'), function (key, value: unknown, ...contexts: [{ source?: string }?]) {
+        if (key !== 'price_incl_tax') return value;
+        // Node 24 exposes the original primitive token, before IEEE-754 rounding.
+        const context = contexts[0];
+        return typeof value === 'number' && typeof context?.source === 'string' ? context.source : null;
+      });
+    } catch { return null; }
   } finally { reader.releaseLock(); }
 }
 
@@ -41,7 +48,9 @@ export function createZipnovaTransport(env: ZipnovaEnv, fetcher: typeof fetch = 
         headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: authorization },
         body: JSON.stringify(payload),
       });
-      const body = response.status >= 200 && response.status < 300 ? await readJson(response) : null;
+      let body: unknown = null;
+      if (response.status >= 200 && response.status < 300) body = await readJson(response);
+      else if (response.body) await response.body.cancel();
       return { status: response.status, body };
     } catch {
       const error = new Error('Zipnova request failed');

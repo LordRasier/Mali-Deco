@@ -39,7 +39,10 @@ function base(shipment: { destination: Destination; declaredValue: number }, con
   validateZipnovaConfig(config);
   validateDestination(shipment.destination);
   if (!Number.isFinite(shipment.declaredValue) || shipment.declaredValue < 0 || shipment.declaredValue > Number.MAX_SAFE_INTEGER) throw new Error('Invalid declared value');
-  minor(shipment.declaredValue, config.exponent);
+  // The catalog resolver has checked the exact decimal representation; cap the
+  // Number used in JSON so distinct minor units remain distinguishable.
+  if (shipment.declaredValue >= 10 ** (15 - config.exponent)) throw new Error('Unsafe declared value');
+  minorDecimal(String(shipment.declaredValue), config.exponent);
   return {
     account_id: config.accountId, origin_id: config.originId, source: text(config.source), declared_value: shipment.declaredValue,
     destination: { city: text(shipment.destination.city), state: text(shipment.destination.state), zipcode: text(shipment.destination.postalCode, 16) },
@@ -73,10 +76,9 @@ export function parsePackageCount(body: unknown): number {
   }
   return packages.length;
 }
-function minor(value: unknown, exponent: number): string {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > Number.MAX_SAFE_INTEGER) throw new Error('Invalid price');
-  const decimal = String(value);
-  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(decimal)) throw new Error('Invalid price');
+function minorDecimal(value: unknown, exponent: number): string {
+  if (typeof value !== 'string' || value.length > 30 || !/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value)) throw new Error('Invalid price');
+  const decimal = value;
   const [whole, fraction = ''] = decimal.split('.');
   if (fraction.length > exponent) throw new Error('Invalid precision');
   const amount = BigInt(whole) * 10n ** BigInt(exponent) + BigInt((fraction + '0'.repeat(exponent)).slice(0, exponent) || '0');
@@ -103,7 +105,7 @@ export function parseZipnovaQuote(body: unknown, config: ZipnovaConfig): Deliver
         return { id: integer(p.point_id, 1, Number.MAX_SAFE_INTEGER), description: text(p.description) };
       });
     }
-    options.push({ carrierId: integer(carrier.id, 1, Number.MAX_SAFE_INTEGER), carrierName: text(carrier.name), logisticType: text(row.logistic_type), serviceCode, serviceName: text(service.name), amountMinor: minor(amounts.price_incl_tax, config.exponent), currency: config.currency, ...(pickupPoints ? { pickupPoints } : {}) });
+    options.push({ carrierId: integer(carrier.id, 1, Number.MAX_SAFE_INTEGER), carrierName: text(carrier.name), logisticType: text(row.logistic_type), serviceCode, serviceName: text(service.name), amountMinor: minorDecimal(amounts.price_incl_tax, config.exponent), currency: config.currency, ...(pickupPoints ? { pickupPoints } : {}) });
   }
   return options;
 }
