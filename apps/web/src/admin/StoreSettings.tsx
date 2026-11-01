@@ -53,7 +53,7 @@ export function StoreSettings() {
     {!loading && !loaded && <button type="button" onClick={() => setRevision(value => value + 1)}>Reintentar</button>}
     {!loading && loaded && error && <button type="button" disabled={busy} onClick={() => setRevision(value => value + 1)}>Recargar ajustes</button>}
     {loaded && <form className="admin-form" onSubmit={save}>
-      <label>Nombre visible<input value={name} maxLength={510} onChange={event => { setName(event.target.value); setSaved(false); }} required /></label>
+      <label>Nombre visible<input value={name} maxLength={510} onChange={event => { setName(event.target.value); setSaved(false); }} disabled={busy} required /></label>
       <div><button className="primary" type="submit" disabled={busy || !csrf}>{busy ? 'Guardando…' : 'Guardar nombre'}</button></div>
       {saved && <p role="status">Nombre guardado.</p>}
     </form>}

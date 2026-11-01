@@ -40,6 +40,7 @@ function hookRunner(React, renderHook) {
     },
     useMemo: memo,
     useCallback: (callback, dependencies) => memo(() => callback, dependencies),
+    useSyncExternalStore(subscribe, getSnapshot) { void subscribe; return getSnapshot(); },
   };
   runner.flush = () => {
     let cycles = 0;
