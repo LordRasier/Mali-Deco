@@ -25,8 +25,17 @@ async function check() {
   session.syncCart('api',[{...lines[0],quantity:2}],false,'ARS:4900000');
   assert.equal(session.getSnapshot().selection,null); assert.equal(session.getSnapshot().quote,null);
   await wait(); assert.equal(lookups,1); assert.equal(quotes,2);
-  session.select(0,7); clock += 300001; session.expireIfNeeded();
+  session.select(0,7);
+  const originalExpiry=session.getSnapshot().selection?.shipping.validUntil;
+  clock += 299000;
+  // Returning to the same cart must keep the original deadline, never extend it.
+  session.syncCart('api',[{...lines[0],quantity:2}],true,'');
+  session.syncCart('api',[{...lines[0],quantity:2}],false,'ARS:4900000'); session.activate();
+  assert.equal(session.getSnapshot().selection?.shipping.validUntil,originalExpiry);
+  assert.equal(session.getSnapshot().candidateId,a.id); assert.equal(quotes,2);
+  clock += 1001; session.expireIfNeeded();
   assert.equal(session.getSnapshot().selection,null); assert.equal(session.getSnapshot().expired,true);
+  assert.equal(session.getSnapshot().candidateId,a.id);
   session.setPostalCode('7601'); assert.equal(session.getSnapshot().quote,null); await wait(); assert.equal(session.getSnapshot().lookup.status,'not_found');
   session.syncCart('demo',lines,false); session.setPostalCode('7600'); await wait(); assert.equal(lookups,2); assert.equal(quotes,2);
   assert.equal(readSavedPostalCode('7600'),'7600'); assert.equal(readSavedPostalCode('x'.repeat(17)),null);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { formatPrice } from '../lib/cart';
 import type { CartLine, Product, Variant } from '../lib/storefront-types';
 
@@ -20,7 +21,7 @@ export function CartItemRow({ item, position, demo, onAdjust, onRemove }: Props)
   return <li className="cart-item">
     <div className="cart-item-media">{image ? <img className="cart-item-image" src={image} alt="" onError={() => setBrokenImage(image)} /> : <div className="cart-item-placeholder" role="img" aria-label="Imagen no disponible" />}{image && demo && <span className="cart-image-note">Imagen de ejemplo</span>}</div>
     <div className="cart-item-info">
-      <h3>{href ? <a href={href} data-cart-row-focus>{name}</a> : <span tabIndex={-1} data-cart-row-focus>{name}</span>}</h3>
+      <h3>{href ? <Link href={href} data-cart-row-focus>{name}</Link> : <span tabIndex={-1} data-cart-row-focus>{name}</span>}</h3>
       <p>{variantName}{variant?.material?.name ? ` · ${variant.material.name}` : ''}{extraColor ? ` · Color: ${extraColor}` : ''}</p>
       <p className="cart-unit-price">{variant ? `${formatPrice(variant.priceMinor, variant.currency)} c/u` : 'Precio pendiente'}{variant && demo ? ' · ejemplo' : ''}</p>
       <div className="cart-item-actions">
