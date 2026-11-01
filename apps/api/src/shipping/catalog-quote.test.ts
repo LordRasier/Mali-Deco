@@ -50,7 +50,7 @@ test('preserves valid Unicode product names of 151 and 255 characters in the pro
 
 test('disabled service never calls catalog or transport', async () => {
   let calls = 0;
-  const service = new ShippingQuoteService(async () => { calls++; return { status: 'quoted', options: [] }; });
+  const service = new ShippingQuoteService(async () => { calls++; return { status: 'quoted', options: [], quotedAt: 1, validUntil: 2 }; });
   assert.deepEqual(await service.quote(intent), { status: 'unavailable', reason: 'DISABLED' });
   assert.equal(calls, 0);
   const dbCalls: unknown[] = [];
@@ -59,7 +59,7 @@ test('disabled service never calls catalog or transport', async () => {
   assert.equal(dbCalls.length, 0);
 });
 
-const enabledEnv = { ZIPNOVA_ENABLED: 'true', ZIPNOVA_LOGISTICS_VALIDATED: 'true', ZIPNOVA_API_TOKEN: 'fake-token', ZIPNOVA_API_SECRET: 'fake-secret', ZIPNOVA_ACCOUNT_ID: '4', ZIPNOVA_ORIGIN_ID: '8', ZIPNOVA_CURRENCY: 'ARS', ZIPNOVA_CURRENCY_EXPONENT: '2' };
+const enabledEnv = { NODE_ENV: 'development', ZIPNOVA_OPERATOR_ORIGIN: 'http://127.0.0.1:3000', ZIPNOVA_ENABLED: 'true', ZIPNOVA_LOGISTICS_VALIDATED: 'true', ZIPNOVA_API_TOKEN: 'fake-token', ZIPNOVA_API_SECRET: 'fake-secret', ZIPNOVA_ACCOUNT_ID: '4', ZIPNOVA_ORIGIN_ID: '8', ZIPNOVA_CURRENCY: 'ARS', ZIPNOVA_CURRENCY_EXPONENT: '2' };
 
 test('configuration and authoritative catalog failures never invoke network', async () => {
   let calls = 0;
@@ -71,6 +71,7 @@ test('configuration and authoritative catalog failures never invoke network', as
     { ...enabledEnv, ZIPNOVA_CURRENCY_EXPONENT: '' },
     { ...enabledEnv, ZIPNOVA_ENABLED: 'yes' },
   ]) assert.deepEqual(await pendingShippingService(database([row]), env, fetcher).quote(intent), { status: 'unavailable', reason: 'CONFIG_UNAVAILABLE' });
+  assert.deepEqual(await pendingShippingService(database([row]), { ...enabledEnv, NODE_ENV: 'production' }, fetcher).quote(intent), { status: 'unavailable', reason: 'DISABLED' });
   assert.deepEqual(await pendingShippingService(undefined, enabledEnv, fetcher).quote(intent), { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' });
   assert.deepEqual(await pendingShippingService(database([{ ...row, widthMm: null }]), enabledEnv, fetcher).quote(intent), { status: 'unavailable', reason: 'LOGISTICS_UNAVAILABLE' });
   assert.equal(calls, 0);

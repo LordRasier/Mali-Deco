@@ -1,9 +1,11 @@
-import { BadRequestException, Body, Controller, HttpCode, Inject, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, HttpCode, Inject, Post, Req } from '@nestjs/common';
 import type { DataSource } from 'typeorm';
 import type { MoneyConfig } from './shipping.types';
 import { ZipnovaQuoteAdapter, type QuoteIntent, type ShippingOptionsResult, type TrustedResolver } from './zipnova-provider';
 import { validateDestination, validateZipnovaConfig, type ZipnovaConfig } from './zipnova';
 import { createZipnovaTransport } from './zipnova-transport';
+import { isLocalQuoteRequest, localOperatorOrigin } from './local-quote-guard';
+import type { IncomingMessage } from 'node:http';
 
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new BadRequestException('Solicitud de envío inválida');
@@ -78,9 +80,9 @@ export class ShippingQuoteService {
 }
 /** Compose only after explicit operator activation and confirmation of logistics data. */
 export function pendingShippingService(db: DataSource | undefined, env: NodeJS.ProcessEnv, fetcher?: typeof fetch): ShippingQuoteService {
-  if (!env.ZIPNOVA_ENABLED || env.ZIPNOVA_ENABLED === 'false') return new ShippingQuoteService();
+  if (env.NODE_ENV !== 'development' || !env.ZIPNOVA_ENABLED || env.ZIPNOVA_ENABLED === 'false') return new ShippingQuoteService();
   try {
-    if (env.ZIPNOVA_ENABLED !== 'true' || env.ZIPNOVA_LOGISTICS_VALIDATED !== 'true' || !/^[1-9]\d*$/.test(env.ZIPNOVA_ACCOUNT_ID ?? '') || !/^[1-9]\d*$/.test(env.ZIPNOVA_ORIGIN_ID ?? '') || !/^[0-3]$/.test(env.ZIPNOVA_CURRENCY_EXPONENT ?? '')) throw new Error('Incomplete Zipnova configuration');
+    if (env.ZIPNOVA_ENABLED !== 'true' || !localOperatorOrigin(env) || env.ZIPNOVA_LOGISTICS_VALIDATED !== 'true' || !/^[1-9]\d*$/.test(env.ZIPNOVA_ACCOUNT_ID ?? '') || !/^[1-9]\d*$/.test(env.ZIPNOVA_ORIGIN_ID ?? '') || !/^[0-3]$/.test(env.ZIPNOVA_CURRENCY_EXPONENT ?? '')) throw new Error('Incomplete Zipnova configuration');
     const config: ZipnovaConfig = { accountId: Number(env.ZIPNOVA_ACCOUNT_ID), originId: Number(env.ZIPNOVA_ORIGIN_ID), source: 'storefront', currency: env.ZIPNOVA_CURRENCY ?? '', exponent: Number(env.ZIPNOVA_CURRENCY_EXPONENT) };
     validateZipnovaConfig(config);
     const transport = createZipnovaTransport(env, fetcher);
@@ -94,5 +96,8 @@ export function pendingShippingService(db: DataSource | undefined, env: NodeJS.P
 export class ShippingQuoteController {
   constructor(@Inject(ShippingQuoteService) private readonly service: ShippingQuoteService) {}
   @Post('quote') @HttpCode(200)
-  quote(@Body() body: unknown) { return this.service.quote(body); }
+  quote(@Body() body: unknown, @Req() request: IncomingMessage) {
+    if (!isLocalQuoteRequest(request, process.env)) throw new ForbiddenException();
+    return this.service.quote(body);
+  }
 }

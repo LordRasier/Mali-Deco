@@ -6,6 +6,37 @@ import { parseZipnovaQuote, serializeZipnovaQuote } from './zipnova';
 const config = { accountId: 4, originId: 8, source: 'test', currency: 'ARS', exponent: 2 };
 const payload = serializeZipnovaQuote({ destination: { country: 'AR', postalCode: '7600', city: 'Mar del Plata', state: 'Buenos Aires' }, declaredValue: 5, packages: [{ widthMm: 100, heightMm: 100, lengthMm: 100, weightGrams: 100, classificationId: '1' }] }, config);
 
+test('bounds provider concurrency when hundreds of requests arrive together', async () => {
+  const env = { ZIPNOVA_ENABLED: 'true', ZIPNOVA_API_TOKEN: 'test-token', ZIPNOVA_API_SECRET: 'test-secret' };
+  let calls = 0; const releases: (() => void)[] = [];
+  const fakeFetch: typeof fetch = async () => { calls++; await new Promise<void>(resolve => releases.push(resolve)); return new Response('{"all_results":[]}', { status: 200 }); };
+  const transport = createZipnovaTransport(env, fakeFetch)!;
+  const pending = Array.from({ length: 501 }, () => transport(payload));
+  await new Promise(resolve => setImmediate(resolve));
+  const started = calls;
+  releases.forEach(resolve => resolve());
+  const results = await Promise.all(pending);
+  assert.equal(started, 2);
+  assert.equal(results.filter(result => result.status === 200).length, 2);
+  assert.equal(results.filter(result => result.status === 429).length, 499);
+});
+
+test('honors Retry-After and limits the local request budget', async () => {
+  const env = { ZIPNOVA_ENABLED: 'true', ZIPNOVA_API_TOKEN: 'test-token', ZIPNOVA_API_SECRET: 'test-secret' };
+  let calls = 0; let now = 1700000000000;
+  const fakeFetch: typeof fetch = async () => { calls++; return calls === 1 ? new Response(null, { status: 429, headers: { 'Retry-After': '120' } }) : new Response('{"all_results":[]}', { status: 200 }); };
+  const transport = createZipnovaTransport(env, fakeFetch, () => now)!;
+  assert.equal((await transport(payload)).status, 429);
+  now += 119999;
+  assert.equal((await transport(payload)).status, 429);
+  assert.equal(calls, 1);
+  now++;
+  assert.equal((await transport(payload)).status, 200);
+  for (let i = 0; i < 9; i++) assert.equal((await transport(payload)).status, 200);
+  assert.equal((await transport(payload)).status, 429);
+  assert.equal(calls, 11);
+});
+
 test('transport is disabled by default and rejects incomplete or invalid configuration', () => {
   let calls = 0;
   const fakeFetch: typeof fetch = async () => { calls++; throw new Error('not called'); };

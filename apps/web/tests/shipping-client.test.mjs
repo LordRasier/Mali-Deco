@@ -16,19 +16,25 @@ test('requires non-whitespace destination fields before calculation', () => {
 });
 
 test('adds a selected quote exactly only when the whole cart uses the same currency', () => {
-  const shipping = { amountMinor: '1250', currency: 'ARS' };
+  const shipping = { amountMinor: '1250', currency: 'ARS', validUntil: Date.now() + 30000 };
   assert.deepEqual(selectedShippingTotal({ ARS: 9007199254740991n }, shipping), { currency: 'ARS', amountMinor: 9007199254742241n });
   assert.equal(selectedShippingTotal({ USD: 100n }, shipping), null);
   assert.equal(selectedShippingTotal({ ARS: 100n, USD: 200n }, shipping), null);
   assert.equal(selectedShippingTotal({}, shipping), null);
   assert.equal(selectedShippingTotal({ ARS: 100n }, null), null);
+  assert.equal(selectedShippingTotal({ ARS: 100n }, { ...shipping, validUntil: Date.now() - 1 }), null);
 });
 
 test('validates provider results and rejects fabricated or incomplete options', () => {
   assert.deepEqual(parseShippingResult({ status: 'unavailable', reason: 'DISABLED' }), { status: 'unavailable', reason: 'DISABLED' });
   const option = { carrierId: 1, carrierName: 'Correo', serviceCode: 'standard_delivery', serviceName: 'Domicilio', logisticType: 'carrier_dropoff', amountMinor: '12345', currency: 'ARS' };
-  assert.equal(parseShippingResult({ status: 'quoted', options: [option], packageCount: 2 }).status, 'quoted');
-  assert.throws(() => parseShippingResult({ status: 'quoted', options: [{ ...option, amountMinor: '-1' }], packageCount: 2 }));
-  assert.throws(() => parseShippingResult({ status: 'quoted', options: [option] }));
-  assert.throws(() => parseShippingResult({ status: 'quoted', options: [{ ...option, serviceCode: 'pickup_point', pickupPoints: [] }], packageCount: 1 }));
+  const quotedAt = Date.now(); const validUntil = quotedAt + 300000;
+  assert.equal(parseShippingResult({ status: 'quoted', options: [option], packageCount: 2, quotedAt, validUntil }).status, 'quoted');
+  assert.throws(() => parseShippingResult({ status: 'quoted', options: [option], packageCount: 2 }));
+  assert.throws(() => parseShippingResult({ status: 'quoted', options: [option], packageCount: 2, quotedAt: quotedAt - 300001, validUntil: quotedAt - 1 }));
+  assert.throws(() => parseShippingResult({ status: 'quoted', options: [option], packageCount: 2, quotedAt, validUntil: quotedAt + 300001 }));
+  assert.throws(() => parseShippingResult({ status: 'quoted', options: [option], packageCount: 2, quotedAt: quotedAt + 1000, validUntil: validUntil + 1000 }));
+  assert.throws(() => parseShippingResult({ status: 'quoted', options: [{ ...option, amountMinor: '-1' }], packageCount: 2, quotedAt, validUntil }));
+  assert.throws(() => parseShippingResult({ status: 'quoted', options: [option], quotedAt, validUntil }));
+  assert.throws(() => parseShippingResult({ status: 'quoted', options: [{ ...option, serviceCode: 'pickup_point', pickupPoints: [] }], packageCount: 1, quotedAt, validUntil }));
 });

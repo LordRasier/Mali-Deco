@@ -2,7 +2,7 @@
   "name": "@store/web",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs"

@@ -6,21 +6,33 @@ import { parseShippingResult, shippingDestinationErrors, shippingKey, type Quote
 
 export function ShippingEstimate({ mode, lines, unresolved, destination: draft, onDestinationChange, onSelectionChange }: { mode: 'api' | 'demo'; lines: QuoteLine[]; unresolved: boolean; destination: ShippingDestination; onDestinationChange: (destination: ShippingDestination) => void; onSelectionChange?: (selection: SelectedShipping | null) => void }) {
   const [response, setResponse] = useState<{ key: string; value: ShippingResult } | null>(null);
-  const [loadingKey, setLoadingKey] = useState(''), [errorKey, setErrorKey] = useState(''), [selection, setSelection] = useState('');
+  const [loadingKey, setLoadingKey] = useState(''), [errorKey, setErrorKey] = useState(''), [selection, setSelection] = useState(''), [expiredKey, setExpiredKey] = useState('');
   const active = useRef<AbortController | null>(null);
   const destination = { country: 'AR' as const, city: draft.city.trim(), state: draft.state.trim(), postalCode: draft.postalCode.trim() };
   const errors = shippingDestinationErrors(draft);
   const key = shippingKey(lines, destination);
   useEffect(() => () => active.current?.abort(), []);
-  function invalidate() { active.current?.abort(); setResponse(null); setLoadingKey(''); setErrorKey(''); setSelection(''); onSelectionChange?.(null); }
+  function invalidate() { active.current?.abort(); setResponse(null); setLoadingKey(''); setErrorKey(''); setSelection(''); setExpiredKey(''); onSelectionChange?.(null); }
   const result = response?.key === key ? response.value : null;
   const loading = loadingKey === key;
+  const validUntil = result?.status === 'quoted' ? result.validUntil : null;
+  useEffect(() => {
+    if (validUntil === null) return;
+    function expireIfNeeded() {
+      if (Date.now() < validUntil!) return;
+      setResponse(null); setSelection(''); setExpiredKey(key); onSelectionChange?.(null);
+    }
+    const timer = window.setTimeout(expireIfNeeded, Math.max(0, validUntil - Date.now()));
+    window.addEventListener('focus', expireIfNeeded);
+    document.addEventListener('visibilitychange', expireIfNeeded);
+    return () => { window.clearTimeout(timer); window.removeEventListener('focus', expireIfNeeded); document.removeEventListener('visibilitychange', expireIfNeeded); };
+  }, [validUntil, key, onSelectionChange]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (mode !== 'api' || unresolved || errors.city || errors.state || errors.postalCode || loading) return;
     active.current?.abort();
     const controller = new AbortController(); active.current = controller;
-    setLoadingKey(key); setErrorKey(''); setResponse(null); setSelection(''); onSelectionChange?.(null);
+    setLoadingKey(key); setErrorKey(''); setExpiredKey(''); setResponse(null); setSelection(''); onSelectionChange?.(null);
     try {
       const request = await fetch('/api/v1/shipping/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lines, destination }), signal: controller.signal });
       if (!request.ok) throw new Error('No disponible');
@@ -48,11 +60,12 @@ export function ShippingEstimate({ mode, lines, unresolved, destination: draft, 
     <div aria-live="polite">
       {unresolved && <p>Esperá a que se verifiquen los artículos del carrito.</p>}
       {errorKey === key && <p>No se pudo consultar el envío. Intentá más tarde.</p>}
+      {expiredKey === key && <p>La cotización venció. Volvé a calcular el envío.</p>}
       {result?.status === 'unavailable' && <p>{result.reason === 'NO_OPTIONS' ? 'No hay opciones disponibles para este destino.' : 'El cálculo de envío no está disponible por el momento.'}</p>}
       {result?.status === 'quoted' && <><p>Calculado en {result.packageCount} bulto{result.packageCount === 1 ? '' : 's'}.</p>
         <fieldset><legend>Opciones de entrega</legend>{result.options.flatMap((option, index) => {
           const choices = option.pickupPoints?.length ? option.pickupPoints.map(point => ({ key: `${index}:${point.id}`, label: point.description })) : [{ key: `${index}`, label: option.serviceName }];
-          return choices.map(choice => <label key={choice.key}><input type="radio" name="shipping-option" value={choice.key} checked={selection === choice.key} onChange={() => { setSelection(choice.key); onSelectionChange?.({ amountMinor: option.amountMinor, currency: option.currency }); }} /> {option.carrierName} · {choice.label} · {formatPrice(BigInt(option.amountMinor), option.currency)}</label>);
+          return choices.map(choice => <label key={choice.key}><input type="radio" name="shipping-option" value={choice.key} checked={selection === choice.key} onChange={() => { if (Date.now() >= result.validUntil) { invalidate(); setExpiredKey(key); return; } setSelection(choice.key); onSelectionChange?.({ amountMinor: option.amountMinor, currency: option.currency, validUntil: result.validUntil }); }} /> {option.carrierName} · {choice.label} · {formatPrice(BigInt(option.amountMinor), option.currency)}</label>);
         })}</fieldset>{selection && <p>Selección estimada; el pago todavía no está disponible.</p>}</>}
     </div>
   </section>;

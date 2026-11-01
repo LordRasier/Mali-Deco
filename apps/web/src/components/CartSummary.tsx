@@ -4,7 +4,7 @@ import { selectedShippingTotal, type SelectedShipping } from '../lib/shipping-cl
 
 export function CartSummary({ totals, unresolved, shipping = null }: Pick<CartState, 'totals' | 'unresolved'> & { shipping?: SelectedShipping | null }) {
   const entries = Object.entries(totals);
-  const current = unresolved ? null : shipping;
+  const current = unresolved || (shipping && shipping.validUntil <= Date.now()) ? null : shipping;
   const total = selectedShippingTotal(totals, current);
   return <section className="cart-summary" aria-label="Resumen del carrito">
     <h2>Resumen</h2>

@@ -3,7 +3,7 @@ import type { Destination, DeliveryOption, ResolvedItemsShipment, ResolvedShipme
 
 export type QuoteIntent = { lines: { productId: string; variantId: string; quantity: number }[]; destination: Destination };
 export type UnavailableReason = 'DISABLED' | 'CONFIG_UNAVAILABLE' | 'CATALOG_UNAVAILABLE' | 'LOGISTICS_UNAVAILABLE' | 'INVALID_DESTINATION' | 'AUTH_ERROR' | 'RATE_LIMITED' | 'TIMEOUT' | 'DESTINATION_OR_LOGISTICS_INVALID' | 'PROVIDER_ERROR' | 'INVALID_RESPONSE' | 'NO_OPTIONS';
-export type ShippingOptionsResult = { status: 'quoted'; options: DeliveryOption[]; packageCount?: number } | { status: 'unavailable'; reason: UnavailableReason };
+export type ShippingOptionsResult = { status: 'quoted'; options: DeliveryOption[]; quotedAt: number; validUntil: number; packageCount?: number } | { status: 'unavailable'; reason: UnavailableReason };
 export type TrustedResolver = (intent: QuoteIntent) => Promise<{ status: 'resolved'; value: ResolvedShipment | ResolvedItemsShipment } | { status: 'unavailable'; reason: 'CATALOG_UNAVAILABLE' | 'LOGISTICS_UNAVAILABLE' }>;
 export type ZipnovaTransport = (payload: ReturnType<typeof serializeZipnovaQuote> | ReturnType<typeof serializeZipnovaDynamicQuote>) => Promise<{ status: number; body: unknown }>;
 
@@ -42,7 +42,9 @@ export class ZipnovaQuoteAdapter {
     try {
       const options = parseZipnovaQuote(response.body, this.config);
       if (!options.length) return { status: 'unavailable', reason: 'NO_OPTIONS' };
-      return 'items' in payload ? { status: 'quoted', options, packageCount: parsePackageCount(response.body) } : { status: 'quoted', options };
+      const quotedAt = Date.now();
+      const validity = { quotedAt, validUntil: quotedAt + 300000 };
+      return 'items' in payload ? { status: 'quoted', options, packageCount: parsePackageCount(response.body), ...validity } : { status: 'quoted', options, ...validity };
     } catch { return { status: 'unavailable', reason: 'INVALID_RESPONSE' }; }
   }
 }

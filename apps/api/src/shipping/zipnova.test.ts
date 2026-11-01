@@ -70,7 +70,7 @@ test('adapter forwards unit measurements and preserves package count without mul
   });
   const result = await adapter.quote(intent);
   assert.equal(result.status, 'quoted');
-  if (result.status === 'quoted') { assert.equal(result.packageCount, 2); assert.equal(result.options[0].amountMinor, '12125'); }
+  if (result.status === 'quoted') { assert.equal(result.packageCount, 2); assert.equal(result.options[0].amountMinor, '12125'); assert.equal(result.validUntil - result.quotedAt, 300000); }
 });
 
 test('classifies provider failures and never interprets them as free shipping', async () => {
@@ -95,7 +95,7 @@ test('invalidates options when the cart or destination changes and discards olde
   assert.notEqual(quoteFingerprint(intent), quoteFingerprint(changed));
   assert.notEqual(quoteFingerprint(intent), quoteFingerprint({ ...intent, lines: [{ ...intent.lines[0], quantity: 3 }] }));
   session.update(changed);
-  finish({ status: 'quoted', options: [] });
+  finish({ status: 'quoted', options: [], quotedAt: 1, validUntil: 2 });
   await old;
   assert.equal(session.result, undefined);
   await session.request(changed, async () => ({ status: 'unavailable', reason: 'NO_OPTIONS' }));
