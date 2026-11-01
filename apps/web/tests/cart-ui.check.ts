@@ -50,6 +50,8 @@ assert.doesNotMatch(shipping, /gratis|Andreani/i);
 const cart = {ready:true,items:[item],count:2,totals:{ARS:4900000n},unresolved:false,status:'idle',removedNotice:0} as unknown as CartState;
 const drawer = renderToStaticMarkup(createElement(ShippingProvider,{children:createElement(CartDialog,{open:false,onClose:()=>{},cart,demo:true})}));
 assert.match(drawer,/Código postal/); assert.match(drawer,/Resumen/); assert.match(drawer,/Ver carrito/);
+assert.match(drawer,/Envío estimado/); assert.match(drawer,/Total estimado/);
+assert.doesNotMatch(drawer,/Opciones de entrega|Calculado en|Subtotal ARS|El pago todavía no está disponible/);
 const twoViews = renderToStaticMarkup(createElement(ShippingProvider,{children:[createElement(ShippingEstimate,{key:'a',mode:'api',coherent:true,unresolved:false}),createElement(ShippingEstimate,{key:'b',mode:'api',coherent:true,unresolved:false})]}));
 const ids=[...twoViews.matchAll(/id="([^"]+-postal)"/g)].map(match => match[1]);
 assert.equal(ids.length,2); assert.notEqual(ids[0],ids[1]);

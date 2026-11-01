@@ -49,6 +49,10 @@
 .shipping-estimate label { display: block; font-size: 13px; font-weight: 700; margin: 18px 0 7px; }
 .shipping-controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .shipping-controls input, .shipping-controls select { flex: 1 1 95px; min-width: 0; max-width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #70675f; background: #fffdfa; }
+.shipping-controls input.shipping-input-busy { background: #e8e5e0; }
+.shipping-estimate-compact { margin-top: 0; padding-top: 0; border-top: 0; }
+.shipping-estimate-compact > label { margin-top: 0; }
+.cart-summary-compact { margin-top: 12px; }
 .shipping-controls button { min-height: 44px; padding: 8px 14px; border: 1px solid #766b61; background: transparent; border-radius: 999px; font-size: 13px; font-weight: 700; }
 .shipping-estimate form .shipping-controls:last-child { margin-top: 14px; }
 .shipping-estimate fieldset { min-width: 0; margin: 16px 0 0; padding: 12px; border: 1px solid #b7aa9b; }

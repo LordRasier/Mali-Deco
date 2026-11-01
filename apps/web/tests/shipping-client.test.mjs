@@ -1,9 +1,28 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseShippingResult, shippingKey, selectedShippingTotal, shippingDestinationErrors } from '../src/lib/shipping-client.ts';
+import { parseShippingResult, shippingKey, selectedShippingTotal, shippingDestinationErrors, cheapestShipping, invalidPostalCode } from '../src/lib/shipping-client.ts';
 
 const lines = [{ productId: 'p1', variantId: 'v1', quantity: 2 }];
 const destination = { country: 'AR', city: 'Mar del Plata', state: 'Buenos Aires', postalCode: '7600' };
+
+test('does not show an error while a numeric postal code is being typed', () => {
+  for (const value of ['', '7', '76', '760', '7600']) assert.equal(invalidPostalCode(value),false);
+  for (const value of ['76x', '12345', 'B7600ABC']) assert.equal(invalidPostalCode(value),true);
+});
+
+test('estimates the cheapest eligible service without choosing a pickup point', () => {
+  const home = { carrierId: 1, carrierName: 'A', serviceCode: 'standard_delivery', serviceName: 'Domicilio', logisticType: 'carrier_dropoff', amountMinor: '1100', currency: 'ARS' };
+  const pickup = { ...home, carrierId: 2, serviceCode: 'pickup_point', amountMinor: '900', pickupPoints: [{id:7,description:'Sucursal'}] };
+  const quote = { status:'quoted', options:[home,pickup], packageCount:1, quotedAt:Date.now(), validUntil:Date.now()+30000 };
+  assert.deepEqual(cheapestShipping(quote,{ARS:5000n}),{choiceKey:null,requiresPickup:true,shipping:{amountMinor:'900',currency:'ARS',validUntil:quote.validUntil}});
+  assert.equal(cheapestShipping({...quote,options:[pickup,{...home,amountMinor:'800'}]},{ARS:5000n}).choiceKey,'1');
+  assert.equal(cheapestShipping({...quote,options:[{...home,amountMinor:'100'}, {...home,amountMinor:'99'}]},{ARS:5000n}).shipping.amountMinor,'99');
+  assert.equal(cheapestShipping({...quote,options:[{...home,currency:'USD',amountMinor:'1'},pickup]},{ARS:5000n}).shipping.amountMinor,'900');
+  assert.equal(cheapestShipping(quote,{ARS:5000n,USD:1n}),null);
+  assert.equal(cheapestShipping(quote,{USD:1n}),null);
+  assert.equal(cheapestShipping({status:'unavailable',reason:'NO_OPTIONS'},{ARS:1n}),null);
+  assert.equal(cheapestShipping({...quote,validUntil:Date.now()-1},{ARS:5000n}),null);
+});
 
 test('shipping identity changes when quantity or destination changes', () => {
   assert.notEqual(shippingKey(lines, destination), shippingKey([{ ...lines[0], quantity: 3 }], destination));

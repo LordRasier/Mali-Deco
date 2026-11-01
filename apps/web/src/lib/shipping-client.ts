@@ -4,6 +4,25 @@ export type ShippingOption = { carrierId: number; carrierName: string; serviceCo
 export type ShippingResult = { status: 'quoted'; options: ShippingOption[]; packageCount: number; quotedAt: number; validUntil: number } | { status: 'unavailable'; reason: string };
 export type SelectedShipping = { amountMinor: string; currency: string; validUntil: number };
 
+export function invalidPostalCode(value: string): boolean {
+  const code = value.trim();
+  return !!code && (!/^\d+$/.test(code) || code.length > 4);
+}
+
+/** Estimate the least expensive eligible service; pickup still needs an explicit point. */
+export function cheapestShipping(quote: ShippingResult | null, totals: Record<string, bigint>): { choiceKey: string | null; requiresPickup: boolean; shipping: SelectedShipping } | null {
+  const currencies = Object.keys(totals);
+  if (!quote || quote.status !== 'quoted' || quote.validUntil <= Date.now() || currencies.length !== 1) return null;
+  let best = -1;
+  quote.options.forEach((option,index) => {
+    if (option.currency !== currencies[0]) return;
+    if (best < 0 || BigInt(option.amountMinor) < BigInt(quote.options[best].amountMinor)) best = index;
+  });
+  if (best < 0) return null;
+  const option = quote.options[best], requiresPickup = option.serviceCode === 'pickup_point';
+  return {choiceKey:requiresPickup ? null : String(best),requiresPickup,shipping:{amountMinor:option.amountMinor,currency:option.currency,validUntil:quote.validUntil}};
+}
+
 export function shippingDestinationErrors(destination: ShippingDestination): { state: boolean; city: boolean; postalCode: boolean } {
   return { state: !destination.state.trim(), city: !destination.city.trim(), postalCode: !destination.postalCode.trim() };
 }
