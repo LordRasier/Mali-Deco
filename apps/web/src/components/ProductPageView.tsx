@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { useCart } from '../hooks/useCart';
 import { useProductRoute } from '../hooks/useProductRoute';
 import { formatPrice } from '../lib/cart';
+import { productPresentation } from '../lib/editorial-art';
 import type { Product } from '../lib/storefront-types';
 import { CartDialog } from './CartDialog';
 import { Header } from './Header';
 import { Swatches } from './ProductCard';
 
-export default function ProductPageView({ data }: { data: { mode: 'demo' | 'api'; brand: string; product: Product; total: number } }) {
+export default function ProductPageView({ data, fixtureImageId }: { data: { mode: 'demo' | 'api'; brand: string; product: Product; total: number }; fixtureImageId?: string }) {
   const cart = useCart(data.mode);
   const detail = useProductRoute(data.product, data.total, data.mode);
   const [cartOpen, setCartOpen] = useState(false);
@@ -17,6 +18,7 @@ export default function ProductPageView({ data }: { data: { mode: 'demo' | 'api'
   const selected = detail.selected;
   const shownVariants = selected && !detail.variants.some(item => item.id === selected.id) ? [selected, ...detail.variants] : detail.variants;
   const product = { ...data.product, variants: shownVariants };
+  const presentation = productPresentation(product, data.mode, fixtureImageId);
   const dimension = (value: number | null | undefined) => value === undefined ? 'No disponible en esta vista' : value === null ? 'No informado' : `${value} mm`;
   return <>
     <a className="skip-link" href="#contenido">Saltar al contenido</a>
@@ -25,10 +27,10 @@ export default function ProductPageView({ data }: { data: { mode: 'demo' | 'api'
       <nav className="breadcrumb" aria-label="Ubicación"><a href="/">Inicio</a> / <a href="/catalogo">Objetos</a> / {product.name}</nav>
       <div className="product-page-grid">
         <section aria-label="Imágenes del producto" className="product-gallery">
-          {product.image && !imageFailed
-            ? <img src={product.image} alt={`${product.name}, imagen ${data.mode === 'demo' ? 'de ejemplo' : 'del producto'}`} onError={() => setImageFailed(true)} />
+          {presentation.image && !imageFailed
+            ? <img src={presentation.image} alt={`${product.name}, imagen ${presentation.illustration ? 'ilustrativa' : 'del producto'}`} onError={() => setImageFailed(true)} />
             : <div className="product-gallery-placeholder" role="img" aria-label="Imagen no disponible">Imagen no disponible</div>}
-          {data.mode === 'demo' && <p className="fine-print">Imagen generada de ejemplo; no representa necesariamente la variante seleccionada.</p>}
+          {presentation.image && !imageFailed && presentation.illustration && <p className="fine-print">Imagen ilustrativa generada; no representa necesariamente la variante seleccionada.</p>}
         </section>
         <section className="product-page-copy">
           <p className="eyebrow">OBJETOS CON PERSONALIDAD</p><h1>{product.name}</h1>

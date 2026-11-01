@@ -9,17 +9,17 @@ import { ProductCard } from './ProductCard';
 import { CartDialog } from './CartDialog';
 import { useCart } from '../hooks/useCart';
 
-export default function Storefront({ data }: { data: StorefrontData }) {
+export default function Storefront({ data, fixtureImageId }: { data: StorefrontData; fixtureImageId?: string }) {
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart(data.mode);
-  const storyImage = data.mode === 'demo' ? '/storefront/organizador-arco.webp' : data.products[0]?.image;
+  const storyImage = '/storefront/organizador-arco.webp';
 
   return (
     <>
       <a className="skip-link" href="#contenido">Saltar al contenido</a>
       <Header brand={data.brand} demo={data.mode === 'demo'} count={cart.count} onCartOpen={() => setCartOpen(true)} />
       <main id="contenido">
-        <Hero image={data.heroImage} demo={data.mode === 'demo'} />
+        <Hero image={data.heroImage} />
         <section className="catalog section-wrap" id="objetos">
           <div className="section-heading">
             <span className="eyebrow">DISEÑO PARA TODOS LOS DÍAS</span>
@@ -29,13 +29,13 @@ export default function Storefront({ data }: { data: StorefrontData }) {
           {data.products.length ? (
             <div className="product-grid">
               {data.products.map(item => (
-                <ProductCard key={item.id} product={item} demo={data.mode === 'demo'} />
+                <ProductCard key={item.id} product={item} demo={data.mode === 'demo'} fixtureImageId={fixtureImageId} />
               ))}
             </div>
           ) : <p className="empty">Todavía no hay objetos publicados.</p>}
         </section>
         <section className="story" id="coleccion">
-          {storyImage && <div className="story-image"><img src={storyImage} alt="" loading="lazy" decoding="async" /></div>}
+          <div className="story-image"><img src={storyImage} alt="" loading="lazy" decoding="async" /><span>Imagen ilustrativa</span></div>
           <div className="story-copy">
             <span className="eyebrow">UNA NUEVA MIRADA</span>
             <h2>La forma de hacer<br /> espacio a lo distinto.</h2>

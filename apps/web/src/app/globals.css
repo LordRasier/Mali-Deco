@@ -71,8 +71,9 @@ h1 { font-size:clamp(58px,6.4vw,102px); line-height:.94; margin:0 0 23px; }
 button.swatch { width:27px; height:27px; cursor:pointer; }
 button.swatch.selected { outline:2px solid #111; outline-offset:3px; }
 .story { display:grid; grid-template-columns:1fr 1fr; background:#f6c6ae; }
-.story-image { min-height:450px; overflow:hidden; }
+.story-image { position:relative; min-height:450px; overflow:hidden; }
 .story-image img { width:100%; height:100%; object-fit:cover; }
+.story-image span { position:absolute; left:16px; bottom:16px; padding:6px 9px; background:#fff; color:#222; font-size:12px; border-radius:4px; }
 .story-copy { align-self:center; padding:clamp(40px,7vw,110px); }
 .story-copy h2 { font-size:clamp(38px,4.3vw,66px); line-height:1; margin:18px 0; }
 .story-copy p,.about p { font-size:17px; line-height:1.6; max-width:480px; }

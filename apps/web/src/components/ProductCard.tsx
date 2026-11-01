@@ -2,6 +2,7 @@
 
 import type { Product } from '../lib/storefront-types';
 import { formatPrice } from '../lib/cart';
+import { productPresentation } from '../lib/editorial-art';
 
 interface SwatchesProps {
   product: Product;
@@ -33,11 +34,13 @@ export function Swatches({ product, selected, onSelect }: SwatchesProps) {
 interface ProductCardProps {
   product: Product;
   demo: boolean;
+  fixtureImageId?: string;
   onOpen?: () => void;
 }
 
-export function ProductCard({ product, demo }: ProductCardProps) {
+export function ProductCard({ product, demo, fixtureImageId }: ProductCardProps) {
   const variant = product.variants[0]?.id;
+  const presentation = productPresentation(product, demo ? 'demo' : 'api', fixtureImageId);
   const href = `/productos/${encodeURIComponent(product.slug)}${variant ? `?variant=${encodeURIComponent(variant)}` : ''}`;
   return (
     <article className="product-card">
@@ -46,12 +49,13 @@ export function ProductCard({ product, demo }: ProductCardProps) {
         href={href}
         aria-label={`Ver ${product.name}`}
       >
-        {product.image ? <img src={product.image} alt="" loading="lazy" decoding="async" /> : <span className="image-placeholder" aria-hidden="true" />}
+        {presentation.image ? <img src={presentation.image} alt="" loading="lazy" decoding="async" /> : <span className="image-placeholder" aria-hidden="true" />}
         <span className="card-plus" aria-hidden="true">+</span>
       </a>
       <div className="card-info">
         <div>
           <h3><a href={href}>{product.name}</a></h3>
+          {presentation.illustration && <p className="illustration-note">Imagen ilustrativa</p>}
           <p>
             {product.variants[0] ? `${product.priceRange && product.priceRange.minMinor !== product.priceRange.maxMinor ? 'Desde ' : ''}${formatPrice(product.variants[0].priceMinor, product.variants[0].currency)}` : 'Sin precio disponible'}
             {demo && <span> · precio de ejemplo</span>}

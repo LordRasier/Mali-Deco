@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import ProductPageView from '../../../components/ProductPageView';
 import { canonicalProductUrl, loadProductPage } from '../../../lib/product-page';
+import { fixtureImageId } from '../../../lib/editorial-art';
 
 type Props = { params: Promise<{ slug: string }> };
 export const dynamic = 'force-dynamic';
@@ -24,5 +25,5 @@ export default async function ProductRoute({ params }: Props) {
   const data = await loadProductPage(slug);
   if (data.kind === 'missing') notFound();
   if (data.kind === 'unavailable') return <main className="catalog-error"><h1>El producto no está disponible por el momento.</h1><p>No pudimos consultar la tienda. Intentá nuevamente.</p><a href="">Reintentar</a></main>;
-  return <ProductPageView data={data} />;
+  return <ProductPageView data={data} fixtureImageId={fixtureImageId(process.env)} />;
 }

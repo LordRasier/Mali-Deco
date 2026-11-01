@@ -1,11 +1,12 @@
 import { Icon } from './Icons';
 
-export function Hero({ image, demo }: { image?: string; demo: boolean }) {
+export function Hero({ image }: { image?: string }) {
+  const heroImage = image ?? '/storefront/hero-3d-objects.webp';
   return (
     <>
       <section className="hero" id="inicio">
         <div className="hero-picture" aria-hidden="true">
-          {image && <img src={image} srcSet={demo ? '/storefront/hero-3d-objects-960.webp 960w, /storefront/hero-3d-objects.webp 1774w' : undefined} sizes="100vw" alt="" fetchPriority="high" decoding="async" />}
+          <img src={heroImage} srcSet={heroImage === '/storefront/hero-3d-objects.webp' ? '/storefront/hero-3d-objects-960.webp 960w, /storefront/hero-3d-objects.webp 1774w' : undefined} sizes="100vw" alt="" fetchPriority="high" decoding="async" />
         </div>
         <div className="hero-copy">
           <h1>Objetos que<br />salen de lo común.</h1>

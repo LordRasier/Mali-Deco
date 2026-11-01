@@ -15,7 +15,7 @@ import { Dialog } from './Dialog';
 import { FilterControls } from './FilterControls';
 
 type Parsed = ReturnType<typeof parseCatalogQuery>;
-export default function CatalogListing({ mode, brand }: { mode: StorefrontData['mode']; brand: string }) {
+export default function CatalogListing({ mode, brand, fixtureImageId }: { mode: StorefrontData['mode']; brand: string; fixtureImageId?: string }) {
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const [facets, setFacets] = useState<Facets | null>(null);
   const [page, setPage] = useState<CatalogPage | null>(null);
@@ -112,7 +112,7 @@ export default function CatalogListing({ mode, brand }: { mode: StorefrontData['
           {!parsed?.error && currentFacetStatus !== 'error' && currentPageStatus !== 'error' && !currencyUnavailable && <>
             {currentPageStatus === 'loading' || currentFacetStatus === 'loading' ? <p className="listing-state" role="status">Cargando objetos…</p> : page && <>
               <p className="result-count" aria-live="polite">{page.total} {page.total === 1 ? 'objeto' : 'objetos'}</p>
-              {page.items.length ? <div className="product-grid listing-grid">{page.items.map(item => <ProductCard key={item.id} product={item} demo={mode === 'demo'} />)}</div> : <div className="listing-state"><h2>No encontramos objetos.</h2><p>{page.total > 0 ? 'Esta página ya no tiene resultados.' : 'Probá cambiar o limpiar los filtros.'}</p><button type="button" className="small-outline" onClick={clear}>Limpiar filtros</button></div>}
+              {page.items.length ? <div className="product-grid listing-grid">{page.items.map(item => <ProductCard key={item.id} product={item} demo={mode === 'demo'} fixtureImageId={fixtureImageId} />)}</div> : <div className="listing-state"><h2>No encontramos objetos.</h2><p>{page.total > 0 ? 'Esta página ya no tiene resultados.' : 'Probá cambiar o limpiar los filtros.'}</p><button type="button" className="small-outline" onClick={clear}>Limpiar filtros</button></div>}
               {pages > 1 && query && <nav className="pagination" aria-label="Páginas de resultados"><button type="button" disabled={query.page <= 1} onClick={() => navigate({ ...query, page: query.page - 1 })}>← Anterior</button><span>Página {query.page} de {pages}</span><button type="button" disabled={query.page >= pages || query.page >= 10000} onClick={() => navigate({ ...query, page: query.page + 1 })}>Siguiente →</button></nav>}
               {query && query.page >= 10000 && pages > 10000 && <p className="filter-note">Refiná los filtros para ver otros resultados.</p>}
             </>}
