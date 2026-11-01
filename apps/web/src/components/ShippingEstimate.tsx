@@ -19,10 +19,11 @@ export function ShippingEstimate({ mode, lines, unresolved, destination: draft, 
   useEffect(() => {
     if (validUntil === null) return;
     function expireIfNeeded() {
-      if (Date.now() < validUntil!) return;
+      const remaining = validUntil! - Date.now();
+      if (remaining > 0) { window.clearTimeout(timer); timer = window.setTimeout(expireIfNeeded, remaining); return; }
       setResponse(null); setSelection(''); setExpiredKey(key); onSelectionChange?.(null);
     }
-    const timer = window.setTimeout(expireIfNeeded, Math.max(0, validUntil - Date.now()));
+    let timer = window.setTimeout(expireIfNeeded, Math.max(0, validUntil - Date.now()));
     window.addEventListener('focus', expireIfNeeded);
     document.addEventListener('visibilitychange', expireIfNeeded);
     return () => { window.clearTimeout(timer); window.removeEventListener('focus', expireIfNeeded); document.removeEventListener('visibilitychange', expireIfNeeded); };

@@ -10,9 +10,9 @@ function developmentApiOrigin() {
   } catch {
     throw new Error('DEV_API_PROXY_ORIGIN debe ser un origen HTTP(S) válido');
   }
-  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password ||
+  if (parsed.protocol !== 'http:' || parsed.hostname !== '127.0.0.1' || !parsed.port || parsed.username || parsed.password ||
       parsed.pathname !== '/' || parsed.search || parsed.hash || value !== parsed.origin) {
-    throw new Error('DEV_API_PROXY_ORIGIN debe ser un origen HTTP(S) canónico, sin ruta, credenciales, consulta ni fragmento');
+    throw new Error('DEV_API_PROXY_ORIGIN debe ser un origen HTTP local 127.0.0.1 con puerto y sin ruta, credenciales, consulta ni fragmento');
   }
   return parsed.origin;
 }

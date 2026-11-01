@@ -12,9 +12,9 @@ function readRewrites(env) {
 }
 
 test('development proxy uses only the configured canonical origin', () => {
-  const result = readRewrites({ NODE_ENV: 'development', DEV_API_PROXY_ORIGIN: 'http://localhost:3001' });
+  const result = readRewrites({ NODE_ENV: 'development', DEV_API_PROXY_ORIGIN: 'http://127.0.0.1:3001' });
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), [{ source: '/api/v1/:path*', destination: 'http://localhost:3001/api/v1/:path*' }]);
+  assert.deepEqual(JSON.parse(result.stdout), [{ source: '/api/v1/:path*', destination: 'http://127.0.0.1:3001/api/v1/:path*' }]);
 });
 
 test('production never installs a rewrite', () => {
@@ -24,7 +24,7 @@ test('production never installs a rewrite', () => {
 });
 
 test('development rejects paths, credentials and noncanonical origins', () => {
-  for (const origin of ['http://localhost:3001/api/v1', 'http://user:pass@localhost:3001', 'http://localhost:3001/', 'ftp://localhost:3001']) {
+  for (const origin of ['http://localhost:3001/api/v1', 'http://user:pass@localhost:3001', 'http://localhost:3001/', 'ftp://localhost:3001', 'http://attacker.example:3001', 'http://localhost:3001']) {
     assert.notEqual(readRewrites({ NODE_ENV: 'development', DEV_API_PROXY_ORIGIN: origin }).status, 0, origin);
   }
 });

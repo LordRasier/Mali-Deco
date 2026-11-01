@@ -4,7 +4,7 @@ Monorepo inicial para una tienda configurable. Contiene una API NestJS y una apl
 
 ## Inicio local
 
-Requiere Node.js 24 o posterior y npm. Ejecutar `npm ci`, luego `npm run dev:api` y `npm run dev:web` en terminales separadas. API en `http://localhost:3001/api/v1/health`, web en `http://localhost:3000`. Las variables del archivo `.env.example` deben exportarse al entorno de cada proceso: no se cargan automáticamente.
+Requiere Node.js 24 o posterior y npm. Ejecutar `npm ci`, luego `npm run dev:api` y `npm run dev:web` en terminales separadas. API en `http://127.0.0.1:3001/api/v1/health`, web en `http://127.0.0.1:3000`. Las variables del archivo `.env.example` deben exportarse al entorno de cada proceso: no se cargan automáticamente.
 
 La configuración apunta a MariaDB 10.4 de XAMPP y requiere todas las variables `DB_*` del ejemplo en el entorno. La API escucha únicamente en `127.0.0.1`; arranca sin persistencia cuando `DB_HOST` está vacío y `NODE_ENV` no es `production`. En producción la ausencia de base impide el arranque. Las migraciones y el catálogo se probaron localmente en MariaDB 10.4.32; aún faltan revisión independiente y validación de la aplicación completa, por lo que no deben usarse con datos reales. Son para una instalación nueva; no aplicarlas a bases existentes sin un plan de migración revisado. Véase [compatibilidad MariaDB](docs/mariadb-local.md).
 
@@ -16,7 +16,7 @@ Con npm 11.6.2, `npm ls multer` informa `ELSPROBLEMS` porque Nest declara exacta
 
 La prueba de integración requiere un servidor local autorizado y una base vacía **exclusiva** llamada `store_integration_test`. Configure `DB_HOST=127.0.0.1` o `localhost`, las demás variables `DB_*` y `MARIADB_INTEGRATION=1`; luego ejecute `npm run test:integration -w @store/api`. La prueba rechaza bases no vacías, aplica y revierte las migraciones y usa modo estricto en su propia conexión. Si falla, deja el esquema para inspección. Sin `MARIADB_INTEGRATION=1` se omite. Para la cuenta local sin contraseña confirmada, véase la excepción exclusiva de prueba en [compatibilidad MariaDB](docs/mariadb-local.md).
 
-El storefront requiere `API_BASE_URL` con el prefijo público completo, por ejemplo `http://localhost:3001/api/v1/`. Para revisar el concepto sin base de datos, iniciar Next en desarrollo con `STOREFRONT_MODE=demo`; ese modo usa imágenes generadas y precios de ejemplo y no está habilitado en producción. Véase [storefront](apps/web/README.md).
+El storefront requiere `API_BASE_URL` con el prefijo público completo, por ejemplo `http://127.0.0.1:3001/api/v1/`. Para revisar el concepto sin base de datos, iniciar Next en desarrollo con `STOREFRONT_MODE=demo`; ese modo usa imágenes generadas y precios de ejemplo y no está habilitado en producción. Véase [storefront](apps/web/README.md).
 
 ## Límites y decisiones
 

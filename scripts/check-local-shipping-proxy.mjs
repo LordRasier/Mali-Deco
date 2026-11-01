@@ -21,8 +21,8 @@ async function main() {
   await Promise.all([close(apiReservation), close(webReservation)]);
   const apiOrigin = `http://127.0.0.1:${apiPort}`, webOrigin = `http://127.0.0.1:${webPort}`;
   const env = {...globalThis.process.env};
-  for (const key of Object.keys(env)) if (key.startsWith('ZIPNOVA_') || key === 'DB_HOST' || key === 'NODE_OPTIONS') delete env[key];
-  Object.assign(env, {NODE_ENV:'development', ZIPNOVA_ENABLED:'false', ZIPNOVA_OPERATOR_ORIGIN:webOrigin});
+  for (const key of Object.keys(env)) if (key.startsWith('ZIPNOVA_') || key === 'DB_HOST' || key === 'NODE_OPTIONS' || key === 'API_BASE_URL') delete env[key];
+  Object.assign(env, {NODE_ENV:'development', STOREFRONT_MODE:'demo', NEXT_TELEMETRY_DISABLED:'1', ZIPNOVA_ENABLED:'false', ZIPNOVA_OPERATOR_ORIGIN:webOrigin});
   let api, web;
   try {
     api = spawn(globalThis.process.execPath, [path.join(root, 'node_modules', 'tsx', 'dist', 'cli.mjs'), 'src/main.ts'], {cwd:apiDir, env:{...env,PORT:String(apiPort)}, stdio:'ignore'});
