@@ -67,7 +67,7 @@ export class CatalogShippingResolver {
   }
 }
 
-/** No production switch is wired until account, rate limits and logistics are reviewed. */
+/** The provider stays disabled unless explicitly composed with a validated configuration. */
 export class ShippingQuoteService {
   constructor(private readonly provider?: (intent: QuoteIntent) => Promise<ShippingOptionsResult>, private readonly enabled = false) {}
   async quote(value: unknown): Promise<ShippingOptionsResult> {
@@ -76,17 +76,19 @@ export class ShippingQuoteService {
     return this.provider(intent);
   }
 }
-/** Compose the catalog resolver and quote-only transport while keeping the public gate closed. */
-export function pendingShippingService(db: DataSource | undefined, env: NodeJS.ProcessEnv): ShippingQuoteService {
+/** Compose only after explicit operator activation and confirmation of logistics data. */
+export function pendingShippingService(db: DataSource | undefined, env: NodeJS.ProcessEnv, fetcher?: typeof fetch): ShippingQuoteService {
+  if (!env.ZIPNOVA_ENABLED || env.ZIPNOVA_ENABLED === 'false') return new ShippingQuoteService();
   try {
+    if (env.ZIPNOVA_ENABLED !== 'true' || env.ZIPNOVA_LOGISTICS_VALIDATED !== 'true' || !/^[1-9]\d*$/.test(env.ZIPNOVA_ACCOUNT_ID ?? '') || !/^[1-9]\d*$/.test(env.ZIPNOVA_ORIGIN_ID ?? '') || !/^[0-3]$/.test(env.ZIPNOVA_CURRENCY_EXPONENT ?? '')) throw new Error('Incomplete Zipnova configuration');
     const config: ZipnovaConfig = { accountId: Number(env.ZIPNOVA_ACCOUNT_ID), originId: Number(env.ZIPNOVA_ORIGIN_ID), source: 'storefront', currency: env.ZIPNOVA_CURRENCY ?? '', exponent: Number(env.ZIPNOVA_CURRENCY_EXPONENT) };
     validateZipnovaConfig(config);
-    const transport = createZipnovaTransport(env);
-    if (!transport) return new ShippingQuoteService();
+    const transport = createZipnovaTransport(env, fetcher);
+    if (!transport) throw new Error('Missing Zipnova transport');
     const resolver = new CatalogShippingResolver(db, config);
     const adapter = new ZipnovaQuoteAdapter(config, intent => resolver.resolve(intent), transport);
-    return new ShippingQuoteService(intent => adapter.quote(intent));
-  } catch { return new ShippingQuoteService(); }
+    return new ShippingQuoteService(intent => adapter.quote(intent), true);
+  } catch { return new ShippingQuoteService(async () => ({ status: 'unavailable', reason: 'CONFIG_UNAVAILABLE' }), true); }
 }
 @Controller('shipping')
 export class ShippingQuoteController {

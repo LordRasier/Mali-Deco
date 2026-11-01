@@ -33,7 +33,7 @@ async function readJson(response: Response): Promise<unknown> {
   } finally { reader.releaseLock(); }
 }
 
-/** This factory is not registered in the application; enabling it requires explicit wiring. */
+/** The fixed quote-only endpoint is used only when explicitly enabled by the service. */
 export function createZipnovaTransport(env: ZipnovaEnv, fetcher: typeof fetch = fetch): ZipnovaTransport | undefined {
   if (!env.ZIPNOVA_ENABLED || env.ZIPNOVA_ENABLED === 'false') return undefined;
   if (env.ZIPNOVA_ENABLED !== 'true') throw new Error('Invalid Zipnova enabled configuration');

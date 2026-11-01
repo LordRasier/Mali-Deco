@@ -11,7 +11,7 @@ export class DisabledOptionsProvider {
   async quote(): Promise<ShippingOptionsResult> { return { status: 'unavailable', reason: 'DISABLED' }; }
 }
 
-/** A transport is injected for tests; no network transport or public route is registered. */
+/** The transport and catalog resolver are composed by the shipping service. */
 export class ZipnovaQuoteAdapter {
   constructor(private readonly config: ZipnovaConfig, private readonly resolver: TrustedResolver, private readonly transport: ZipnovaTransport) {}
 
