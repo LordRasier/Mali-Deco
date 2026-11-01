@@ -8,6 +8,7 @@
 .cart-close:hover { background: #efdfd2; }
 .cart-drawer-body { flex: 1 1 auto; overflow-y: auto; padding: 0 28px; min-height: 0; }
 .cart-drawer-footer { flex: none; max-height: 48%; overflow-y: auto; border-top: 1px solid #d8ccbe; background: #fbf5ed; padding: 16px 28px max(20px, env(safe-area-inset-bottom)); }
+.cart-drawer-quote { padding: 22px 0; }
 .cart-list { list-style: none; padding: 0; margin: 0; }
 .cart-item { display: grid; grid-template-columns: 80px minmax(0, 1fr) minmax(90px, auto); align-items: start; gap: 16px; padding: 22px 0; border-bottom: 1px solid #ded2c4; }
 .cart-item-media { width: 80px; min-width: 0; }
@@ -47,7 +48,7 @@
 .shipping-estimate > p { font-size: 13px; line-height: 1.5; }
 .shipping-estimate label { display: block; font-size: 13px; font-weight: 700; margin: 18px 0 7px; }
 .shipping-controls { display: flex; flex-wrap: wrap; gap: 8px; }
-.shipping-controls input { flex: 1 1 95px; min-width: 0; min-height: 44px; padding: 8px 10px; border: 1px solid #70675f; background: #fffdfa; }
+.shipping-controls input, .shipping-controls select { flex: 1 1 95px; min-width: 0; max-width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #70675f; background: #fffdfa; }
 .shipping-controls button { min-height: 44px; padding: 8px 14px; border: 1px solid #766b61; background: transparent; border-radius: 999px; font-size: 13px; font-weight: 700; }
 .shipping-estimate form .shipping-controls:last-child { margin-top: 14px; }
 .shipping-estimate fieldset { min-width: 0; margin: 16px 0 0; padding: 12px; border: 1px solid #b7aa9b; }

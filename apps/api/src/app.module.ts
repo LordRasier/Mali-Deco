@@ -19,6 +19,7 @@ import { MysqlIdentityStore } from './identity/identity-store';
 import { IdentityService } from './identity/identity-service';
 import { allowedAdminOrigin } from './identity/origin-config';
 import { pendingShippingService, ShippingQuoteController, ShippingQuoteService } from './shipping/catalog-quote';
+import { PostalCodeResolver } from './shipping/postal-code-resolver';
 import { OwnerGuard } from './identity/owner.guard';
 import { StoreSettings, StoreSettingsController } from './catalog/store-settings';
 
@@ -33,6 +34,7 @@ if (!process.env.DB_HOST && process.env.NODE_ENV === 'production') {
   })] : [],
   controllers: [AppController, CatalogController, PublicCartController, ShippingQuoteController, AuthController, AdminCatalogController, AdminCategoriesController, AdminMaterialsController, AdminColorsController, StoreSettingsController],
   providers: [
+    { provide: PostalCodeResolver, useFactory: () => new PostalCodeResolver() },
     { provide: PublicFacets, useFactory: (db?: DataSource) => new PublicFacets(db), inject: [{ token: DataSource, optional: true }] },
     { provide: PublicCartResolver, useFactory: (db?: DataSource) => new PublicCartResolver(db), inject: [{ token: DataSource, optional: true }] },
     { provide: ShippingQuoteService, useFactory: (db?: DataSource) => pendingShippingService(db, process.env), inject: [{ token: DataSource, optional: true }] },

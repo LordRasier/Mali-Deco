@@ -6,6 +6,7 @@ import { validateDestination, validateZipnovaConfig, type ZipnovaConfig } from '
 import { createZipnovaTransport } from './zipnova-transport';
 import { isLocalQuoteRequest, localOperatorOrigin } from './local-quote-guard';
 import type { IncomingMessage } from 'node:http';
+import { PostalCodeResolver } from './postal-code-resolver';
 
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new BadRequestException('Solicitud de envío inválida');
@@ -71,7 +72,8 @@ export class CatalogShippingResolver {
 
 /** The provider stays disabled unless explicitly composed with a validated configuration. */
 export class ShippingQuoteService {
-  constructor(private readonly provider?: (intent: QuoteIntent) => Promise<ShippingOptionsResult>, private readonly enabled = false) {}
+  constructor(private readonly provider?: (intent: QuoteIntent) => Promise<ShippingOptionsResult>, private readonly enabled = false, private readonly configured = true) {}
+  unavailableReason(): 'DISABLED' | 'CONFIG_UNAVAILABLE' | null { return !this.enabled || !this.provider ? 'DISABLED' : !this.configured ? 'CONFIG_UNAVAILABLE' : null; }
   async quote(value: unknown): Promise<ShippingOptionsResult> {
     const intent = parseQuoteIntent(value);
     if (!this.enabled || !this.provider) return { status: 'unavailable', reason: 'DISABLED' };
@@ -90,14 +92,29 @@ export function pendingShippingService(db: DataSource | undefined, env: NodeJS.P
     const resolver = new CatalogShippingResolver(db, config);
     const adapter = new ZipnovaQuoteAdapter(config, intent => resolver.resolve(intent), transport);
     return new ShippingQuoteService(intent => adapter.quote(intent), true);
-  } catch { return new ShippingQuoteService(async () => ({ status: 'unavailable', reason: 'CONFIG_UNAVAILABLE' }), true); }
+  } catch { return new ShippingQuoteService(async () => ({ status: 'unavailable', reason: 'CONFIG_UNAVAILABLE' }), true, false); }
 }
 @Controller('shipping')
 export class ShippingQuoteController {
-  constructor(@Inject(ShippingQuoteService) private readonly service: ShippingQuoteService) {}
+  constructor(@Inject(ShippingQuoteService) private readonly service: ShippingQuoteService, @Inject(PostalCodeResolver) private readonly postal: PostalCodeResolver) {}
+  @Post('destination') @HttpCode(200)
+  destination(@Body() body: unknown, @Req() request: IncomingMessage) {
+    if (!isLocalQuoteRequest(request, process.env)) throw new ForbiddenException();
+    const input = object(body); keys(input, ['postalCode']);
+    if (typeof input.postalCode !== 'string') throw new BadRequestException('Código postal inválido');
+    if (this.service.unavailableReason()) return Promise.resolve({status:'unavailable' as const});
+    return this.postal.lookup(input.postalCode);
+  }
   @Post('quote') @HttpCode(200)
   quote(@Body() body: unknown, @Req() request: IncomingMessage) {
     if (!isLocalQuoteRequest(request, process.env)) throw new ForbiddenException();
-    return this.service.quote(body);
+    const input = object(body); keys(input, ['lines','destination']);
+    const target = object(input.destination); keys(target, ['postalCode','candidateId']);
+    if (typeof target.postalCode !== 'string' || typeof target.candidateId !== 'string') throw new BadRequestException('Destino inválido');
+    const unavailable = this.service.unavailableReason();
+    if (unavailable) return Promise.resolve({status:'unavailable' as const,reason:unavailable});
+    const destination = this.postal.resolve(target.postalCode,target.candidateId);
+    if (!destination) return Promise.resolve({status:'unavailable' as const,reason:'INVALID_DESTINATION' as const});
+    return this.service.quote({lines:input.lines,destination});
   }
 }

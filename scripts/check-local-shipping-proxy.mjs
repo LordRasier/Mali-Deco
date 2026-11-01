@@ -28,24 +28,26 @@ async function main() {
     api = spawn(globalThis.process.execPath, [path.join(root, 'node_modules', 'tsx', 'dist', 'cli.mjs'), 'src/main.ts'], {cwd:apiDir, env:{...env,PORT:String(apiPort)}, stdio:'ignore'});
     web = spawn(globalThis.process.execPath, [path.join(root, 'node_modules', 'next', 'dist', 'bin', 'next'), 'dev', '--hostname', '127.0.0.1', '--port', String(webPort)], {cwd:webDir, env:{...env,DEV_API_PROXY_ORIGIN:apiOrigin}, stdio:'ignore'});
     await Promise.all([waitFor(apiOrigin + '/'), waitFor(webOrigin + '/')]);
-    const requestBody = JSON.stringify({lines:[{productId:'p1',variantId:'v1',quantity:1}],destination:{country:'AR',city:'Test',state:'Test',postalCode:'7600'}});
-    function post(base, extra = {}) { return new Promise((resolve, reject) => {
+    function post(base, route, extra = {}) { return new Promise((resolve, reject) => {
+      const requestBody = JSON.stringify(route === 'quote' ? {lines:[{productId:'p1',variantId:'v1',quantity:1}],destination:{postalCode:'7600',candidateId:'A'.repeat(24)}} : {postalCode:'7600'});
       const headers = {origin:webOrigin,'content-type':'application/json','sec-fetch-site':'same-origin',...extra};
       if (headers.origin === null) delete headers.origin;
-      const request = http.request(base + '/api/v1/shipping/quote', {method:'POST',headers,timeout:45000}, response => {
+      const request = http.request(base + '/api/v1/shipping/' + route, {method:'POST',headers,timeout:45000}, response => {
         let data=''; response.on('data', chunk => { data += chunk; }); response.on('end', () => { try { resolve({status:response.statusCode,body:response.statusCode === 200 ? JSON.parse(data) : null}); } catch (error) { reject(error); } });
       });
       request.on('timeout', () => request.destroy(new Error('Local request timed out'))); request.on('error', reject); request.end(requestBody);
     }); }
     for (const target of [apiOrigin, webOrigin]) {
-      const good = await post(target); assert.equal(good.status, 200); assert.equal(good.body.reason, 'DISABLED');
-      const label = target === apiOrigin ? 'API' : 'proxy';
-      assert.equal((await post(target, {origin:'http://attacker.example'})).status, 403, `${label}: origin`);
-      assert.equal((await post(target, {origin:null})).status, 403, `${label}: missing origin`);
-      assert.equal((await post(target, {origin:'null'})).status, 403, `${label}: null origin`);
-      assert.equal((await post(target, {host:`attacker.example:${target === apiOrigin ? apiPort : webPort}`})).status, 403, `${label}: host`);
-      assert.equal((await post(target, {'sec-fetch-site':'cross-site'})).status, 403, `${label}: fetch-site`);
-      assert.equal((await post(target, {'content-type':'text/plain'})).status, 403, `${label}: content-type`);
+      for (const route of ['quote','destination']) {
+        const good = await post(target,route); assert.equal(good.status, 200); assert.equal(good.body.status, 'unavailable');
+        const label = `${target === apiOrigin ? 'API' : 'proxy'} ${route}`;
+        assert.equal((await post(target,route,{origin:'http://attacker.example'})).status, 403, `${label}: origin`);
+        assert.equal((await post(target,route,{origin:null})).status, 403, `${label}: missing origin`);
+        assert.equal((await post(target,route,{origin:'null'})).status, 403, `${label}: null origin`);
+        assert.equal((await post(target,route,{host:`attacker.example:${target === apiOrigin ? apiPort : webPort}`})).status, 403, `${label}: host`);
+        assert.equal((await post(target,route,{'sec-fetch-site':'cross-site'})).status, 403, `${label}: fetch-site`);
+        assert.equal((await post(target,route,{'content-type':'text/plain'})).status, 403, `${label}: content-type`);
+      }
     }
     globalThis.console.log('Direct API and Next proxy: valid local request allowed; invalid origin, Host, fetch-site and content type rejected.');
   } finally { stop(web); stop(api); }

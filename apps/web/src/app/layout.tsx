@@ -3,6 +3,7 @@ import './globals.css';
 import './product-page.css';
 import './cart.css';
 import type { ReactNode } from 'react';
+import { ShippingProvider } from '../components/ShippingProvider';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,5 +12,5 @@ export function generateMetadata(): Metadata {
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return <html lang="es"><body>{children}</body></html>;
+  return <html lang="es"><body><ShippingProvider>{children}</ShippingProvider></body></html>;
 }
