@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { formatPrice } from '../lib/cart';
-import { parseShippingResult, shippingKey, type QuoteLine, type SelectedShipping, type ShippingResult } from '../lib/shipping-client';
+import { parseShippingResult, shippingDestinationErrors, shippingKey, type QuoteLine, type SelectedShipping, type ShippingDestination, type ShippingResult } from '../lib/shipping-client';
 
-export function ShippingEstimate({ mode, lines, unresolved, onSelectionChange }: { mode: 'api' | 'demo'; lines: QuoteLine[]; unresolved: boolean; onSelectionChange?: (selection: SelectedShipping | null) => void }) {
-  const [city, setCity] = useState(''), [state, setState] = useState(''), [postalCode, setPostalCode] = useState('');
+export function ShippingEstimate({ mode, lines, unresolved, destination: draft, onDestinationChange, onSelectionChange }: { mode: 'api' | 'demo'; lines: QuoteLine[]; unresolved: boolean; destination: ShippingDestination; onDestinationChange: (destination: ShippingDestination) => void; onSelectionChange?: (selection: SelectedShipping | null) => void }) {
   const [response, setResponse] = useState<{ key: string; value: ShippingResult } | null>(null);
   const [loadingKey, setLoadingKey] = useState(''), [errorKey, setErrorKey] = useState(''), [selection, setSelection] = useState('');
   const active = useRef<AbortController | null>(null);
-  const destination = { country: 'AR' as const, city: city.trim(), state: state.trim(), postalCode: postalCode.trim() };
+  const destination = { country: 'AR' as const, city: draft.city.trim(), state: draft.state.trim(), postalCode: draft.postalCode.trim() };
+  const errors = shippingDestinationErrors(draft);
   const key = shippingKey(lines, destination);
   useEffect(() => () => active.current?.abort(), []);
   function invalidate() { active.current?.abort(); setResponse(null); setLoadingKey(''); setErrorKey(''); setSelection(''); onSelectionChange?.(null); }
@@ -17,7 +17,7 @@ export function ShippingEstimate({ mode, lines, unresolved, onSelectionChange }:
   const loading = loadingKey === key;
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mode !== 'api' || unresolved || !city.trim() || !state.trim() || !postalCode.trim() || loading) return;
+    if (mode !== 'api' || unresolved || errors.city || errors.state || errors.postalCode || loading) return;
     active.current?.abort();
     const controller = new AbortController(); active.current = controller;
     setLoadingKey(key); setErrorKey(''); setResponse(null); setSelection(''); onSelectionChange?.(null);
@@ -34,12 +34,16 @@ export function ShippingEstimate({ mode, lines, unresolved, onSelectionChange }:
     <p>{mode === 'demo' ? 'El cálculo no está disponible en el modo de demostración.' : 'Indicá el destino para consultar las opciones disponibles.'}</p>
     <form onSubmit={submit}>
       <label htmlFor="shipping-state">Provincia</label>
-      <div className="shipping-controls"><input id="shipping-state" autoComplete="address-level1" maxLength={150} value={state} onChange={event => { invalidate(); setState(event.target.value); }} required /></div>
+      <div className="shipping-controls"><input id="shipping-state" autoComplete="address-level1" maxLength={150} value={draft.state} aria-invalid={draft.state.length > 0 && errors.state || undefined} aria-describedby={draft.state.length > 0 && errors.state ? 'shipping-state-error' : undefined} onChange={event => { invalidate(); onDestinationChange({ ...draft, state: event.target.value }); }} required /></div>
+      {draft.state.length > 0 && errors.state && <p id="shipping-state-error" role="alert">Ingresá una provincia válida.</p>}
       <label htmlFor="shipping-city">Localidad</label>
-      <div className="shipping-controls"><input id="shipping-city" autoComplete="address-level2" maxLength={150} value={city} onChange={event => { invalidate(); setCity(event.target.value); }} required /></div>
+      <div className="shipping-controls"><input id="shipping-city" autoComplete="address-level2" maxLength={150} value={draft.city} aria-invalid={draft.city.length > 0 && errors.city || undefined} aria-describedby={draft.city.length > 0 && errors.city ? 'shipping-city-error' : undefined} onChange={event => { invalidate(); onDestinationChange({ ...draft, city: event.target.value }); }} required /></div>
+      {draft.city.length > 0 && errors.city && <p id="shipping-city-error" role="alert">Ingresá una localidad válida.</p>}
       <label htmlFor="shipping-postcode">Código postal</label>
-      <div className="shipping-controls"><input id="shipping-postcode" autoComplete="postal-code" maxLength={16} value={postalCode} onChange={event => { invalidate(); setPostalCode(event.target.value); }} required /></div>
-      <div className="shipping-controls"><button type="submit" disabled={mode !== 'api' || unresolved || loading}>{loading ? 'Consultando…' : 'Calcular envío'}</button></div>
+      <div className="shipping-controls"><input id="shipping-postcode" autoComplete="postal-code" maxLength={16} value={draft.postalCode} aria-invalid={draft.postalCode.length > 0 && errors.postalCode || undefined} aria-describedby={draft.postalCode.length > 0 && errors.postalCode ? 'shipping-postcode-error' : undefined} onChange={event => { invalidate(); onDestinationChange({ ...draft, postalCode: event.target.value }); }} required /></div>
+      {draft.postalCode.length > 0 && errors.postalCode && <p id="shipping-postcode-error" role="alert">Ingresá un código postal válido.</p>}
+      <p className="fine-print">Completá provincia, localidad y código postal.</p>
+      <div className="shipping-controls"><button type="submit" disabled={mode !== 'api' || unresolved || loading || errors.state || errors.city || errors.postalCode}>{loading ? 'Consultando…' : 'Calcular envío'}</button></div>
     </form>
     <div aria-live="polite">
       {unresolved && <p>Esperá a que se verifiquen los artículos del carrito.</p>}

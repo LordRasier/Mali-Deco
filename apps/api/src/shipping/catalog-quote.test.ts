@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { DataSource } from 'typeorm';
 import { CatalogShippingResolver, parseQuoteIntent, pendingShippingService, ShippingQuoteService } from './catalog-quote';
+import { serializeZipnovaDynamicQuote } from './zipnova';
 
 const intent = { destination: { country: 'AR', city: 'Mar del Plata', state: 'Buenos Aires', postalCode: '7600' }, lines: [{ productId: 'p1', variantId: 'v1', quantity: 2 }] };
 const row = { productId: 'p1', variantId: 'v1', name: 'Florero', weightGrams: 400, widthMm: 101, heightMm: 200, lengthMm: 120, priceMinor: '1250', currency: 'ARS' };
@@ -34,6 +35,17 @@ test('missing catalog or incomplete measurements fail closed', async () => {
   assert.deepEqual(await new CatalogShippingResolver(database([{ ...row, weightGrams: null }]), { currency: 'ARS', exponent: 2 }).resolve(parseQuoteIntent(intent)), { status: 'unavailable', reason: 'LOGISTICS_UNAVAILABLE' });
   const one = parseQuoteIntent({ ...intent, lines: [{ ...intent.lines[0], quantity: 1 }] });
   assert.deepEqual(await new CatalogShippingResolver(database([{ ...row, priceMinor: '9007199254740991' }]), { currency: 'ARS', exponent: 2 }).resolve(one), { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' });
+});
+
+test('preserves valid Unicode product names of 151 and 255 characters in the provider request', async () => {
+  const config = { accountId: 4, originId: 8, source: 'store', currency: 'ARS', exponent: 2 };
+  for (const name of ['Á'.repeat(150) + 'ñ', 'Á'.repeat(254) + 'ñ', '  Ángel 🏺  ']) {
+    const result = await new CatalogShippingResolver(database([{ ...row, name }]), config).resolve(parseQuoteIntent(intent));
+    assert.equal(result.status, 'resolved');
+    if (result.status === 'resolved' && 'items' in result.value) {
+      assert.equal(serializeZipnovaDynamicQuote(result.value, config).items[0].description, name);
+    }
+  }
 });
 
 test('disabled service never calls catalog or transport', async () => {

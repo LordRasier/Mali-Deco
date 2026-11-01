@@ -40,9 +40,11 @@ const selectedSummary = renderToStaticMarkup(createElement(CartSummary, { totals
 assert.match(selectedSummary, /Total estimado/); assert.match(selectedSummary, /25,00/);
 const mixedSummary = renderToStaticMarkup(createElement(CartSummary, { totals: { ARS: 2000n, USD: 100n }, unresolved: false, shipping: { amountMinor: '500', currency: 'ARS' } }));
 assert.doesNotMatch(mixedSummary, /Total estimado<\/dt>/); assert.match(mixedSummary, /monedas diferentes/);
-const shipping = renderToStaticMarkup(createElement(ShippingEstimate, { mode: 'demo', lines: [{ productId: 'p1', variantId: 'coral', quantity: 2 }], unresolved: false }));
+const shipping = renderToStaticMarkup(createElement(ShippingEstimate, { mode: 'demo', lines: [{ productId: 'p1', variantId: 'coral', quantity: 2 }], unresolved: false, destination: { country: 'AR', city: '', state: '', postalCode: '' }, onDestinationChange: () => {} }));
 assert.match(shipping, /Código postal/); assert.match(shipping, /modo de demostración/);
 assert.match(shipping, /disabled/); assert.doesNotMatch(shipping, /gratis|Andreani/i);
+const invalidShipping = renderToStaticMarkup(createElement(ShippingEstimate, { mode: 'api', lines: [{ productId: 'p1', variantId: 'coral', quantity: 2 }], unresolved: false, destination: { country: 'AR', city: '   ', state: ' ', postalCode: ' ' }, onDestinationChange: () => {} }));
+assert.match(invalidShipping, /Ingresá una provincia válida/); assert.match(invalidShipping, /aria-invalid="true"/); assert.match(invalidShipping, /disabled/);
 const emptyCart = { ready: true, items: [] } as unknown as CartState;
 const empty = renderToStaticMarkup(createElement(CartItems, { cart: emptyCart, demo: true }));
 assert.match(empty, /Tu carrito está vacío/); assert.match(empty, /href="\/catalogo"/);

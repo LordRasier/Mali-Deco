@@ -4,6 +4,10 @@ export type ShippingOption = { carrierId: number; carrierName: string; serviceCo
 export type ShippingResult = { status: 'quoted'; options: ShippingOption[]; packageCount: number } | { status: 'unavailable'; reason: string };
 export type SelectedShipping = { amountMinor: string; currency: string };
 
+export function shippingDestinationErrors(destination: ShippingDestination): { state: boolean; city: boolean; postalCode: boolean } {
+  return { state: !destination.state.trim(), city: !destination.city.trim(), postalCode: !destination.postalCode.trim() };
+}
+
 /** Never combine amounts in different currencies or treat a missing quote as free. */
 export function selectedShippingTotal(totals: Record<string, bigint>, shipping: SelectedShipping | null): { currency: string; amountMinor: bigint } | null {
   const entries = Object.entries(totals);

@@ -52,7 +52,7 @@ export class CatalogShippingResolver {
     for (const line of intent.lines) {
       const row = byPair.get(JSON.stringify([line.productId, line.variantId]));
       if (!row || row.currency !== this.money.currency || (typeof row.priceMinor === 'number' && !Number.isSafeInteger(row.priceMinor)) || !/^(0|[1-9]\d*)$/.test(String(row.priceMinor))) return { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' };
-      if (!row.name || row.name.length > 150 || ![row.weightGrams, row.widthMm, row.heightMm, row.lengthMm].every(n => typeof n === 'number' && Number.isSafeInteger(n) && n > 0)) return { status: 'unavailable', reason: 'LOGISTICS_UNAVAILABLE' };
+      if (typeof row.name !== 'string' || !row.name.trim() || row.name.length > 255 || ![row.weightGrams, row.widthMm, row.heightMm, row.lengthMm].every(n => typeof n === 'number' && Number.isSafeInteger(n) && n > 0)) return { status: 'unavailable', reason: 'LOGISTICS_UNAVAILABLE' };
       total += BigInt(row.priceMinor) * BigInt(line.quantity);
       if (total > BigInt(Number.MAX_SAFE_INTEGER)) return { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' };
       items.push({ description: row.name, quantity: line.quantity, weightGrams: row.weightGrams!, widthMm: row.widthMm!, heightMm: row.heightMm!, lengthMm: row.lengthMm! });

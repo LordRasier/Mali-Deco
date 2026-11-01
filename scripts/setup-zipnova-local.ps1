@@ -1,7 +1,10 @@
 # Run interactively on the owner's Windows account. Never pass credentials as arguments.
-param([string]$StorageRoot = $env:LOCALAPPDATA)
 $ErrorActionPreference = 'Stop'
-$folder = Join-Path $StorageRoot 'MaliDeco-Zipnova'
+if ($args.Count -gt 0) { throw 'Este asistente no acepta argumentos.' }
+. (Join-Path $PSScriptRoot 'zipnova-private-path.ps1')
+$localRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+Assert-ZipnovaPrivateRoot -Root $localRoot
+$folder = Join-Path $localRoot 'MaliDeco-Zipnova'
 $file = Join-Path $folder 'zipnova.env'
 if ([System.IO.Directory]::Exists($folder)) { throw 'La carpeta local ya existe; no se modificó ningún archivo.' }
 

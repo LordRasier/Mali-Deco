@@ -10,16 +10,17 @@ import { CartNotices } from './CartNotices';
 import { CartSummary } from './CartSummary';
 import { Header } from './Header';
 import { ShippingEstimate } from './ShippingEstimate';
-import type { SelectedShipping } from '../lib/shipping-client';
+import type { SelectedShipping, ShippingDestination } from '../lib/shipping-client';
 
-function CartQuoteSummary({ cart, mode }: { cart: CartState; mode: StorefrontData['mode'] }) {
+function CartQuoteSummary({ cart, mode, destination, onDestinationChange }: { cart: CartState; mode: StorefrontData['mode']; destination: ShippingDestination; onDestinationChange: (destination: ShippingDestination) => void }) {
   const [shipping, setShipping] = useState<SelectedShipping | null>(null);
-  return <aside className="cart-page-aside"><CartSummary totals={cart.totals} unresolved={cart.unresolved} shipping={shipping} /><ShippingEstimate mode={mode} lines={cart.items.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity }))} unresolved={cart.unresolved} onSelectionChange={setShipping} /><a className="cart-continue" href="/catalogo">← Seguir comprando</a></aside>;
+  return <aside className="cart-page-aside"><CartSummary totals={cart.totals} unresolved={cart.unresolved} shipping={shipping} /><ShippingEstimate mode={mode} lines={cart.items.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity }))} unresolved={cart.unresolved} destination={destination} onDestinationChange={onDestinationChange} onSelectionChange={setShipping} /><a className="cart-continue" href="/catalogo">← Seguir comprando</a></aside>;
 }
 
 export default function CartPageView({ mode, brand }: { mode: StorefrontData['mode']; brand: string }) {
   const cart = useCart(mode);
   const [open, setOpen] = useState(false);
+  const [destination, setDestination] = useState<ShippingDestination>({ country: 'AR', state: '', city: '', postalCode: '' });
   return <>
     <a className="skip-link" href="#contenido">Saltar al contenido</a>
     <div className="listing-header"><Header brand={brand} demo={mode === 'demo'} count={cart.count} onCartOpen={() => setOpen(true)} /></div>
@@ -28,7 +29,7 @@ export default function CartPageView({ mode, brand }: { mode: StorefrontData['mo
       <div className="cart-page-heading"><span className="eyebrow">TUS ELEGIDOS</span><h1>Tu carrito.</h1>{cart.ready && <p>{cartCountLabel(cart.items.length, cart.count)}</p>}</div>
       <CartNotices cart={cart} />
       <div className="cart-page-grid"><CartItems cart={cart} demo={mode === 'demo'} />
-        {cart.ready && cart.items.length > 0 && <CartQuoteSummary key={JSON.stringify([mode, cart.unresolved, cart.items.map(({ productId, variantId, quantity }) => [productId, variantId, quantity]), Object.entries(cart.totals).map(([currency, amount]) => [currency, amount.toString()]).sort()])} cart={cart} mode={mode} />}
+        {cart.ready && cart.items.length > 0 && <CartQuoteSummary key={JSON.stringify([mode, cart.unresolved, cart.items.map(({ productId, variantId, quantity }) => [productId, variantId, quantity]), Object.entries(cart.totals).map(([currency, amount]) => [currency, amount.toString()]).sort()])} cart={cart} mode={mode} destination={destination} onDestinationChange={setDestination} />}
       </div>
     </main>
     <footer><a className="brand" href="/">{brand}</a><p>Diseño, color y objetos para vivir distinto.</p><a href="#contenido">Volver arriba ↑</a></footer>

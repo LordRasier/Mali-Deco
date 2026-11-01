@@ -20,6 +20,10 @@ function integer(value: unknown, min: number, max: number): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < min || value > max) throw new Error('Invalid integer');
   return value;
 }
+function productDescription(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim() || value.length > 255) throw new Error('Invalid product description');
+  return value;
+}
 export function validateZipnovaConfig(config: ZipnovaConfig): void {
   integer(config.accountId, 1, Number.MAX_SAFE_INTEGER);
   integer(config.originId, 1, Number.MAX_SAFE_INTEGER);
@@ -62,7 +66,7 @@ export function serializeZipnovaDynamicQuote(shipment: ResolvedItemsShipment, co
   for (const item of shipment.items) {
     const quantity = integer(item.quantity, 1, 1000);
     if (items.length + quantity > 1000) throw new Error('Too many items');
-    const unit = { width: itemCm(item.widthMm), height: itemCm(item.heightMm), length: itemCm(item.lengthMm), weight: integer(item.weightGrams, 10, 10000000), description: text(item.description) };
+    const unit = { width: itemCm(item.widthMm), height: itemCm(item.heightMm), length: itemCm(item.lengthMm), weight: integer(item.weightGrams, 10, 10000000), description: productDescription(item.description) };
     for (let i = 0; i < quantity; i++) items.push({ ...unit });
   }
   return { ...base(shipment, config), type_packaging: 'dynamic' as const, items };

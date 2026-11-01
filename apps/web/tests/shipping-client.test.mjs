@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseShippingResult, shippingKey, selectedShippingTotal } from '../src/lib/shipping-client.ts';
+import { parseShippingResult, shippingKey, selectedShippingTotal, shippingDestinationErrors } from '../src/lib/shipping-client.ts';
 
 const lines = [{ productId: 'p1', variantId: 'v1', quantity: 2 }];
 const destination = { country: 'AR', city: 'Mar del Plata', state: 'Buenos Aires', postalCode: '7600' };
@@ -8,6 +8,11 @@ const destination = { country: 'AR', city: 'Mar del Plata', state: 'Buenos Aires
 test('shipping identity changes when quantity or destination changes', () => {
   assert.notEqual(shippingKey(lines, destination), shippingKey([{ ...lines[0], quantity: 3 }], destination));
   assert.notEqual(shippingKey(lines, destination), shippingKey(lines, { ...destination, postalCode: '7601' }));
+});
+
+test('requires non-whitespace destination fields before calculation', () => {
+  assert.deepEqual(shippingDestinationErrors({ ...destination, state: '  ', city: '\t', postalCode: ' ' }), { state: true, city: true, postalCode: true });
+  assert.deepEqual(shippingDestinationErrors(destination), { state: false, city: false, postalCode: false });
 });
 
 test('adds a selected quote exactly only when the whole cart uses the same currency', () => {
