@@ -28,8 +28,8 @@ export class CatalogTaxonomy1793360400000 implements MigrationInterface {
       ADD INDEX idx_variants_public (product_id, archived_at, currency, price_minor, id)`);
   }
   async down(q: QueryRunner): Promise<void> {
-    // MariaDB may use the public composite index to support fk_variants_product.
-    await q.query('ALTER TABLE product_variants ADD INDEX idx_variants_product_id (product_id)');
+    // This support index survives a prior rollback, so subsequent cycles must reuse it.
+    await q.query('ALTER TABLE product_variants ADD INDEX IF NOT EXISTS idx_variants_product_id (product_id)');
     await q.query(`ALTER TABLE product_variants DROP FOREIGN KEY fk_variants_color, DROP FOREIGN KEY fk_variants_material,
       DROP INDEX idx_variants_public, DROP INDEX idx_variants_color, DROP INDEX idx_variants_material,
       DROP COLUMN color_id, DROP COLUMN material_id`);

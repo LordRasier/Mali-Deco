@@ -35,6 +35,15 @@ test('migration creates constraints and can be reverted on empty isolated MariaD
     await db.query('INSERT INTO products (id, name, description, slug) VALUES (?, ?, ?, ?)', ['p1', 'Pieza', '', 'pieza']);
     const insert = 'INSERT INTO product_variants (id, product_id, sku, name, price_minor, currency) VALUES (?, ?, ?, ?, ?, ?)';
     await db.query(insert, ['v1', 'p1', 'SKU-1', 'Rojo', 100, 'ARS']);
+    // Reverting and reapplying only taxonomy twice must retain the product FK and its supporting index.
+    for (let cycle = 0; cycle < 2; cycle++) {
+      await db.undoLastMigration();
+      const indexes: Array<{ Column_name: string }> = await db.query("SHOW INDEX FROM product_variants WHERE Key_name = 'idx_variants_product_id'");
+      assert.equal(indexes.length, 1);
+      assert.equal(indexes[0].Column_name, 'product_id');
+      assert.equal((await db.query('SELECT id FROM product_variants WHERE id = ?', ['v1'])).length, 1);
+      await db.runMigrations();
+    }
     await assert.rejects(db.query(insert, ['v2', 'p1', 'SKU-1', 'Azul', 100, 'ARS']), { code: 'ER_DUP_ENTRY' });
     await assert.rejects(db.query(insert, ['v3', 'missing', 'SKU-2', 'Azul', 100, 'ARS']), { code: 'ER_NO_REFERENCED_ROW_2' });
     await assert.rejects(db.query(insert, ['v4', 'p1', 'SKU-3', 'Azul', 100, 'ars']), { errno: 4025 });
