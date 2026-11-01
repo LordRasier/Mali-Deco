@@ -10,6 +10,7 @@ import { CatalogTaxonomy } from '../catalog/catalog-taxonomy';
 import { IdentityService } from '../identity/identity-service';
 import { MysqlIdentityStore } from '../identity/identity-store';
 import { hashPassword } from '../identity/security';
+import { StoreSettings } from '../catalog/store-settings';
 
 test('migration creates constraints and can be reverted on empty isolated MariaDB', {
   skip: process.env.MARIADB_INTEGRATION !== '1' ? 'requires explicit isolated MariaDB configuration' : false,
@@ -50,7 +51,11 @@ test('migration creates constraints and can be reverted on empty isolated MariaD
     await assert.rejects(db.query(insert, ['v5', 'p1', 'SKU-4', 'Azul', '9007199254740992', 'ARS']), { errno: 4025 });
     await db.query(insert, ['v6', 'p1', 'sku-1', 'Azul', 100, 'ARS']);
     await assert.rejects(db.query('INSERT INTO products (id, name, description, slug) VALUES (?, ?, ?, ?)', ['p2', 'Pieza', '', 'PIÉZA']), { code: 'ER_DUP_ENTRY' });
-    await db.query('INSERT INTO store_settings (id, store_name) VALUES (1, ?)', ['Tienda']);
+    const storeSettings = new StoreSettings(db);
+    assert.deepEqual(await storeSettings.get(), { name: null });
+    assert.deepEqual(await storeSettings.set({ name: ' Tienda ' }), { name: 'Tienda' });
+    assert.deepEqual(await storeSettings.set({ name: 'Tienda modificada' }), { name: 'Tienda modificada' });
+    assert.deepEqual(await storeSettings.set({ name: 'Tienda' }), { name: 'Tienda' });
     await assert.rejects(db.query('INSERT INTO store_settings (id, store_name) VALUES (2, ?)', ['Otra']), { errno: 4025 });
     await assert.rejects(db.query('INSERT INTO categories (id, slug, name) VALUES (?, ?, ?)', ['bad-slug', 'MAYUS', 'Inválida']), { errno: 4025 });
     await assert.rejects(db.query('INSERT INTO colors (id, slug, name, hex) VALUES (?, ?, ?, ?)', ['bad-color', 'color', 'Inválido', '#ff0000']), { errno: 4025 });

@@ -7,6 +7,7 @@ import { useSession } from './session';
 import type { Page, Product, ProductInput } from './types';
 import { ProductDetail } from './ProductDetail';
 import { TaxonomyManager } from './TaxonomyManager';
+import { StoreSettings } from './StoreSettings';
 
 const base = '/admin/catalog/products';
 
@@ -15,7 +16,7 @@ export function failureMessage(failure: unknown) {
 }
 
 export function Catalog() {
-  const { csrf } = useSession();
+  const { csrf, user } = useSession();
   const [view, setView] = useState<'list' | 'create' | 'detail' | 'taxonomy'>('list');
   const [selectedId, setSelectedId] = useState('');
   const [query, setQuery] = useState('');
@@ -89,6 +90,7 @@ export function Catalog() {
 
   return (
     <main className="admin-main">
+      {user?.role === 'owner' && <StoreSettings />}
       <div className="section-heading">
         <div>
           <span className="eyebrow">Administración</span>
@@ -141,7 +143,7 @@ export function Catalog() {
           )
         )}
       </div>
-      <p className="muted scope-note">Ventas, inventario, imágenes y ajustes aún no cuentan con administración conectada.</p>
+      <p className="muted scope-note">Ventas, inventario e imágenes aún no cuentan con administración conectada.</p>
     </main>
   );
 }

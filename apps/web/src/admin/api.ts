@@ -39,7 +39,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.csrf) headers['X-CSRF-Token'] = options.csrf;
   const method = options.method ?? 'GET';
-  const checkState = path.startsWith('/admin/catalog/') ? 'revisá el catálogo' : 'revisá el estado de tu sesión';
+  const checkState = path.startsWith('/admin/catalog/') ? 'revisá el catálogo' : path === '/admin/settings' ? 'revisá los ajustes de la tienda' : 'revisá el estado de tu sesión';
   const writeOutcomeUnknown = `No se pudo confirmar el resultado. La operación podría haberse completado; ${checkState} antes de reintentar.`;
   const connectionError = 'No se pudo conectar con el servicio. Revisá la conexión e intentá nuevamente.';
   let response: Response;

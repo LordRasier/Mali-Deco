@@ -71,6 +71,7 @@
 .admin-root .empty-state { color: var(--admin-muted); padding: 28px 10px; text-align: center; }
 @media (max-width: 700px) {
   .admin-root .admin-header { flex-wrap: wrap; gap: 10px; padding: 14px 18px; }
+  .admin-root .settings-panel .section-heading .eyebrow, .admin-root .settings-panel .section-heading p { display: block; }
   .admin-root .header-account { margin-left: 0; width: 100%; justify-content: space-between; }
   .admin-root .admin-main { width: calc(100% - 32px); padding-top: 28px; }
   .admin-root .section-heading { align-items: start; }
