@@ -15,7 +15,8 @@ test('taxonomy migration retains old rows without invented data and removes FKs 
   const beforeDown = statements.length;
   await migration.down(runner);
   const down = statements.slice(beforeDown);
-  assert.match(down[0], /DROP FOREIGN KEY fk_variants_color/);
-  assert.match(down[1], /DROP FOREIGN KEY fk_products_category/);
-  assert.deepEqual(down.slice(2), ['DROP TABLE colors', 'DROP TABLE materials', 'DROP TABLE categories']);
+  assert.match(down[0], /ADD INDEX idx_variants_product_id \(product_id\)/);
+  assert.match(down[1], /DROP FOREIGN KEY fk_variants_color/);
+  assert.match(down[2], /DROP FOREIGN KEY fk_products_category/);
+  assert.deepEqual(down.slice(3), ['DROP TABLE colors', 'DROP TABLE materials', 'DROP TABLE categories']);
 });

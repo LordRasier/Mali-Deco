@@ -17,9 +17,14 @@ test('migration creates constraints and can be reverted on empty isolated MariaD
   if (process.env.DB_DATABASE !== 'store_integration_test' || !['127.0.0.1', 'localhost'].includes(process.env.DB_HOST ?? '')) {
     throw new Error('Integration test requires local store_integration_test database');
   }
-  const db = new DataSource(databaseOptions());
+  // A separate explicit flag permits the confirmed passwordless XAMPP root only in this guarded test.
+  const emptyPassword = process.env.MARIADB_INTEGRATION_EMPTY_PASSWORD === '1';
+  if (emptyPassword && process.env.DB_USERNAME !== 'root') throw new Error('Empty-password test requires the explicitly confirmed local root');
+  const db = new DataSource({ ...databaseOptions(), ...(emptyPassword ? { password: '' } : {}), extra: { connectionLimit: 1 } });
   await db.initialize();
   try {
+    // This isolated test sets strict mode only on its own pooled connection, never globally.
+    await db.query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_TRANS_TABLES')");
     const [server]: Array<{ version: string; checks: number; mode: string }> = await db.query('SELECT VERSION() AS version, @@SESSION.check_constraint_checks AS checks, @@SESSION.sql_mode AS mode');
     if (!/MariaDB/i.test(server.version) || Number(server.checks) !== 1 || !/STRICT_(?:TRANS|ALL)_TABLES/.test(server.mode)) {
       throw new Error('Integration test requires MariaDB with CHECK constraints and strict SQL mode enabled');

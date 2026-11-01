@@ -1,6 +1,6 @@
 # Decisiones para próximas entregas
 
-La base adopta un monolito modular NestJS, MariaDB 10.4 con InnoDB como objetivo de desarrollo y un frontend Next.js. La compatibilidad con MariaDB aún requiere una prueba real; véase [compatibilidad MariaDB](mariadb-local.md). Las fronteras previstas son identidad, catálogo, inventario, checkout, pedidos, pagos, envíos, medios, ajustes y auditoría. Crear módulos al implementar funcionalidad, no como capas vacías. La API usará `/api/v1` y OpenAPI; generar el cliente desde el contrato, sin compartir entidades ORM con la web.
+La base adopta un monolito modular NestJS, MariaDB 10.4 con InnoDB como objetivo de desarrollo y un frontend Next.js. Las migraciones pasaron una prueba real aislada; la conexión de la aplicación aún requiere validación, véase [compatibilidad MariaDB](mariadb-local.md). Las fronteras previstas son identidad, catálogo, inventario, checkout, pedidos, pagos, envíos, medios, ajustes y auditoría. Crear módulos al implementar funcionalidad, no como capas vacías. La API usará `/api/v1` y OpenAPI; generar el cliente desde el contrato, sin compartir entidades ORM con la web.
 
 ## Pedidos, dinero y stock
 
