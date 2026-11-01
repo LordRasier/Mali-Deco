@@ -36,8 +36,8 @@ assert.match(unresolvedRow, /Artículo 2 pendiente de verificación/); assert.ma
 const summary = renderToStaticMarkup(createElement(CartSummary, { totals: { ARS: 100n, USD: 200n }, unresolved: true }));
 assert.match(summary, /Subtotal ARS/); assert.match(summary, /Subtotal USD/);
 assert.match(summary, /Subtotal parcial/); assert.match(summary, /A calcular/);
-const shipping = renderToStaticMarkup(createElement(ShippingEstimate));
-assert.match(shipping, /Código postal/); assert.match(shipping, /Cálculo de envío todavía no disponible/);
+const shipping = renderToStaticMarkup(createElement(ShippingEstimate, { mode: 'demo', lines: [{ productId: 'p1', variantId: 'coral', quantity: 2 }], unresolved: false }));
+assert.match(shipping, /Código postal/); assert.match(shipping, /modo de demostración/);
 assert.match(shipping, /disabled/); assert.doesNotMatch(shipping, /gratis|Andreani/i);
 const emptyCart = { ready: true, items: [] } as unknown as CartState;
 const empty = renderToStaticMarkup(createElement(CartItems, { cart: emptyCart, demo: true }));
