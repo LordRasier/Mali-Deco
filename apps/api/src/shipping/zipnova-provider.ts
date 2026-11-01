@@ -1,11 +1,11 @@
-import { serializeZipnovaQuote, parseZipnovaQuote, validateDestination, validateZipnovaConfig } from './zipnova';
-import type { Destination, DeliveryOption, ResolvedShipment, ZipnovaConfig } from './zipnova';
+import { serializeZipnovaQuote, serializeZipnovaDynamicQuote, parsePackageCount, parseZipnovaQuote, validateDestination, validateZipnovaConfig } from './zipnova';
+import type { Destination, DeliveryOption, ResolvedItemsShipment, ResolvedShipment, ZipnovaConfig } from './zipnova';
 
 export type QuoteIntent = { lines: { productId: string; variantId: string; quantity: number }[]; destination: Destination };
 export type UnavailableReason = 'DISABLED' | 'CONFIG_UNAVAILABLE' | 'CATALOG_UNAVAILABLE' | 'LOGISTICS_UNAVAILABLE' | 'INVALID_DESTINATION' | 'AUTH_ERROR' | 'RATE_LIMITED' | 'TIMEOUT' | 'DESTINATION_OR_LOGISTICS_INVALID' | 'PROVIDER_ERROR' | 'INVALID_RESPONSE' | 'NO_OPTIONS';
-export type ShippingOptionsResult = { status: 'quoted'; options: DeliveryOption[] } | { status: 'unavailable'; reason: UnavailableReason };
-export type TrustedResolver = (intent: QuoteIntent) => Promise<{ status: 'resolved'; value: ResolvedShipment } | { status: 'unavailable'; reason: 'CATALOG_UNAVAILABLE' | 'LOGISTICS_UNAVAILABLE' }>;
-export type ZipnovaTransport = (payload: ReturnType<typeof serializeZipnovaQuote>) => Promise<{ status: number; body: unknown }>;
+export type ShippingOptionsResult = { status: 'quoted'; options: DeliveryOption[]; packageCount?: number } | { status: 'unavailable'; reason: UnavailableReason };
+export type TrustedResolver = (intent: QuoteIntent) => Promise<{ status: 'resolved'; value: ResolvedShipment | ResolvedItemsShipment } | { status: 'unavailable'; reason: 'CATALOG_UNAVAILABLE' | 'LOGISTICS_UNAVAILABLE' }>;
+export type ZipnovaTransport = (payload: ReturnType<typeof serializeZipnovaQuote> | ReturnType<typeof serializeZipnovaDynamicQuote>) => Promise<{ status: number; body: unknown }>;
 
 export class DisabledOptionsProvider {
   async quote(): Promise<ShippingOptionsResult> { return { status: 'unavailable', reason: 'DISABLED' }; }
@@ -23,8 +23,13 @@ export class ZipnovaQuoteAdapter {
     let resolved: Awaited<ReturnType<TrustedResolver>>;
     try { resolved = await this.resolver(snapshot); } catch { return { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' }; }
     if (resolved.status === 'unavailable') return resolved;
-    let payload: ReturnType<typeof serializeZipnovaQuote>;
-    try { payload = serializeZipnovaQuote({ ...resolved.value, destination: snapshot.destination }, this.config); }
+    let payload: Parameters<ZipnovaTransport>[0];
+    try {
+      const value = resolved.value;
+      payload = 'items' in value
+        ? serializeZipnovaDynamicQuote({ ...value, destination: snapshot.destination }, this.config)
+        : serializeZipnovaQuote({ ...value, destination: snapshot.destination }, this.config);
+    }
     catch { return { status: 'unavailable', reason: 'LOGISTICS_UNAVAILABLE' }; }
     let response: Awaited<ReturnType<ZipnovaTransport>>;
     try { response = await this.transport(payload); }
@@ -36,7 +41,8 @@ export class ZipnovaQuoteAdapter {
     if (!Number.isInteger(response.status) || response.status < 200 || response.status >= 300) return { status: 'unavailable', reason: 'PROVIDER_ERROR' };
     try {
       const options = parseZipnovaQuote(response.body, this.config);
-      return options.length ? { status: 'quoted', options } : { status: 'unavailable', reason: 'NO_OPTIONS' };
+      if (!options.length) return { status: 'unavailable', reason: 'NO_OPTIONS' };
+      return 'items' in payload ? { status: 'quoted', options, packageCount: parsePackageCount(response.body) } : { status: 'quoted', options };
     } catch { return { status: 'unavailable', reason: 'INVALID_RESPONSE' }; }
   }
 }

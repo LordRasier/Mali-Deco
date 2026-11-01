@@ -26,6 +26,7 @@ export function ProductForm({ initial, onSubmit, onCancel, busy }: FormProps<Pro
   const [error, setError] = useState('');
   const [category, setCategory] = useState<string | null>(initial?.categoryId ?? null);
   const [categoryChanged, setCategoryChanged] = useState(false);
+  const unitDimensionsComplete = dimensionFields.slice(0, 4).every(([key]) => /^\d+$/.test(draft[key].trim()) && Number.isSafeInteger(Number(draft[key])) && Number(draft[key]) > 0);
   const sending = useRef(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,9 +50,10 @@ export function ProductForm({ initial, onSubmit, onCancel, busy }: FormProps<Pro
       </div>
       <label>Descripción<textarea disabled={busy} value={draft.description} rows={4} onChange={e => setDraft({ ...draft, description: e.target.value })} /></label>
       <p className="admin-hint">Medidas opcionales en números enteros. El producto y el paquete se registran por separado.</p>
-      {[['Producto', dimensionFields.slice(0, 4)], ['Paquete', dimensionFields.slice(4)]].map(([title, fields]) => (
+      {[['Peso y medidas del producto por unidad', dimensionFields.slice(0, 4)], ['Paquete', dimensionFields.slice(4)]].map(([title, fields]) => (
         <fieldset key={title as string}>
           <legend>{title as string}</legend>
+          {title === 'Peso y medidas del producto por unidad' && <p className="admin-hint">{unitDimensionsComplete ? 'Peso y medidas completos.' : 'Peso y medidas incompletos: se necesitan los cuatro datos para cotizar el envío.'} Las medidas del producto no agregan automáticamente el peso ni el espacio del embalaje.</p>}
           <div className="admin-form-grid">
             {(fields as typeof dimensionFields[number][]).map(([key, label]) => (
               <label key={key}>{label}<input disabled={busy} inputMode="numeric" value={draft[key]} onChange={e => setDraft({ ...draft, [key]: e.target.value })} /></label>

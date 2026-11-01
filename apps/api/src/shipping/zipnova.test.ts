@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { serializeZipnovaQuote, parseZipnovaQuote } from './zipnova';
+import { serializeZipnovaQuote, serializeZipnovaDynamicQuote, parseZipnovaQuote } from './zipnova';
 import { DisabledOptionsProvider, ZipnovaQuoteAdapter, type QuoteIntent } from './zipnova-provider';
 import { QuoteSession, quoteFingerprint } from './quote-session';
 
@@ -18,6 +18,19 @@ test('serializes trusted, already packed parcels with exact units', () => {
   for (const widthMm of [161, 0, -1, 1.5, 50001]) assert.throws(() => serializeZipnovaQuote({ ...resolved, packages: [{ ...parcel, widthMm }] }, config));
   assert.throws(() => serializeZipnovaQuote({ ...resolved, packages: [] }, config));
   assert.throws(() => serializeZipnovaQuote({ ...resolved, declaredValue: 12.345 }, config));
+});
+
+test('dynamic packaging sends one trusted item per purchased unit, never one package per unit', () => {
+  const item = { ...parcel, description: 'Florero' };
+  const result = serializeZipnovaDynamicQuote({ destination, declaredValue: 123.45, items: [{ ...item, quantity: 2 }, { ...item, widthMm: 161, quantity: 3 }] }, config);
+  assert.equal(result.type_packaging, 'dynamic');
+  assert.equal(result.items.length, 5);
+  assert.deepEqual(result.items.map(item => item.width), [16, 16, 17, 17, 17]);
+  assert.equal('packages' in result, false);
+  assert.ok(result.items.every(item => !('quantity' in item) && !('sku' in item)));
+  assert.throws(() => serializeZipnovaDynamicQuote({ destination, declaredValue: 1, items: [{ ...item, quantity: 1001 }] }, config));
+  assert.throws(() => serializeZipnovaDynamicQuote({ destination, declaredValue: 1, items: [{ ...item, weightGrams: 9, quantity: 1 }] }, config));
+  assert.throws(() => serializeZipnovaDynamicQuote({ destination, declaredValue: 1, items: [{ ...item, widthMm: 50001, quantity: 1 }] }, config));
 });
 
 test('uses gross buyer amount and only actionable options including pickup points', () => {
@@ -44,6 +57,19 @@ test('fails closed before transport when catalog or packaging is unavailable', a
   const invalidConfig = new ZipnovaQuoteAdapter({ ...config, currency: '' }, async () => ({ status: 'resolved', value: resolved }), transport);
   assert.deepEqual(await invalidConfig.quote(intent), { status: 'unavailable', reason: 'CONFIG_UNAVAILABLE' });
   assert.equal(calls, 0);
+});
+
+test('adapter forwards unit measurements and preserves package count without multiplying the price', async () => {
+  const adapter = new ZipnovaQuoteAdapter(config, async () => ({ status: 'resolved', value: { destination, declaredValue: 123.45, items: [{ ...parcel, description: 'Florero', quantity: 2 }] } }), async body => {
+    assert.ok('items' in body);
+    assert.equal(body.type_packaging, 'dynamic');
+    assert.equal(body.items.length, 2);
+    assert.equal('packages' in body, false);
+    return { status: 200, body: { all_results: [option], packages: [{ width: 16, height: 12, length: 19, weight: 1000 }, { width: 16, height: 12, length: 19, weight: 1000 }] } };
+  });
+  const result = await adapter.quote(intent);
+  assert.equal(result.status, 'quoted');
+  if (result.status === 'quoted') { assert.equal(result.packageCount, 2); assert.equal(result.options[0].amountMinor, '12125'); }
 });
 
 test('classifies provider failures and never interprets them as free shipping', async () => {

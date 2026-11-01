@@ -4,6 +4,8 @@ export type ZipnovaConfig = MoneyConfig & { accountId: number; originId: number;
 export type Destination = { country: 'AR'; postalCode: string; city: string; state: string };
 export type PackedParcel = { widthMm: number; heightMm: number; lengthMm: number; weightGrams: number; classificationId: string };
 export type ResolvedShipment = { destination: Destination; packages: PackedParcel[]; declaredValue: number };
+/** Unit values come from the authoritative catalog; no protection or box weight is added here. */
+export type ResolvedItemsShipment = { destination: Destination; items: { widthMm: number; heightMm: number; lengthMm: number; weightGrams: number; quantity: number; description: string }[]; declaredValue: number };
 export type DeliveryOption = { carrierId: number; carrierName: string; logisticType: string; serviceCode: string; serviceName: string; amountMinor: string; currency: string; pickupPoints?: { id: number; description: string }[] };
 
 function record(value: unknown): Record<string, unknown> {
@@ -33,17 +35,43 @@ function cm(mm: number): number {
   if (mm % 10 !== 0) throw new Error('Fractional centimetre');
   return mm / 10;
 }
-export function serializeZipnovaQuote(shipment: ResolvedShipment, config: ZipnovaConfig) {
+function base(shipment: { destination: Destination; declaredValue: number }, config: ZipnovaConfig) {
   validateZipnovaConfig(config);
   validateDestination(shipment.destination);
-  if (!Array.isArray(shipment.packages) || shipment.packages.length === 0) throw new Error('Missing packages');
   if (!Number.isFinite(shipment.declaredValue) || shipment.declaredValue < 0 || shipment.declaredValue > Number.MAX_SAFE_INTEGER) throw new Error('Invalid declared value');
   minor(shipment.declaredValue, config.exponent);
   return {
     account_id: config.accountId, origin_id: config.originId, source: text(config.source), declared_value: shipment.declaredValue,
     destination: { city: text(shipment.destination.city), state: text(shipment.destination.state), zipcode: text(shipment.destination.postalCode, 16) },
-    packages: shipment.packages.map(p => ({ width: cm(p.widthMm), height: cm(p.heightMm), length: cm(p.lengthMm), weight: integer(p.weightGrams, 10, 10000000), classification_id: text(p.classificationId) })),
   };
+}
+function dimensions(p: PackedParcel) {
+  return { width: cm(p.widthMm), height: cm(p.heightMm), length: cm(p.lengthMm), weight: integer(p.weightGrams, 10, 10000000), classification_id: text(p.classificationId) };
+}
+export function serializeZipnovaQuote(shipment: ResolvedShipment, config: ZipnovaConfig) {
+  if (!Array.isArray(shipment.packages) || shipment.packages.length === 0) throw new Error('Missing packages');
+  return { ...base(shipment, config), packages: shipment.packages.map(dimensions) };
+}
+export function serializeZipnovaDynamicQuote(shipment: ResolvedItemsShipment, config: ZipnovaConfig) {
+  if (!Array.isArray(shipment.items) || shipment.items.length === 0) throw new Error('Missing items');
+  const items: { width: number; height: number; length: number; weight: number; description: string }[] = [];
+  const itemCm = (mm: number) => Math.ceil(integer(mm, 1, 50000) / 10);
+  for (const item of shipment.items) {
+    const quantity = integer(item.quantity, 1, 1000);
+    if (items.length + quantity > 1000) throw new Error('Too many items');
+    const unit = { width: itemCm(item.widthMm), height: itemCm(item.heightMm), length: itemCm(item.lengthMm), weight: integer(item.weightGrams, 10, 10000000), description: text(item.description) };
+    for (let i = 0; i < quantity; i++) items.push({ ...unit });
+  }
+  return { ...base(shipment, config), type_packaging: 'dynamic' as const, items };
+}
+export function parsePackageCount(body: unknown): number {
+  const packages = record(body).packages;
+  if (!Array.isArray(packages) || !packages.length || packages.length > 1000) throw new Error('Invalid packages');
+  for (const p of packages) {
+    const row = record(p);
+    integer(row.width, 1, 5000); integer(row.height, 1, 5000); integer(row.length, 1, 5000); integer(row.weight, 10, 10000000);
+  }
+  return packages.length;
 }
 function minor(value: unknown, exponent: number): string {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > Number.MAX_SAFE_INTEGER) throw new Error('Invalid price');
