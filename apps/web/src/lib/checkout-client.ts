@@ -11,10 +11,10 @@ async function post(url: string, body: unknown, headers: Record<string, string> 
   const response = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body), signal });
   if (!response.ok) {
     let code: string | undefined;
-    if (response.status === 409) {
+    if (response.status === 409 || response.status === 403) {
       try {
         const body: unknown = await response.json();
-        if (body && typeof body === 'object' && !Array.isArray(body) && 'code' in body && body.code === 'QUOTE_CHANGED') code = 'QUOTE_CHANGED';
+        if (body && typeof body === 'object' && !Array.isArray(body) && 'code' in body && (body.code === 'QUOTE_CHANGED' || body.code === 'CHECKOUT_SESSION_INVALID' || body.code === 'CHECKOUT_SESSION_CONFLICT')) code = body.code;
       } catch { /* An invalid response is not a confirmed rejection. */ }
     }
     throw new CheckoutError(response.status, code);
@@ -34,8 +34,16 @@ function validateQuote(v:unknown): Quote {
   return v as Quote;
 }
 let bootstrap: Promise<string> | null = null;
-export function checkoutSession(): Promise<string> { if (!bootstrap) bootstrap = post('/api/v1/checkout/session', {}).then(token).catch(error => { bootstrap = null; throw error; }); return bootstrap; }
+export function checkoutRecoveryAvailable(): boolean { return typeof navigator !== 'undefined' && !!navigator.locks; }
+async function sessionLock<T>(action: () => Promise<T>): Promise<T> {
+  return checkoutRecoveryAvailable() ? await navigator.locks.request('checkout:session', action) : await action();
+}
+export function checkoutSession(): Promise<string> { if (!bootstrap) bootstrap = sessionLock(() => post('/api/v1/checkout/session', {}).then(token)).catch(error => { bootstrap = null; throw error; }); return bootstrap; }
 export function resetCheckoutSession() { bootstrap = null; }
+export async function discardInvalidCheckoutSession(): Promise<void> {
+  if (!checkoutRecoveryAvailable()) throw new Error('Cross-tab session protection unavailable');
+  await sessionLock(async () => { await post('/api/v1/checkout/session/reset', {}); resetCheckoutSession(); });
+}
 export async function lookupDestination(postalCode: string, signal?: AbortSignal): Promise<DestinationResult> {
   const result = parseLookup(await post('/api/v1/shipping/destination', { postalCode }, {}, signal));
   if (result.status === 'resolved') return {status:'resolved',candidate:result.candidates[0]};

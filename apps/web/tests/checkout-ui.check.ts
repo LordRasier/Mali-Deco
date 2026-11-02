@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { checkoutSession, resetCheckoutSession, createOrder, getQuote, lookupDestination, checkOrderAttempt } from '../src/lib/checkout-client';
+import { checkoutSession, resetCheckoutSession, discardInvalidCheckoutSession, createOrder, getQuote, lookupDestination, checkOrderAttempt } from '../src/lib/checkout-client';
 async function main() {
 const json = (data: unknown) => new Response(JSON.stringify(data), {status:200});
 let release!: (response:Response)=>void;
@@ -55,5 +55,26 @@ globalThis.fetch = (async()=>json({status:'completed',order:{id:'x',testLocal:tr
 await assert.rejects(checkOrderAttempt('csrf','key'));
 resetCheckoutSession(); globalThis.fetch = (async()=>json({csrf:''})) as typeof fetch;
 await assert.rejects(checkoutSession());
+// Reset and bootstrap from different tabs must serialize before a stale reset can erase a newer cookie.
+let tail: Promise<unknown> = Promise.resolve(), state = 'stale', finishReset!: () => void;
+Object.defineProperty(globalThis, 'navigator', { configurable:true, value:{locks:{request:(_key:string, action:()=>Promise<unknown>) => { const next=tail.then(action); tail=next.catch(()=>undefined); return next; }}} });
+const paths: string[] = [];
+globalThis.fetch = (async (url:string) => {
+  paths.push(url);
+  if (url.endsWith('/session/reset')) {
+    if (state==='valid') return new Response('',{status:409});
+    await new Promise<void>(resolve => {finishReset=resolve;}); state='none'; return json({});
+  }
+  state='valid'; return json({csrf:'new'});
+}) as typeof fetch;
+resetCheckoutSession();
+const firstReset=discardInvalidCheckoutSession();
+await new Promise<void>(resolve=>setImmediate(resolve));
+const nextSession=checkoutSession(), lateReset=discardInvalidCheckoutSession();
+assert.deepEqual(paths,['/api/v1/checkout/session/reset']);
+finishReset(); await firstReset; assert.equal(await nextSession,'new'); await assert.rejects(lateReset, {status:409});
+assert.deepEqual(paths,['/api/v1/checkout/session/reset','/api/v1/checkout/session','/api/v1/checkout/session/reset']);
+Object.defineProperty(globalThis, 'navigator', { configurable:true, value:{} });
+await assert.rejects(discardInvalidCheckoutSession(), /Cross-tab session protection unavailable/);
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; });

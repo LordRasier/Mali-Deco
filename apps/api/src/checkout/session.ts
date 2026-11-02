@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, HttpCode, Inject, Post, Req, Res, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, HttpCode, Inject, Post, Req, Res, ServiceUnavailableException } from '@nestjs/common';
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { DataSource } from 'typeorm';
 import { isLocalQuoteRequest, localOperatorOrigin } from '../shipping/local-quote-guard';
@@ -18,13 +18,16 @@ export function assertLocalCheckoutRequest(req: CheckoutRequest, env: NodeJS.Pro
 }
 const hash = (token: string) => createHash('sha256').update(token).digest('hex');
 const csrf = (token: string) => createHmac('sha256', token).update('local-checkout-csrf-v1').digest('hex');
+class InvalidCheckoutCookie extends ForbiddenException {}
+class ConflictingCheckoutCookies extends ForbiddenException {}
 function tokenFrom(req: CheckoutRequest): string | undefined {
   const cookie = req.headers.cookie;
   if (cookie === undefined) return undefined;
   if (typeof cookie !== 'string') throw new ForbiddenException();
   const matches = cookie.split(';').map(s => s.trim()).filter(s => s.split('=')[0] === 'store_checkout');
   if (!matches.length) return undefined;
-  if (matches.length !== 1 || !/^store_checkout=[a-f0-9]{64}$/.test(matches[0])) throw new ForbiddenException();
+  if (matches.length !== 1) throw new ConflictingCheckoutCookies();
+  if (!/^store_checkout=[a-f0-9]{64}$/.test(matches[0])) throw new InvalidCheckoutCookie();
   return matches[0].slice('store_checkout='.length);
 }
 
@@ -51,8 +54,20 @@ export class SessionService {
   }
   async start(req: CheckoutRequest): Promise<CheckoutSession & { token: string; csrf: string }> {
     assertLocalCheckoutRequest(req, this.env);
-    const existing = tokenFrom(req);
-    if (existing) return { ...await this.find(existing), token: existing, csrf: csrf(existing) };
+    let existing: string | undefined;
+    try { existing = tokenFrom(req); }
+    catch (error) {
+      if (error instanceof InvalidCheckoutCookie) throw new ForbiddenException({ code: 'CHECKOUT_SESSION_INVALID' });
+      if (error instanceof ConflictingCheckoutCookies) throw new ForbiddenException({ code: 'CHECKOUT_SESSION_CONFLICT' });
+      throw error;
+    }
+    if (existing) {
+      try { return { ...await this.find(existing), token: existing, csrf: csrf(existing) }; }
+      catch (error) {
+        if (error instanceof ForbiddenException) throw new ForbiddenException({ code: 'CHECKOUT_SESSION_INVALID' });
+        throw error;
+      }
+    }
     const token = randomBytes(32).toString('hex'), id = randomUUID(), createdAt = this.now(), expiresAt = createdAt + 86400000;
     await this.query('INSERT INTO checkout_sessions (id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?)', [id, hash(token), new Date(expiresAt), new Date(createdAt)]);
     return { id, token, csrf: csrf(token), expiresAt };
@@ -71,10 +86,28 @@ export class SessionService {
     await this.find(token);
     return { csrf: csrf(token) };
   }
+  /** Only discard an invalid capability; never rotate a valid one or create an order. */
+  async reset(req: CheckoutRequest): Promise<void> {
+    assertLocalCheckoutRequest(req, this.env);
+    let token: string | undefined;
+    try { token = tokenFrom(req); }
+    catch (error) { if (error instanceof InvalidCheckoutCookie) return; throw error; }
+    if (!token) throw new ForbiddenException();
+    try { await this.find(token); }
+    catch (error) { if (error instanceof ForbiddenException) return; throw error; }
+    throw new ConflictException();
+  }
 }
 @Controller('checkout')
 export class SessionController {
   constructor(@Inject(SessionService) private readonly sessions: SessionService) {}
+  @Post('session/reset') @HttpCode(200)
+  async reset(@Body() body: unknown, @Req() req: CheckoutRequest, @Res({ passthrough: true }) res: { clearCookie(name: string, options: object): void }) {
+    if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) throw new BadRequestException('Invalid session request');
+    await this.sessions.reset(req);
+    res.clearCookie('store_checkout', { httpOnly: true, sameSite: 'strict', secure: false, path: '/api/v1/checkout' });
+    return {};
+  }
   @Post('session/resume') @HttpCode(200)
   async resume(@Body() body: unknown, @Req() req: CheckoutRequest) {
     if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) throw new BadRequestException('Invalid session request');

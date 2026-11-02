@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCart } from '../hooks/useCart';
 import { formatPrice } from '../lib/cart';
-import { checkoutSession, resetCheckoutSession, lookupDestination, getQuote, createOrder, resumeCheckoutSession, checkOrderAttempt, CheckoutError, type Destination, type Quote, type Order, type OrderInput } from '../lib/checkout-client';
+import { checkoutSession, resetCheckoutSession, discardInvalidCheckoutSession, checkoutRecoveryAvailable, lookupDestination, getQuote, createOrder, resumeCheckoutSession, checkOrderAttempt, CheckoutError, type Destination, type Quote, type Order, type OrderInput } from '../lib/checkout-client';
 import { CheckoutShipping } from './CheckoutShipping';
 import { CheckoutContact } from './CheckoutContact';
 import { CheckoutSummary } from './CheckoutSummary';
@@ -25,6 +25,7 @@ export default function CheckoutView({ brand }: {
     const [quoteBusy, setQuoteBusy] = useState(false);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState('');
+    const [invalidSession, setInvalidSession] = useState(false);
     const [order, setOrder] = useState<Order | null>(null);
     const [pending, setPending] = useState<string | null>(null);
     const [loaded, setLoaded] = useState(false);
@@ -85,6 +86,7 @@ export default function CheckoutView({ brand }: {
         setOption('');
         setPoint('');
         setError('');
+        setInvalidSession(false);
         setLookupBusy(true);
         try {
             const result = await lookupDestination(postal.trim());
@@ -118,6 +120,7 @@ export default function CheckoutView({ brand }: {
         setOption('');
         setPoint('');
         setError('');
+        setInvalidSession(false);
         setQuoteBusy(true);
         try {
             const csrf = await checkoutSession();
@@ -125,16 +128,31 @@ export default function CheckoutView({ brand }: {
             if (current === revision.current)
                 setQuote(result);
         }
-        catch {
+        catch (cause) {
             if (current === revision.current) {
                 resetCheckoutSession();
-                setError('No pudimos obtener la cotización. Revisá la sesión y volvé a intentar.');
+                const invalid = cause instanceof CheckoutError && cause.status === 403 && cause.code === 'CHECKOUT_SESSION_INVALID';
+                const conflicting = cause instanceof CheckoutError && cause.status === 403 && cause.code === 'CHECKOUT_SESSION_CONFLICT';
+                setInvalidSession(invalid);
+                setError(invalid ? 'La sesión de compra ya no está disponible.' : conflicting ? 'El navegador conserva sesiones de compra incompatibles. Si hay un pedido incierto, no elimines datos y consultá al administrador. De lo contrario, eliminá solo las cookies store_checkout desde la configuración del navegador.' : 'No pudimos obtener la cotización. Revisá la sesión y volvé a intentar.');
+                focusCriticalStatus();
             }
         }
         finally {
             if (current === revision.current)
                 setQuoteBusy(false);
         }
+    };
+    const discardSession = async () => {
+        if (pending || attempt.current || quoteBusy) return;
+        setQuoteBusy(true);
+        try {
+            await discardInvalidCheckoutSession();
+            setInvalidSession(false);
+            setError('Sesión anterior cerrada. Consultá las opciones de entrega nuevamente.');
+        } catch {
+            setError('No pudimos cerrar la sesión anterior. Intentá nuevamente.');
+        } finally { setQuoteBusy(false); focusCriticalStatus(); }
     };
     const submit = async (input: OrderInput, key: string) => {
         setSending(true);
@@ -242,7 +260,9 @@ export default function CheckoutView({ brand }: {
       <p className="eyebrow">PRUEBA LOCAL</p>
       <h1>Finalizar prueba</h1>
       <p>Esta es una prueba local. No se inicia ningún pago ni se crea un envío.</p>
-      {error && <p className="checkout-alert" role="alert" ref={errorRef} tabIndex={-1}>{error}</p>}
+      {error && <div className="checkout-alert"><p role="alert" ref={errorRef} tabIndex={-1}>{error}</p>
+        {invalidSession && !pending && <><p>Si otro intento tiene resultado incierto, no reinicies la sesión; consultá al administrador.</p>{checkoutRecoveryAvailable() ? <button type="button" disabled={quoteBusy} onClick={() => void discardSession()}>Reiniciar sesión de compra</button> : <p>Este navegador no permite reiniciar la sesión de forma segura. Consultá al administrador.</p>}</>}
+      </div>}
       {order ? <section className="checkout-section" role="status">
         <h2>Pedido de prueba recibido</h2><p>Referencia: {order.id}</p>
         <p>Total: {formatPrice(BigInt(order.totalMinor), order.currency)}</p>
