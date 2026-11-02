@@ -39,6 +39,7 @@ function hookRunner(React, renderHook) {
       if (!slot || !same(slot.dependencies, dependencies)) pending.push({ index, effect, dependencies: dependencies?.slice() });
     },
     useMemo: memo,
+    useId() { return `test-${cursor++}`; },
     useCallback: (callback, dependencies) => memo(() => callback, dependencies),
     useSyncExternalStore(subscribe, getSnapshot) { void subscribe; return getSnapshot(); },
   };

@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCart } from '../hooks/useCart';
 import { formatPrice } from '../lib/cart';
-import { checkoutSession, resetCheckoutSession, discardInvalidCheckoutSession, checkoutRecoveryAvailable, lookupDestination, getQuote, createOrder, resumeCheckoutSession, checkOrderAttempt, CheckoutError, type Destination, type Quote, type Order, type OrderInput } from '../lib/checkout-client';
+import { checkoutSession, resetCheckoutSession, discardInvalidCheckoutSession, checkoutRecoveryAvailable, getQuote, createOrder, resumeCheckoutSession, checkOrderAttempt, CheckoutError, type Quote, type Order, type OrderInput } from '../lib/checkout-client';
+import { shippingCartKey } from '../lib/shipping-session';
+import { useShipping } from './ShippingProvider';
 import { CheckoutShipping } from './CheckoutShipping';
 import { CheckoutContact } from './CheckoutContact';
 import { CheckoutSummary } from './CheckoutSummary';
@@ -13,15 +15,12 @@ export default function CheckoutView({ brand }: {
     brand: string;
 }) {
     const cart = useCart('api');
+    const { session, snapshot } = useShipping();
     const [open, setOpen] = useState(false);
-    const [postal, setPostal] = useState('');
-    const [destinations, setDestinations] = useState<Destination[]>([]);
-    const [candidate, setCandidate] = useState('');
     const [quote, setQuote] = useState<Quote | null>(null);
     const [expired, setExpired] = useState(false);
     const [option, setOption] = useState('');
     const [point, setPoint] = useState('');
-    const [lookupBusy, setLookupBusy] = useState(false);
     const [quoteBusy, setQuoteBusy] = useState(false);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState('');
@@ -36,10 +35,23 @@ export default function CheckoutView({ brand }: {
     const attempt = useRef<OrderInput | null>(null);
     const attemptCsrf = useRef<string | null>(null);
     const revision = useRef(0);
+    const quotedDestination = useRef<string | null>(null);
+    const quotedCart = useRef<string | null>(null);
     const [contact, setContact] = useState({ name: '', email: '', phone: '' });
     const [address, setAddress] = useState({ street: '', number: '', unit: '' });
     const lines = cart.items.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity }));
     const signature = JSON.stringify(lines);
+    const currentCartSignature = useRef(signature);
+    currentCartSignature.current = signature;
+    const totalsKey = JSON.stringify(Object.entries(cart.totals).map(([currency, amount]) => [currency, amount.toString()]).sort());
+    const cartKey = shippingCartKey('api', lines, cart.unresolved, totalsKey);
+    const destinationKey = (value: typeof snapshot) => JSON.stringify([value.mode, value.postalCode.trim(), value.candidateId]);
+    const currentDestination = destinationKey(snapshot);
+    const postal = snapshot.mode === 'api' ? snapshot.postalCode : '';
+    const destinations = snapshot.mode === 'api' && (snapshot.lookup.status === 'resolved' || snapshot.lookup.status === 'ambiguous') ? snapshot.lookup.candidates : [];
+    const candidate = destinations.some(item => item.id === snapshot.candidateId) ? snapshot.candidateId! : '';
+    useEffect(() => { session.setEstimateEnabled(false); return () => session.setEstimateEnabled(true); }, [session]);
+    useEffect(() => { if (cart.ready) session.syncCart('api', lines, cart.unresolved, totalsKey); }, [session, cart.ready, cartKey]);
     useEffect(() => { try {
         const savedPending = sessionStorage.getItem(pendingKey);
         setPending(savedPending);
@@ -57,9 +69,13 @@ export default function CheckoutView({ brand }: {
         setQuote(null);
         setOption('');
         setPoint('');
-        setLookupBusy(false);
         setQuoteBusy(false);
     }, [signature]);
+    useEffect(() => {
+        revision.current++;
+        quotedDestination.current = null;
+        setQuote(null); setOption(''); setPoint(''); setQuoteBusy(false);
+    }, [currentDestination]);
     useEffect(() => {
         if (!quote) {
             setExpired(false);
@@ -75,45 +91,9 @@ export default function CheckoutView({ brand }: {
         setQuote(null);
         setOption('');
         setPoint('');
-        setLookupBusy(false);
         setQuoteBusy(false);
     };
-    const findDestination = async () => {
-        const current = ++revision.current;
-        setDestinations([]);
-        setCandidate('');
-        setQuote(null);
-        setOption('');
-        setPoint('');
-        setError('');
-        setInvalidSession(false);
-        setLookupBusy(true);
-        try {
-            const result = await lookupDestination(postal.trim());
-            if (current !== revision.current)
-                return;
-            const choices = result.status === 'resolved' ? [result.candidate] : result.status === 'ambiguous' ? result.candidates : [];
-            setDestinations(choices);
-            if (result.status === 'resolved')
-                setCandidate(result.candidate.id);
-            if (result.status === 'not_found')
-                setError('No encontramos localidades para ese código postal.');
-            if (result.status === 'invalid')
-                setError('El código postal no es válido.');
-            if (result.status === 'too_many')
-                setError('Hay demasiadas localidades para ese código postal.');
-            if (result.status === 'unavailable')
-                setError('La consulta de localidades no está disponible. Intentá nuevamente.');
-        }
-        catch {
-            if (current === revision.current)
-                setError('No pudimos buscar la localidad. Intentá nuevamente.');
-        }
-        finally {
-            if (current === revision.current)
-                setLookupBusy(false);
-        }
-    };
+    const findDestination = () => { invalidate(); setError(''); setInvalidSession(false); void session.lookup(); };
     const quoteRequest = async () => {
         const current = ++revision.current;
         setQuote(null);
@@ -125,16 +105,21 @@ export default function CheckoutView({ brand }: {
         try {
             const csrf = await checkoutSession();
             const result = await getQuote(csrf, lines, { postalCode: postal.trim(), candidateId: candidate });
-            if (current === revision.current)
+            if (current === revision.current && currentCartSignature.current === signature && destinationKey(session.getSnapshot()) === currentDestination) {
+                quotedDestination.current = currentDestination;
+                quotedCart.current = signature;
                 setQuote(result);
+            }
         }
         catch (cause) {
             if (current === revision.current) {
                 resetCheckoutSession();
                 const invalid = cause instanceof CheckoutError && cause.status === 403 && cause.code === 'CHECKOUT_SESSION_INVALID';
                 const conflicting = cause instanceof CheckoutError && cause.status === 403 && cause.code === 'CHECKOUT_SESSION_CONFLICT';
+                const invalidDestination = cause instanceof CheckoutError && cause.status === 400 && cause.code === 'INVALID_DESTINATION';
+                if (invalidDestination) session.invalidateDestination();
                 setInvalidSession(invalid);
-                setError(invalid ? 'La sesión de compra ya no está disponible.' : conflicting ? 'El navegador conserva sesiones de compra incompatibles. Si hay un pedido incierto, no elimines datos y consultá al administrador. De lo contrario, eliminá solo las cookies store_checkout desde la configuración del navegador.' : 'No pudimos obtener la cotización. Revisá la sesión y volvé a intentar.');
+                setError(invalidDestination ? 'La localidad necesita verificarse nuevamente. Buscala otra vez para continuar.' : invalid ? 'La sesión de compra ya no está disponible.' : conflicting ? 'El navegador conserva sesiones de compra incompatibles. Si hay un pedido incierto, no elimines datos y consultá al administrador. De lo contrario, eliminá solo las cookies store_checkout desde la configuración del navegador.' : 'No pudimos obtener la cotización. Revisá la sesión y volvé a intentar.');
                 focusCriticalStatus();
             }
         }
@@ -198,7 +183,7 @@ export default function CheckoutView({ brand }: {
     };
     const start = (event: React.FormEvent) => {
         event.preventDefault();
-        if (!quote || !option || pending || attempt.current || sending || cart.unresolved || Date.now() >= quote.validUntil) {
+        if (!quote || quotedCart.current !== currentCartSignature.current || quotedDestination.current !== destinationKey(session.getSnapshot()) || !option || pending || attempt.current || sending || cart.unresolved || Date.now() >= quote.validUntil) {
             if (quote && Date.now() >= quote.validUntil) {
                 invalidate();
                 setError('La cotización venció. Consultá las opciones nuevamente.');
@@ -251,7 +236,8 @@ export default function CheckoutView({ brand }: {
         }
     };
     const locked = !!pending || sending || !!order;
-    const selected = quote?.options.find(item => item.id === option);
+    const validQuote = quotedDestination.current === currentDestination && quotedCart.current === signature ? quote : null;
+    const selected = validQuote?.options.find(item => item.id === option);
     return <>
     <a className="skip-link" href="#contenido">Saltar al contenido</a>
     <div className="listing-header"><Header brand={brand} demo={false} count={cart.count} onCartOpen={() => setOpen(true)}/></div>
@@ -279,18 +265,13 @@ export default function CheckoutView({ brand }: {
                 : <form onSubmit={start}><div className="checkout-grid">
             <div>
               <CheckoutContact contact={contact} address={address} setContact={setContact} setAddress={setAddress} disabled={locked}/>
-              <CheckoutShipping postalCode={postal} setPostalCode={value => {
-                        setPostal(value);
-                        setDestinations([]);
-                        setCandidate('');
-                        invalidate();
-                    }} lookup={findDestination} lookupBusy={lookupBusy} destinations={destinations} candidateId={candidate} setCandidateId={value => { setCandidate(value); invalidate(); }} quote={expired ? null : quote} quoteBusy={quoteBusy} requestQuote={quoteRequest} optionId={option} setOptionId={value => {
+              <CheckoutShipping postalCode={postal} setPostalCode={value => { session.setPostalCode(value); invalidate(); }} lookup={findDestination} lookupBusy={snapshot.lookup.status === 'loading'} lookupStatus={snapshot.lookup.status} destinations={destinations} candidateId={candidate} setCandidateId={value => { session.selectDestination(value); invalidate(); }} quote={expired ? null : validQuote} quoteBusy={quoteBusy} requestQuote={quoteRequest} optionId={option} setOptionId={value => {
                         setOption(value);
                         setPoint('');
                     }} pointId={point} setPointId={setPoint} disabled={locked || cart.unresolved}/>
               {expired && <p role="status">La cotización venció. Consultá las opciones nuevamente.</p>}
             </div>
-            <CheckoutSummary cart={cart} selected={selected} valid={!!quote && !expired && Date.now() < quote.validUntil} pickupReady={!selected?.pickupPoints || !!point} disabled={!loaded || locked || cart.unresolved || !quote || expired || !option || !!(selected?.pickupPoints && !point)} sending={sending}/>
+            <CheckoutSummary cart={cart} selected={selected} valid={!!validQuote && !expired && Date.now() < validQuote.validUntil} pickupReady={!selected?.pickupPoints || !!point} disabled={!loaded || locked || cart.unresolved || !validQuote || expired || !option || !!(selected?.pickupPoints && !point)} sending={sending}/>
           </div></form>}
       </>}
     </main>

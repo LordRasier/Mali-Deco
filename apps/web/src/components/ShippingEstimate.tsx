@@ -12,8 +12,8 @@ export function ShippingEstimate({ mode, coherent, unresolved, compact = false, 
   const quote=coherent ? snapshot.quote : null;
   const selection=coherent ? snapshot.selection : null;
   const lookup=snapshot.lookup;
-  const retry=coherent && (snapshot.error || snapshot.expired || lookup.status === 'unavailable' || quote?.status === 'unavailable');
-  const busy=mode === 'api' && coherent && !unresolved && !snapshot.error && !snapshot.expired && !quote && /^\d{4}$/.test(code) && (lookup.status === 'idle' || lookup.status === 'loading' || snapshot.loading || !!snapshot.candidateId);
+  const retry=coherent && (snapshot.error || snapshot.expired || lookup.status === 'unavailable' || lookup.status === 'needs_lookup' || quote?.status === 'unavailable');
+  const busy=mode === 'api' && coherent && !unresolved && !snapshot.error && !snapshot.expired && !quote && /^\d{4}$/.test(code) && (lookup.status === 'idle' || lookup.status === 'loading' || snapshot.loading || (snapshot.estimateEnabled && !!snapshot.candidateId));
   return <section className={`shipping-estimate${compact ? ' shipping-estimate-compact' : ''}`} aria-labelledby={`${id}-title`}>
     <h2 id={`${id}-title`} className={compact ? 'sr-only' : undefined}>Envío estimado</h2>
     {(!compact || mode === 'demo') && <p>{mode === 'demo' ? 'El cálculo no está disponible en el modo de demostración.' : 'Ingresá tu código postal para calcular el envío.'}</p>}
@@ -23,12 +23,14 @@ export function ShippingEstimate({ mode, coherent, unresolved, compact = false, 
     {invalid && <p id={errorId} role="alert">Ingresá los cuatro números de tu código postal.</p>}
     <div aria-live="polite">
       {unresolved && <p>Esperá a que se verifiquen los artículos del carrito.</p>}
+      {mode === 'api' && coherent && !snapshot.estimateEnabled && snapshot.candidateId && !quote && <p>La entrega se confirma en el checkout.</p>}
       {!compact && mode === 'api' && coherent && lookup.status === 'loading' && <p>Buscando localidades…</p>}
       {!compact && mode === 'api' && coherent && lookup.status === 'resolved' && <p>Destino: {lookup.candidates[0].label}</p>}
       {mode === 'api' && coherent && lookup.status === 'ambiguous' && <div><label htmlFor={cityId}>Localidad</label><div className="shipping-controls"><select id={cityId} value={snapshot.candidateId ?? ''} onChange={event => session.selectDestination(event.target.value)}><option value="">Elegí tu localidad</option>{lookup.candidates.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></div>{!compact && <p>Este código corresponde a más de una localidad o barrio.</p>}</div>}
       {mode === 'api' && coherent && lookup.status === 'not_found' && <p>No encontramos localidades para ese código postal. Revisalo e intentá de nuevo.</p>}
       {mode === 'api' && coherent && lookup.status === 'too_many' && <p>Hay demasiadas localidades para este código. No podemos calcular el envío por ahora.</p>}
       {mode === 'api' && coherent && lookup.status === 'unavailable' && <p>No pudimos consultar las localidades en este momento.</p>}
+      {mode === 'api' && coherent && lookup.status === 'needs_lookup' && <p>Volvé a buscar la localidad para continuar.</p>}
       {!compact && coherent && snapshot.loading && <p>Consultando envío…</p>}
       {coherent && snapshot.error && <p>No se pudo consultar el envío. Intentá más tarde.</p>}
       {coherent && snapshot.expired && <p>La cotización venció. Volvé a calcular el envío.</p>}

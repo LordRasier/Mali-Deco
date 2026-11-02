@@ -36,7 +36,7 @@ export class CheckoutQuoteService {
     const { postalCode, candidateId } = target as Record<string, unknown>;
     if (typeof postalCode !== 'string' || typeof candidateId !== 'string') throw new BadRequestException();
     const destination = this.postal.resolve(postalCode, candidateId);
-    if (!destination) throw new BadRequestException('Invalid destination');
+    if (!destination) throw new BadRequestException({ code: 'INVALID_DESTINATION' });
     const intent = parseQuoteIntent({ lines: input.lines, destination });
     // One statement captures every price, name, supply mode and dimension used by the provider.
     // No transaction spans the external request and no before/after comparison can hide ABA.

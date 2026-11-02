@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { ShippingSession, readSavedPostalCode } from '../src/lib/shipping-session';
+import { ShippingSession, readSavedDestinationHint, readSavedPostalCode } from '../src/lib/shipping-session';
 
 async function check() {
   const lines = [{productId:'p1',variantId:'v1',quantity:1}], wait = () => new Promise(resolve => setTimeout(resolve,650));
@@ -68,5 +68,33 @@ async function check() {
   const failed = new ShippingSession(async () => {failCalls++; throw new Error('offline');});
   failed.syncCart('api',lines,false); failed.setPostalCode('7600'); await wait();
   assert.equal(failed.getSnapshot().lookup.status,'unavailable'); assert.equal(failCalls,1); failed.dispose();
+
+  let restoredLookups=0, restoredEstimates=0;
+  const restored = new ShippingSession(async url => {
+    if (url === '/api/v1/shipping/destination') { restoredLookups++; return Response.json({status:'ambiguous',candidates:[a,b]}); }
+    restoredEstimates++; throw new Error('checkout must not estimate');
+  });
+  restored.setEstimateEnabled(false);
+  restored.syncCart('api',lines,false);
+  restored.setPostalCode(readSavedPostalCode('7600')!);
+  await wait();
+  assert.equal(restoredLookups,1); assert.equal(restored.getSnapshot().candidateId,null);
+  restored.selectDestination(b.id); await wait();
+  assert.equal(restored.getSnapshot().candidateId,b.id); assert.equal(restoredEstimates,0);
+  restored.invalidateDestination();
+  assert.equal(restored.getSnapshot().postalCode,'7600'); assert.equal(restored.getSnapshot().candidateId,null);
+  await wait(); assert.equal(restoredLookups,1,'an evicted destination must wait for an explicit lookup');
+  restored.dispose();
+  const hint=readSavedDestinationHint(JSON.stringify({postalCode:'7600',candidateId:b.id}));
+  assert.deepEqual(hint,{postalCode:'7600',candidateId:b.id});
+  assert.equal(readSavedDestinationHint('{bad'),null); assert.equal(readSavedDestinationHint(JSON.stringify({postalCode:'7600',candidateId:'bad'})),null);
+  const resumed = new ShippingSession(async () => Response.json({status:'ambiguous',candidates:[a,b]}));
+  resumed.setEstimateEnabled(false); resumed.syncCart('api',lines,false); resumed.restoreDestinationHint(hint); resumed.setPostalCode('7600'); await resumed.lookup();
+  assert.equal(resumed.getSnapshot().candidateId,b.id,'only a freshly verified candidate may be restored');
+  resumed.syncCart('demo',lines,false); assert.equal(resumed.getSnapshot().candidateId,null,'a different catalog mode cannot inherit another mode’s candidate');
+  resumed.dispose();
+  const evicted = new ShippingSession(async () => Response.json({status:'ambiguous',candidates:[a,{...b,id:'C'.repeat(24)}]}));
+  evicted.setEstimateEnabled(false); evicted.syncCart('api',lines,false); evicted.restoreDestinationHint(hint); evicted.setPostalCode('7600'); await evicted.lookup();
+  assert.equal(evicted.getSnapshot().candidateId,null,'old tokens must never guess a replacement'); evicted.dispose();
 }
 void check().catch(error => { console.error(error); process.exitCode = 1; });

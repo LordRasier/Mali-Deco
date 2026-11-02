@@ -1,17 +1,53 @@
-.checkout-page { padding-top: 2rem; padding-bottom: 5rem; }
-.checkout-page h1 { margin: .4rem 0 1rem; }
-.checkout-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
-.checkout-section { margin: 1rem 0; padding: 1.4rem; border: 1px solid #ddd4cb; background: #fff; min-width: 0; }
-.checkout-section h2 { margin: 0 0 1rem; }
-.checkout-section label:not(.checkout-choice) { display: block; margin: .8rem 0 .3rem; }
-.checkout-section input:not([type=radio]), .checkout-section select { width: 100%; min-width: 0; padding: .7rem; border: 1px solid #71675f; background: white; color: #211d1a; }
-.checkout-section button, .checkout-alert button { margin-top: 1rem; padding: .7rem 1rem; border: 1px solid #211d1a; background: #211d1a; color: white; cursor: pointer; }
-.checkout-section button:disabled, .checkout-alert button:disabled { opacity: .5; cursor: not-allowed; }
-.checkout-inline { display: flex; gap: .5rem; align-items: end; }
-.checkout-inline button { flex-shrink: 0; }
-.checkout-choice { display: flex; gap: .5rem; margin: .8rem 0; }
-.checkout-alert { padding: 1rem; background: #fff2e5; border: 1px solid #a65a29; }
-.checkout-page :focus-visible { outline: 3px solid #a65a29; outline-offset: 2px; }
-@media (max-width: 680px) { .checkout-grid { grid-template-columns: 1fr; } .checkout-inline { flex-wrap: wrap; } .checkout-section { padding: 1rem; } }
-.checkout-summary-lines { list-style: none; padding: 0; margin: 0; }
-.checkout-summary-lines li { display: grid; gap: .25rem; padding: .75rem 0; border-bottom: 1px solid #ddd4cb; }
+.checkout-page {
+  --checkout-blue: #173c8c;
+  --checkout-coral: #e97561;
+  --checkout-ink: #202a40;
+  --checkout-border: #ded5ca;
+  padding-top: clamp(1.5rem, 4vw, 3.5rem);
+  padding-bottom: 5rem;
+  color: var(--checkout-ink);
+}
+.checkout-page .breadcrumb { margin: 0 0 2.5rem; color: #575c68; font-size: .8rem; line-height: 1.5; }
+.checkout-page .breadcrumb a { text-decoration: underline; text-underline-offset: .2em; }
+.checkout-page .eyebrow { color: var(--checkout-blue); margin: 0 0 .7rem; }
+.checkout-page h1 { margin: 0 0 .7rem; color: var(--checkout-blue); font-size: clamp(2.7rem, 5vw, 4.5rem); line-height: 1; }
+.checkout-page > p:not(.eyebrow) { max-width: 42rem; line-height: 1.6; }
+.checkout-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: clamp(1rem, 3vw, 2rem); align-items: start; margin-top: 2rem; }
+.checkout-grid > div { display: grid; gap: 1rem; min-width: 0; }
+.checkout-section { min-width: 0; margin: 0; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--checkout-border); border-radius: 1rem; background: #fffefa; box-shadow: 0 8px 28px rgb(53 42 32 / 5%); }
+.checkout-section h2 { margin: 0 0 1.35rem; color: var(--checkout-blue); font-size: 1.7rem; line-height: 1.15; }
+.checkout-section label:not(.checkout-choice) { display: block; margin: 1rem 0 .4rem; font-size: .875rem; font-weight: 700; line-height: 1.4; }
+.checkout-section input:not([type=radio]), .checkout-section select { width: 100%; min-width: 0; min-height: 48px; padding: .75rem .85rem; border: 1px solid #8d9097; border-radius: .4rem; background: #fff; color: #202a40; font: inherit; }
+.checkout-section input:disabled, .checkout-section select:disabled { background: #f2eee8; color: #555c68; }
+.checkout-section button, .checkout-alert button { min-height: 48px; margin-top: 1rem; padding: .75rem 1.15rem; border: 1px solid var(--checkout-blue); border-radius: .4rem; background: var(--checkout-blue); color: #fff; font: inherit; font-weight: 700; line-height: 1.3; cursor: pointer; }
+.checkout-section button:not(:disabled):hover, .checkout-alert button:not(:disabled):hover { background: #102e70; }
+.checkout-section button:disabled, .checkout-alert button:disabled { border-color: #c6c8cc; background: #e4e5e7; color: #555b65; cursor: not-allowed; }
+.checkout-inline { display: flex; gap: .6rem; align-items: end; }
+.checkout-inline button { flex-shrink: 0; margin-top: 0; }
+.checkout-destination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem; padding: 1rem; border: 1px solid #b9c8e7; border-radius: .65rem; background: #f2f5fc; }
+.checkout-destination > div { display: grid; gap: .25rem; min-width: 0; overflow-wrap: anywhere; }
+.checkout-destination strong { color: var(--checkout-blue); }
+.checkout-destination button { margin: 0; }
+.checkout-section fieldset { min-width: 0; margin: 1.5rem 0 0; padding: 1rem; border: 1px solid var(--checkout-border); border-radius: .5rem; }
+.checkout-section legend { padding: 0 .35rem; color: var(--checkout-blue); font-weight: 700; }
+.checkout-choice { display: flex; gap: .7rem; align-items: flex-start; min-height: 44px; margin: .5rem 0; padding: .6rem; border-radius: .4rem; line-height: 1.5; cursor: pointer; }
+.checkout-choice:has(input:checked) { background: #eef2fc; }
+.checkout-choice input { width: 1.2rem; height: 1.2rem; flex: 0 0 auto; margin: .15rem 0 0; accent-color: var(--checkout-blue); }
+.checkout-alert { margin: 1.5rem 0; padding: 1rem 1.25rem; border: 1px solid #ad533f; border-left: .35rem solid #ad533f; border-radius: .4rem; background: #fff1eb; line-height: 1.5; }
+.checkout-alert p:first-child { margin-top: 0; }
+.checkout-alert p:last-child { margin-bottom: 0; }
+.checkout-page :focus-visible { outline: 3px solid #b8412f; outline-offset: 3px; }
+.checkout-summary-lines { list-style: none; padding: 0; margin: 0 0 1.25rem; }
+.checkout-summary-lines li { display: grid; gap: .35rem; padding: 1rem 0; border-bottom: 1px solid var(--checkout-border); line-height: 1.4; overflow-wrap: anywhere; }
+.checkout-summary-lines li:first-child { padding-top: 0; }
+.checkout-summary-lines li span:nth-child(2) { color: #565c67; font-size: .875rem; }
+.checkout-summary-lines li span:last-child { color: var(--checkout-blue); font-weight: 700; }
+.checkout-grid aside { border-top: .4rem solid var(--checkout-coral); background: #fff9f0; }
+.checkout-grid aside p { line-height: 1.5; overflow-wrap: anywhere; }
+.checkout-grid aside button { width: 100%; }
+@media (max-width: 680px) {
+  .checkout-page .breadcrumb { margin-bottom: 1.75rem; }
+  .checkout-grid { grid-template-columns: minmax(0, 1fr); }
+  .checkout-inline { flex-wrap: wrap; }
+  .checkout-inline button { width: 100%; }
+}

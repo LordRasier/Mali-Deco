@@ -38,6 +38,16 @@ test('disabled, client price tampering, expired session and stock are rejected b
   await assert.rejects(new CheckoutQuoteService(db, postal, provider, { ...env, NODE_ENV: 'production' }).quote(session, body), { status: 503 });
   assert.equal(calls, 0);
 });
+test('evicted destination is identified before any catalog read or provider call', async () => {
+  let calls = 0;
+  const db = { isInitialized:true, query:async () => { calls++; return []; } } as unknown as DataSource;
+  const service = new CheckoutQuoteService(db, { resolve: () => null }, async () => { calls++; return {status:'unavailable',reason:'DISABLED'}; }, env, () => 1000);
+  await assert.rejects(service.quote(session, body), (error:unknown) => {
+    const value = error as {status?:number; response?:{code?:string}};
+    return value.status === 400 && value.response?.code === 'INVALID_DESTINATION';
+  });
+  assert.equal(calls, 0);
+});
 const option = { carrierId: 1, carrierName: 'Carrier', serviceCode: 'home', serviceName: 'Home', logisticType: 'standard', amountMinor: '500', currency: 'ARS' };
 const quoted = { status: 'quoted', quotedAt: 1000, validUntil: 301000, packageCount: 1, options: [option] };
 test('corrupt provider amounts, expiry, options and pickup points never persist', async () => {

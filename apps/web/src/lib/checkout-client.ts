@@ -11,10 +11,10 @@ async function post(url: string, body: unknown, headers: Record<string, string> 
   const response = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body), signal });
   if (!response.ok) {
     let code: string | undefined;
-    if (response.status === 409 || response.status === 403) {
+    if (response.status === 409 || response.status === 403 || response.status === 400) {
       try {
         const body: unknown = await response.json();
-        if (body && typeof body === 'object' && !Array.isArray(body) && 'code' in body && (body.code === 'QUOTE_CHANGED' || body.code === 'CHECKOUT_SESSION_INVALID' || body.code === 'CHECKOUT_SESSION_CONFLICT')) code = body.code;
+        if (body && typeof body === 'object' && !Array.isArray(body) && 'code' in body && (body.code === 'QUOTE_CHANGED' || body.code === 'INVALID_DESTINATION' || body.code === 'CHECKOUT_SESSION_INVALID' || body.code === 'CHECKOUT_SESSION_CONFLICT')) code = body.code;
       } catch { /* An invalid response is not a confirmed rejection. */ }
     }
     throw new CheckoutError(response.status, code);

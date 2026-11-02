@@ -1,10 +1,11 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { readSavedPostalCode, ShippingSession } from '../lib/shipping-session';
+import { readSavedDestinationHint, readSavedPostalCode, ShippingSession } from '../lib/shipping-session';
 
 const Context = createContext<ShippingSession | null>(null);
 const storageKey = 'storefront-shipping-postal-code-v1-';
+const destinationHintKey = 'storefront-shipping-destination-hint-v1-';
 
 export function ShippingProvider({ children }: { children:ReactNode }) {
   const [session] = useState(() => new ShippingSession());
@@ -13,8 +14,11 @@ export function ShippingProvider({ children }: { children:ReactNode }) {
     const syncStorage=() => {
       const current=session.getSnapshot(); if (!current.mode) return;
       try {
-        if (loadedMode !== current.mode) { loadedMode=current.mode; session.setPostalCode(readSavedPostalCode(sessionStorage.getItem(storageKey+current.mode)) ?? ''); return; }
+        if (loadedMode !== current.mode) { loadedMode=current.mode; session.restoreDestinationHint(readSavedDestinationHint(sessionStorage.getItem(destinationHintKey+current.mode))); session.setPostalCode(readSavedPostalCode(sessionStorage.getItem(storageKey+current.mode)) ?? ''); return; }
         sessionStorage.setItem(storageKey+current.mode,current.postalCode);
+        const previousHint=readSavedDestinationHint(sessionStorage.getItem(destinationHintKey+current.mode));
+        if (current.candidateId && /^\d{4}$/.test(current.postalCode.trim())) sessionStorage.setItem(destinationHintKey+current.mode,JSON.stringify({postalCode:current.postalCode.trim(),candidateId:current.candidateId}));
+        else if (previousHint && (previousHint.postalCode !== current.postalCode.trim() || (current.lookup.status === 'ambiguous' && !current.candidateId))) sessionStorage.removeItem(destinationHintKey+current.mode);
       } catch { /* The cart still works without session storage. */ }
     };
     const unsubscribe=session.subscribe(syncStorage); syncStorage();
