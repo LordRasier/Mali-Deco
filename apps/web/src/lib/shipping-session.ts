@@ -1,6 +1,7 @@
+import { parseLookup, type PostalCandidate } from './postal-lookup';
+export type { PostalCandidate } from './postal-lookup';
 import { parseShippingResult, type QuoteLine, type SelectedShipping, type ShippingResult } from './shipping-client';
 
-export type PostalCandidate = { id:string; label:string };
 type LookupStatus = 'idle' | 'loading' | 'resolved' | 'ambiguous' | 'invalid' | 'not_found' | 'too_many' | 'unavailable';
 type Lookup = { status:LookupStatus; candidates:PostalCandidate[] };
 type ShippingSelection = { choiceKey:string; shipping:SelectedShipping };
@@ -8,25 +9,6 @@ export type ShippingSnapshot = { mode:'api'|'demo'|null; cartKey:string | null; 
 
 export function readSavedPostalCode(raw:string | null): string | null { return raw !== null && raw.length <= 16 ? raw : null; }
 export function shippingCartKey(mode:'api'|'demo', lines:QuoteLine[], unresolved:boolean, totalsKey=''): string { return JSON.stringify([mode,unresolved,lines.map(line => [line.productId,line.variantId,line.quantity]),totalsKey]); }
-function candidate(value:unknown): PostalCandidate | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const item = value as Record<string,unknown>;
-  return typeof item.id === 'string' && /^[A-Za-z0-9_-]{24}$/.test(item.id) && typeof item.label === 'string' && !!item.label.trim() && item.label.length <= 305 && ![...item.label].some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127) ? {id:item.id,label:item.label} : null;
-}
-function parseLookup(value:unknown): Lookup {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid destination');
-  const data = value as Record<string,unknown>;
-  if (data.status === 'resolved') { const item = candidate(data.candidate); if (!item) throw new Error('Invalid destination'); return {status:'resolved',candidates:[item]}; }
-  if (data.status === 'ambiguous') {
-    if (!Array.isArray(data.candidates) || data.candidates.length < 2 || data.candidates.length > 1000) throw new Error('Invalid destination');
-    const candidates = data.candidates.map(candidate);
-    if (candidates.some(item => !item) || new Set(candidates.map(item => item!.id)).size !== candidates.length) throw new Error('Invalid destination');
-    return {status:'ambiguous',candidates:candidates as PostalCandidate[]};
-  }
-  if (data.status === 'invalid' || data.status === 'not_found' || data.status === 'too_many' || data.status === 'unavailable') return {status:data.status,candidates:[]};
-  throw new Error('Invalid destination');
-}
-
 /** One destination/quote controller shared by all cart views in the current tab. */
 export class ShippingSession {
   private state:ShippingSnapshot = {mode:null,cartKey:null,postalCode:'',lookup:{status:'idle',candidates:[]},candidateId:null,quote:null,selection:null,loading:false,error:false,expired:false};

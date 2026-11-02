@@ -19,6 +19,24 @@ await getQuote('csrf',[{productId:'p',variantId:'v',quantity:1}],{postalCode:'10
 assert.deepEqual(JSON.parse(String(calls[2].init.body)),{lines:[{productId:'p',variantId:'v',quantity:1}],destination:{postalCode:'1000',candidateId:'c'}});
 globalThis.fetch = (async()=>json({status:'unavailable'})) as typeof fetch;
 assert.deepEqual(await lookupDestination('1000'), {status:'unavailable'});
+const candidates = Array.from({length:1001}, (_, index) => ({id:String(index).padStart(24,'0'),label:'x'.repeat(303)}));
+for (const count of [101,1000]) {
+  const result = {status:'ambiguous',candidates:candidates.slice(0,count)};
+  globalThis.fetch = (async()=>json(result)) as typeof fetch;
+  assert.deepEqual(await lookupDestination('1000'),result);
+}
+globalThis.fetch = (async()=>json({status:'resolved',candidate:candidates[0]})) as typeof fetch;
+assert.deepEqual(await lookupDestination('1000'),{status:'resolved',candidate:candidates[0]});
+for (const value of [
+  {status:'ambiguous',candidates},
+  {status:'ambiguous',candidates:[candidates[0],candidates[0]]},
+  {status:'ambiguous',candidates:[candidates[0],{...candidates[1],id:'bad'}]},
+  {status:'resolved',candidate:{...candidates[0],label:'bad\nlabel'}},
+  {status:'resolved',candidate:{...candidates[0],label:'x'.repeat(306)}},
+]) {
+  globalThis.fetch = (async()=>json(value)) as typeof fetch;
+  await assert.rejects(lookupDestination('1000'));
+}
 globalThis.fetch = (async()=>json({quoteId:'q',validUntil:Date.now()+1000,options:[{id:'o',carrierName:'c',serviceName:'s',serviceCode:'home',currency:'ARS',amountMinor:'NaN'}]})) as typeof fetch;
 await assert.rejects(getQuote('csrf',[],{postalCode:'1000',candidateId:'c'}));
 for (const value of ['01','9007199254740992']) {

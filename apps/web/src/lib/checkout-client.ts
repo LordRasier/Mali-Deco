@@ -1,4 +1,6 @@
-export type Destination = { id: string; label: string };
+import { parseLookup, type PostalCandidate } from './postal-lookup';
+
+export type Destination = PostalCandidate;
 export type DestinationResult = {status:'resolved';candidate:Destination}|{status:'ambiguous';candidates:Destination[]}|{status:'unavailable'|'invalid'|'not_found'|'too_many'};
 export type ShippingOption = { id: string; carrierName: string; serviceName: string; serviceCode: string; amountMinor: string; currency: string; pickupPoints?: { id: number; description: string }[] };
 export type Quote = { quoteId: string; validUntil: number; options: ShippingOption[] };
@@ -23,7 +25,6 @@ const object = (v:unknown): v is Record<string,unknown> => !!v && typeof v === '
 const text = (v:unknown, max=255): v is string => typeof v === 'string' && v.length > 0 && v.length <= max;
 const money = (v:unknown): v is string => typeof v === 'string' && /^(0|[1-9]\d{0,15})$/.test(v) && BigInt(v) <= BigInt(Number.MAX_SAFE_INTEGER);
 const currency = (v:unknown): v is string => typeof v === 'string' && /^[A-Z]{3}$/.test(v);
-const destination = (v:unknown): v is Destination => object(v) && text(v.id,128) && text(v.label);
 const token = (v:unknown): string => { if (!object(v) || !text(v.csrf,1024)) throw new Error('Invalid session response'); return v.csrf; };
 function validateOrder(v:unknown): Order { if (!object(v) || !text(v.id,128) || v.orderStatus !== 'received' || v.paymentStatus !== 'not_started' || v.fulfillmentStatus !== 'not_started' || v.shippingStatus !== 'not_started' || v.testLocal !== true || !currency(v.currency) || !money(v.totalMinor)) throw new Error('Invalid order response'); return v as Order; }
 function validateQuote(v:unknown): Quote {
@@ -35,7 +36,12 @@ function validateQuote(v:unknown): Quote {
 let bootstrap: Promise<string> | null = null;
 export function checkoutSession(): Promise<string> { if (!bootstrap) bootstrap = post('/api/v1/checkout/session', {}).then(token).catch(error => { bootstrap = null; throw error; }); return bootstrap; }
 export function resetCheckoutSession() { bootstrap = null; }
-export async function lookupDestination(postalCode: string, signal?: AbortSignal): Promise<DestinationResult> { const v = await post('/api/v1/shipping/destination', { postalCode }, {}, signal); if (!object(v)) throw new Error('Invalid destination'); if (v.status === 'resolved' && destination(v.candidate)) return {status:'resolved',candidate:v.candidate}; if (v.status === 'ambiguous' && Array.isArray(v.candidates) && v.candidates.length > 0 && v.candidates.length <= 100 && v.candidates.every(destination)) return {status:'ambiguous',candidates:v.candidates}; if (v.status === 'unavailable' || v.status === 'invalid' || v.status === 'not_found' || v.status === 'too_many') return {status:v.status}; throw new Error('Invalid destination'); }
+export async function lookupDestination(postalCode: string, signal?: AbortSignal): Promise<DestinationResult> {
+  const result = parseLookup(await post('/api/v1/shipping/destination', { postalCode }, {}, signal));
+  if (result.status === 'resolved') return {status:'resolved',candidate:result.candidates[0]};
+  if (result.status === 'ambiguous') return {status:'ambiguous',candidates:result.candidates};
+  return {status:result.status};
+}
 export async function getQuote(csrf: string, lines: {productId:string;variantId:string;quantity:number}[], destination: {postalCode:string;candidateId:string}, signal?: AbortSignal) { return validateQuote(await post('/api/v1/checkout/quotes', { lines, destination }, { 'X-CSRF-Token': csrf }, signal)); }
 export async function createOrder(csrf: string, key: string, input: OrderInput) { return validateOrder(await post('/api/v1/checkout/orders', input, { 'X-CSRF-Token': csrf, 'Idempotency-Key': key })); }
 export async function resumeCheckoutSession() { return token(await post('/api/v1/checkout/session/resume', {})); }
