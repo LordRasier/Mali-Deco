@@ -10,7 +10,7 @@ import { CartNotices } from './CartNotices';
 import { CartQuoteBlock } from './CartQuoteBlock';
 import { Header } from './Header';
 
-export default function CartPageView({ mode, brand }: { mode: StorefrontData['mode']; brand: string }) {
+export default function CartPageView({ mode, brand, checkoutEnabled }: { mode: StorefrontData['mode']; brand: string; checkoutEnabled: boolean }) {
   const cart = useCart(mode);
   const [open, setOpen] = useState(false);
   return <>
@@ -21,7 +21,7 @@ export default function CartPageView({ mode, brand }: { mode: StorefrontData['mo
       <div className="cart-page-heading"><span className="eyebrow">TUS ELEGIDOS</span><h1>Tu carrito.</h1>{cart.ready && <p>{cartCountLabel(cart.items.length, cart.count)}</p>}</div>
       <CartNotices cart={cart} />
       <div className="cart-page-grid"><CartItems cart={cart} demo={mode === 'demo'} />
-        {cart.ready && cart.items.length > 0 && <aside className="cart-page-aside"><CartQuoteBlock cart={cart} mode={mode} /><a className="cart-continue" href="/catalogo">← Seguir comprando</a></aside>}
+        {cart.ready && cart.items.length > 0 && <aside className="cart-page-aside"><CartQuoteBlock cart={cart} mode={mode} />{checkoutEnabled && !cart.unresolved && <a className="button primary cart-full-link" href="/checkout">Continuar con pedido de prueba</a>}<a className="cart-continue" href="/catalogo">← Seguir comprando</a></aside>}
       </div>
     </main>
     <footer><a className="brand" href="/">{brand}</a><p>Diseño, color y objetos para vivir distinto.</p><a href="#contenido">Volver arriba ↑</a></footer>

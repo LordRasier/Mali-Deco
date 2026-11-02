@@ -6,4 +6,4 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ['/api/v1/shipping/quote', '/api/v1/shipping/destination'] };
+export const config = { matcher: ['/api/v1/shipping/quote', '/api/v1/shipping/destination', '/api/v1/checkout/:path*'] };

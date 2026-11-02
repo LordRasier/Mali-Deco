@@ -39,6 +39,8 @@ test('migration creates constraints and can be reverted on empty isolated MariaD
     // Reverting and reapplying only taxonomy twice must retain the product FK and its supporting index.
     for (let cycle = 0; cycle < 2; cycle++) {
       await db.undoLastMigration();
+      await db.undoLastMigration();
+      await db.undoLastMigration();
       const indexes: Array<{ Column_name: string }> = await db.query("SHOW INDEX FROM product_variants WHERE Key_name = 'idx_variants_product_id'");
       assert.equal(indexes.length, 1);
       assert.equal(indexes[0].Column_name, 'product_id');
@@ -126,6 +128,8 @@ test('migration creates constraints and can be reverted on empty isolated MariaD
     assert.equal((await identity.me(login.token)).user.role, 'owner');
     await identity.logout(login.token, 'https://admin.example', login.csrf);
     await assert.rejects(identity.me(login.token), { status: 401 });
+    await db.undoLastMigration();
+    await db.undoLastMigration();
     await db.undoLastMigration();
     await db.undoLastMigration();
     await db.undoLastMigration();

@@ -143,7 +143,7 @@ export function Catalog() {
           )
         )}
       </div>
-      <p className="muted scope-note">Ventas, inventario e imágenes aún no cuentan con administración conectada.</p>
+      <p className="muted scope-note">Inventario e imágenes aún no cuentan con administración conectada.</p>
     </main>
   );
 }

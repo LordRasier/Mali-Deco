@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { Catalog } from './Catalog';
+import { Orders } from './Orders';
 import { SessionProvider, useSession, canManageCatalog } from './session';
 
 function Login() {
@@ -52,6 +53,7 @@ function Login() {
 
 function AdminContent() {
   const { status, user, error, retry, logout } = useSession();
+  const [section, setSection] = useState<'catalog' | 'orders'>('catalog');
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState('');
 
@@ -97,13 +99,11 @@ function AdminContent() {
         </div>
       </header>
       {logoutError && <p className="notice error shell-notice" role="alert">{logoutError}</p>}
-      {canManageCatalog(user) ? <Catalog /> : (
-        <main className="admin-main">
-          <span className="eyebrow">Acceso limitado</span>
-          <h1>Catálogo no disponible</h1>
-          <p>Tu rol no tiene permiso para gestionar artículos. El servidor controla los permisos de cada operación.</p>
-        </main>
-      )}
+      {user.role === 'owner' && <nav className="admin-section-nav" aria-label="Secciones de administración">
+        <button type="button" aria-current={section === 'catalog' ? 'page' : undefined} onClick={() => setSection('catalog')}>Catálogo</button>
+        <button type="button" aria-current={section === 'orders' ? 'page' : undefined} onClick={() => setSection('orders')}>Pedidos</button>
+      </nav>}
+      {user.role === 'operations' || (user.role === 'owner' && section === 'orders') ? <Orders /> : canManageCatalog(user) ? <Catalog /> : null}
     </div>
   );
 }
