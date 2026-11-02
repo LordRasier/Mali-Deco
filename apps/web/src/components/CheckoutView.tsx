@@ -28,6 +28,10 @@ export default function CheckoutView({ brand }: {
     const [order, setOrder] = useState<Order | null>(null);
     const [pending, setPending] = useState<string | null>(null);
     const [loaded, setLoaded] = useState(false);
+    const [focusRequest, setFocusRequest] = useState(0);
+    const errorRef = useRef<HTMLParagraphElement>(null);
+    const pendingRef = useRef<HTMLDivElement>(null);
+    const focusCriticalStatus = () => setFocusRequest(value => value + 1);
     const attempt = useRef<OrderInput | null>(null);
     const attemptCsrf = useRef<string | null>(null);
     const revision = useRef(0);
@@ -36,11 +40,17 @@ export default function CheckoutView({ brand }: {
     const lines = cart.items.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity }));
     const signature = JSON.stringify(lines);
     useEffect(() => { try {
-        setPending(sessionStorage.getItem(pendingKey));
+        const savedPending = sessionStorage.getItem(pendingKey);
+        setPending(savedPending);
+        if (savedPending) focusCriticalStatus();
     }
     catch {
         setError('No está disponible el almacenamiento de sesión. No se puede iniciar un pedido de forma segura.');
+            focusCriticalStatus();
     } setLoaded(true); }, []);
+    useEffect(() => {
+        if (focusRequest) (errorRef.current ?? pendingRef.current)?.focus();
+    }, [focusRequest]);
     useEffect(() => {
         revision.current++;
         setQuote(null);
@@ -146,6 +156,7 @@ export default function CheckoutView({ brand }: {
             attemptCsrf.current = null;
         }
         catch (error) {
+            focusCriticalStatus();
             const changedQuote = !previousAttempt && error instanceof CheckoutError && error.status === 409 && error.code === 'QUOTE_CHANGED';
             if (!started || (!previousAttempt && error instanceof CheckoutError && error.status === 400) || changedQuote) {
                 try {
@@ -173,6 +184,7 @@ export default function CheckoutView({ brand }: {
             if (quote && Date.now() >= quote.validUntil) {
                 invalidate();
                 setError('La cotización venció. Consultá las opciones nuevamente.');
+                focusCriticalStatus();
             }
             return;
         }
@@ -186,6 +198,7 @@ export default function CheckoutView({ brand }: {
         }
         catch {
             setError('No está disponible el almacenamiento de sesión. No se puede iniciar un pedido de forma segura.');
+            focusCriticalStatus();
             return;
         }
         attempt.current = input;
@@ -209,9 +222,11 @@ export default function CheckoutView({ brand }: {
             }
             else
                 setError('El resultado todavía no está disponible. El intento sigue pendiente; no inicies otro pedido.');
+            if (result.status !== 'completed') focusCriticalStatus();
         }
         catch {
             setError('No pudimos recuperar el estado con la sesión original. El intento sigue pendiente; consultá al administrador.');
+            focusCriticalStatus();
         }
         finally {
             setSending(false);
@@ -227,13 +242,13 @@ export default function CheckoutView({ brand }: {
       <p className="eyebrow">PRUEBA LOCAL</p>
       <h1>Finalizar prueba</h1>
       <p>Esta es una prueba local. No se inicia ningún pago ni se crea un envío.</p>
-      {error && <p className="checkout-alert" role="alert">{error}</p>}
+      {error && <p className="checkout-alert" role="alert" ref={errorRef} tabIndex={-1}>{error}</p>}
       {order ? <section className="checkout-section" role="status">
         <h2>Pedido de prueba recibido</h2><p>Referencia: {order.id}</p>
         <p>Total: {formatPrice(BigInt(order.totalMinor), order.currency)}</p>
         <p>Pago no iniciado. Envío no iniciado.</p><a href="/catalogo">Volver al catálogo</a>
       </section> : <>
-        {pending && <div className="checkout-alert" role="alert">
+        {pending && <div className="checkout-alert" role="alert" ref={pendingRef} tabIndex={-1}>
           <p>Hay un intento con resultado incierto. No crees otro pedido hasta resolverlo.</p>
           {attempt.current
                     ? <button type="button" disabled={sending} onClick={() => void submit(attempt.current!, pending)}>{sending ? 'Consultando…' : 'Reintentar el mismo intento'}</button>

@@ -7,6 +7,20 @@ const { hookRunner } = require('./hook-runner.cjs');
 const cartPath = require.resolve('../src/hooks/useCart.ts');
 let cart = { ready:true, items:[{productId:'p',variantId:'v',quantity:1,product:{name:'Mesa'},variant:{}}], count:1, unresolved:false };
 require.cache[cartPath] = { id:cartPath, filename:cartPath, loaded:true, exports:{useCart:()=>cart} };
+let focused = [];
+const jsxRuntime = require('react/jsx-runtime');
+for (const name of ['jsx', 'jsxs']) {
+  const original = jsxRuntime[name];
+  jsxRuntime[name] = (type, props, ...rest) => {
+    if (typeof type === 'string' && props?.ref && typeof props.ref === 'object') props.ref.current = { focus: () => focused.push(props.role) };
+    return original(type, props, ...rest);
+  };
+}
+const createElement = React.createElement;
+React.createElement = (type, props, ...children) => {
+  if (typeof type === 'string' && props?.ref && typeof props.ref === 'object') props.ref.current = { focus: () => focused.push(props.role) };
+  return createElement(type, props, ...children);
+};
 const Checkout = require('../src/components/CheckoutView.tsx').default;
 const { CheckoutShipping } = require('../src/components/CheckoutShipping.tsx');
 const { CheckoutContact } = require('../src/components/CheckoutContact.tsx');
@@ -22,13 +36,14 @@ async function main() {
   global.fetch=(url,options)=>{ calls.push({url,options}); if(url.endsWith('/session')) return Promise.resolve(json({csrf:'csrf'})); if(url.endsWith('/destination')) return lookup.promise; if(url.endsWith('/quotes')) return quote.promise; if(url.endsWith('/orders')) return order.promise; if(url.endsWith('/session/resume')) return Promise.resolve(json({csrf:'resumed'})); if(url.endsWith('/order-attempt')) return Promise.resolve(json({status:'unknown'})); throw Error(url); };
   let r=hookRunner(React,()=>Checkout({brand:'Mali'})); await r.settle();
   const shipping=()=>find(r.output,n=>n.type===CheckoutShipping).props;
-  shipping().setPostalCode('1000'); r.flush(); shipping().lookup(); r.flush(); lookup.resolve(json({status:'resolved',candidate:{id:'city',label:'City'}})); await r.settle();
+  focused=[]; shipping().setPostalCode('bad'); r.flush(); shipping().lookup(); lookup.resolve(json({status:'invalid'})); await r.settle(); assert.deepEqual(focused,[]);
+  lookup=deferred(); shipping().setPostalCode('1000'); r.flush(); shipping().lookup(); r.flush(); lookup.resolve(json({status:'resolved',candidate:{id:'city',label:'City'}})); await r.settle();
   shipping().requestQuote(); await r.settle(); cart={...cart,items:[{...cart.items[0],quantity:2}]}; r.flush(); quote.resolve(json({quoteId:'old',validUntil:Date.now()+10000,options:[]})); await r.settle(); assert.equal(shipping().quote,null);
   quote=deferred(); shipping().requestQuote(); await r.settle(); quote.resolve(json({quoteId:'q',validUntil:Date.now()+10000,options:[{id:'o',carrierName:'C',serviceName:'S',serviceCode:'home',amountMinor:'100',currency:'ARS'}]})); await r.settle(); shipping().setOptionId('o'); r.flush();
   for(const [id,value] of [['name','Personal Name'],['email','a@example.com'],['phone','123'],['street','Private Street'],['number','10']]) {byId(r,'checkout-'+id).props.onChange({target:{value}}); r.flush();}
   find(r.output,n=>n.type==='form').props.onSubmit({preventDefault(){}}); await r.settle(); assert.equal(calls.filter(c=>c.url.endsWith('/orders')).length,1); assert.equal(storage.size,1); for(const secret of ['Personal','Private','example.com','123']) assert.ok(!JSON.stringify([...storage]).includes(secret));
-  order.resolve(new Response('',{status:503})); await r.settle(); assert.ok(button(r,'Reintentar el mismo intento')); order=deferred(); button(r,'Reintentar el mismo intento').props.onClick(); await r.settle(); order.resolve(new Response(JSON.stringify({code:'QUOTE_CHANGED'}),{status:409})); await r.settle(); assert.ok(button(r,'Reintentar el mismo intento')); assert.equal(storage.size,1); r.unmount();
-  calls.length=0; r=hookRunner(React,()=>Checkout({brand:'Mali'})); await r.settle(); assert.ok(button(r,'Consultar estado del intento')); button(r,'Consultar estado del intento').props.onClick(); await r.settle(); assert.deepEqual(calls.map(c=>c.url),['/api/v1/checkout/session/resume','/api/v1/checkout/order-attempt']); assert.ok(button(r,'Consultar estado del intento')); assert.ok(find(r.output,n=>n.type==='input' && n.props.id==='checkout-name').props.disabled); assert.ok(!find(r.output,n=>n.type==='h2' && n.props.children==='Pedido de prueba recibido')); assert.equal(storage.size,1);
+  focused=[]; order.resolve(new Response('',{status:503})); await r.settle(); assert.deepEqual(focused,['alert']); assert.ok(button(r,'Reintentar el mismo intento')); order=deferred(); button(r,'Reintentar el mismo intento').props.onClick(); await r.settle(); order.resolve(new Response(JSON.stringify({code:'QUOTE_CHANGED'}),{status:409})); await r.settle(); assert.ok(button(r,'Reintentar el mismo intento')); assert.equal(storage.size,1); assert.equal(calls.filter(c=>c.url.endsWith('/orders'))[0].options.headers['Idempotency-Key'], calls.filter(c=>c.url.endsWith('/orders'))[1].options.headers['Idempotency-Key']); r.unmount();
+  calls.length=0; focused=[]; r=hookRunner(React,()=>Checkout({brand:'Mali'})); await r.settle(); assert.deepEqual(focused,['alert']); assert.ok(button(r,'Consultar estado del intento')); focused=[]; button(r,'Consultar estado del intento').props.onClick(); await r.settle(); assert.deepEqual(focused,['alert']); assert.deepEqual(calls.map(c=>c.url),['/api/v1/checkout/session/resume','/api/v1/checkout/order-attempt']); assert.ok(button(r,'Consultar estado del intento')); assert.ok(find(r.output,n=>n.type==='input' && n.props.id==='checkout-name').props.disabled); assert.ok(!find(r.output,n=>n.type==='h2' && n.props.children==='Pedido de prueba recibido')); assert.equal(storage.size,1);
   calls.length=0; global.fetch=(url,options)=>{calls.push({url,options}); return Promise.resolve(new Response('',{status:403}));}; button(r,'Consultar estado del intento').props.onClick(); await r.settle(); assert.deepEqual(calls.map(c=>c.url),['/api/v1/checkout/session/resume']); assert.ok(button(r,'Consultar estado del intento')); assert.ok(!find(r.output,n=>n.type==='h2' && n.props.children==='Pedido de prueba recibido')); assert.equal(storage.size,1); r.unmount();
   storage.clear(); calls.length=0; lookup=deferred(); quote=deferred(); order=deferred();
   global.fetch=(url,options)=>{ calls.push({url,options}); if(url.endsWith('/session')) return Promise.resolve(json({csrf:'csrf'})); if(url.endsWith('/destination')) return lookup.promise; if(url.endsWith('/quotes')) return quote.promise; if(url.endsWith('/orders')) return order.promise; throw Error(url); };
