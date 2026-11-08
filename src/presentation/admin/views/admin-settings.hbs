@@ -1,0 +1,77 @@
+<section class="admin-main settings-page" data-admin-section="settings" aria-labelledby="settings-title">
+  <div class="section-heading">
+    <div><span class="eyebrow">Tienda</span><h1 id="settings-title">Configuración</h1><p>Personalizá tu marca, los canales de contacto y las imágenes de la tienda.</p></div>
+    <button type="button" data-settings-reload {{#if socialLinksAvailable}}hidden{{/if}}>Recargar configuración</button>
+  </div>
+  <div class="panel settings-panel">
+    <div class="settings-tabs" role="tablist" aria-label="Configuración de la tienda">
+      <button class="settings-tab" type="button" id="settings-tab-identity" role="tab" aria-controls="settings-panel-identity" aria-selected="true" tabindex="0" data-settings-tab="identity">Identidad</button>
+      <button class="settings-tab" type="button" id="settings-tab-social" role="tab" aria-controls="settings-panel-social" aria-selected="false" tabindex="-1" data-settings-tab="social">Redes y contacto</button>
+      <button class="settings-tab" type="button" id="settings-tab-images" role="tab" aria-controls="settings-panel-images" aria-selected="false" tabindex="-1" data-settings-tab="images">Imágenes</button>
+      <button class="settings-tab" type="button" id="settings-tab-emails" role="tab" aria-controls="settings-panel-emails" aria-selected="false" tabindex="-1" data-settings-tab="emails">Emails</button>
+    </div>
+    <div class="settings-feedback">
+      <p class="notice" data-settings-message role="status" hidden></p>
+    </div>
+    <form class="admin-form settings-form" data-settings-form method="dialog" novalidate>
+      <fieldset data-settings-fields disabled>
+        <legend class="sr-only">Identidad y redes de la tienda</legend>
+        <section class="settings-tab-panel" id="settings-panel-identity" role="tabpanel" aria-labelledby="settings-tab-identity" tabindex="0" data-settings-panel="identity">
+          <div class="settings-section-heading"><h2>Identidad de la tienda</h2><p>El nombre y el color se aplican a la tienda online.</p></div>
+          <div class="settings-grid">
+            <label>Nombre visible<input class="form-control-sm" data-settings-name value="{{name}}" maxlength="510" required aria-describedby="settings-name-help"><span class="admin-hint" id="settings-name-help">Usá el nombre con el que tus clientes conocen tu marca.</span></label>
+            <label>Color principal<span class="settings-color-control"><input type="color" data-settings-color value="{{primaryColor}}" aria-describedby="settings-color-help"><span aria-hidden="true">Seleccionar color</span></span><span class="admin-hint" id="settings-color-help">Se aplica a botones y acentos. Los textos se ajustan para mantener una buena lectura.</span></label>
+          </div>
+        </section>
+        <section class="settings-tab-panel" id="settings-panel-social" role="tabpanel" aria-labelledby="settings-tab-social" tabindex="0" data-settings-panel="social" hidden>
+          <div class="settings-section-heading"><h2>Redes y contacto</h2><p>Los íconos aparecen en el footer y en Contacto. Dejá un campo vacío para ocultarlo.</p></div>
+          <p class="notice" data-settings-schema-notice role="status" {{#if socialLinksAvailable}}hidden{{/if}}>Falta actualizar la base de datos para habilitar estos campos. Una vez aplicada la actualización, usá «Recargar configuración».</p>
+          <div class="settings-grid">
+            <label>WhatsApp<input class="form-control-sm" type="tel" inputmode="tel" data-settings-whatsapp value="{{whatsappNumber}}" maxlength="40" placeholder="549 + código de área + número" aria-describedby="settings-whatsapp-help" {{#unless socialLinksAvailable}}disabled{{/unless}}><span class="admin-hint" id="settings-whatsapp-help">Número internacional. Para celulares argentinos: 549 + área + número, sin 0 ni 15. Abre el chat directamente.</span></label>
+            <label>Instagram<input class="form-control-sm" type="text" data-settings-instagram value="{{instagramUsername}}" maxlength="200" placeholder="@tu_tienda o enlace del perfil" aria-describedby="settings-instagram-help" {{#unless socialLinksAvailable}}disabled{{/unless}}><span class="admin-hint" id="settings-instagram-help">Podés pegar el usuario o el enlace completo de tu perfil.</span></label>
+          </div>
+        </section>
+        <div class="settings-actions"><p class="admin-hint">Nombre, color y redes se guardan juntos.</p><button class="primary" type="submit">Guardar cambios</button></div>
+      </fieldset>
+    </form>
+    <section class="settings-tab-panel" id="settings-panel-images" role="tabpanel" aria-labelledby="settings-tab-images" tabindex="0" data-settings-panel="images" hidden>
+      <div class="settings-section-heading"><h2>Imágenes de la tienda</h2><p>Cada imagen se guarda por separado. Podés usar archivos JPG, PNG o WebP de hasta 5 MiB.</p></div>
+      <div class="brand-assets">
+        <form class="brand-asset" data-brand-form="logo">
+          <div class="brand-asset-heading"><h3>Logo de la tienda</h3><p>Se muestra junto al nombre en el encabezado.</p></div>
+          <div class="brand-preview-frame"><img class="brand-logo-preview" data-brand-preview="logo" src="/api/v1/catalog/branding/logo" alt="Logo actual de la tienda"></div>
+          <label>Elegir logo<input type="file" accept="image/jpeg,image/png,image/webp" data-brand-file="logo"></label>
+          <p class="admin-hint">Se conserva la transparencia de tu imagen.</p><p data-brand-message="logo" role="status"></p><button type="submit" data-brand-submit="logo">Guardar logo</button>
+        </form>
+        <form class="brand-asset" data-brand-form="icon">
+          <div class="brand-asset-heading"><h3>Ícono del sitio</h3><p>Se muestra en la pestaña del navegador.</p></div>
+          <div class="brand-preview-frame"><img class="brand-icon-preview" data-brand-preview="icon" src="/api/v1/catalog/branding/icon" alt="Ícono actual del sitio"></div>
+          <label>Elegir ícono<input type="file" accept="image/jpeg,image/png,image/webp" data-brand-file="icon"></label>
+          <p class="admin-hint">Usá una imagen cuadrada para que se vea bien en tamaño pequeño.</p><p data-brand-message="icon" role="status"></p><button type="submit" data-brand-submit="icon">Guardar ícono</button>
+        </form>
+        <form class="brand-asset" data-brand-form="hero">
+          <div class="brand-asset-heading"><h3>Banner principal</h3><p>Se usa en el inicio y en el fondo difuminado del catálogo.</p></div>
+          <div class="brand-preview-frame"><img class="brand-scene-preview" data-brand-preview="hero" src="/api/v1/catalog/branding/hero" alt="Banner principal actual"></div>
+          <label>Elegir imagen<input type="file" accept="image/jpeg,image/png,image/webp" data-brand-file="hero"></label>
+          <p class="admin-hint">Horizontal, proporción 2:1 y espacio libre a la izquierda para el texto.</p><p data-brand-message="hero" role="status"></p><button type="submit" data-brand-submit="hero">Guardar banner</button>
+        </form>
+        <form class="brand-asset" data-brand-form="about">
+          <div class="brand-asset-heading"><h3>Imagen de la sección inferior</h3><p>Ilustra el bloque sobre la marca en el inicio.</p></div>
+          <div class="brand-preview-frame"><img class="brand-scene-preview" data-brand-preview="about" src="/api/v1/catalog/branding/about" alt="Imagen de la sección inferior actual"></div>
+          <label>Elegir imagen<input type="file" accept="image/jpeg,image/png,image/webp" data-brand-file="about"></label>
+          <p class="admin-hint">Horizontal, proporción 3:2. Se encuadra sin deformarse.</p><p data-brand-message="about" role="status"></p><button type="submit" data-brand-submit="about">Guardar imagen</button>
+        </form>
+      </div>
+    </section>
+    <section class="settings-tab-panel" id="settings-panel-emails" role="tabpanel" aria-labelledby="settings-tab-emails" tabindex="0" data-settings-panel="emails" hidden>
+      <div class="settings-section-heading"><h2>Emails al cliente</h2><p>Confirmación de compra, despacho y entrega, con la identidad y las imágenes de tu tienda.</p></div>
+      <p class="notice"><strong>EnvíaloSimple · {{emailSettings.label}}</strong><br>{{emailSettings.notice}} El estado de cada correo se muestra en el detalle del pedido. Las vistas previas no generan envíos.</p>
+      <div class="settings-email-grid">
+        <article class="settings-email-card"><span class="badge">01 · Compra</span><h3>¡Gracias por elegirnos!</h3><p>Se usa cuando el pago queda aprobado, también con la confirmación de Mercado Pago.</p><ul><li>Artículos, importes y entrega.</li><li>Preparación estimada de 1 a 3 días.</li></ul><a class="link-button" href="/api/v1/admin/order-email-previews/confirmed" target="_blank" rel="noopener noreferrer">Ver email de compra ↗</a></article>
+        <article class="settings-email-card"><span class="badge">02 · Despacho</span><h3>Tu pedido está en camino</h3><p>Se usa al marcar el envío como «En camino».</p><ul><li>Transportista y código de seguimiento.</li><li>Botón para seguir el envío.</li></ul><a class="link-button" href="/api/v1/admin/order-email-previews/shipped" target="_blank" rel="noopener noreferrer">Ver email de envío ↗</a></article>
+        <article class="settings-email-card"><span class="badge">03 · Entrega</span><h3>¡Que lo disfrutes mucho!</h3><p>Se usa al confirmar el estado «Entregado».</p><ul><li>Agradecimiento y resumen del pedido.</li><li>Cuidados y contacto si necesitás ayuda.</li></ul><a class="link-button" href="/api/v1/admin/order-email-previews/delivered" target="_blank" rel="noopener noreferrer">Ver email de entrega ↗</a></article>
+      </div>
+      <div class="settings-email-footer"><p class="admin-hint">Las vistas de ejemplo usan datos ficticios. También podés abrirlas con los datos de cada pedido desde su detalle.</p><a class="link-button" href="/api/v1/admin/order-email-previews" target="_blank" rel="noopener noreferrer">Ver etapas y vistas previas ↗</a></div>
+    </section>
+  </div>
+</section>

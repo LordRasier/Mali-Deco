@@ -1,6 +1,0 @@
-import test from 'node:test';
-import { execFileSync } from 'node:child_process';
-
-test('editorial art and explicitly identified fixture remain distinct from real product media', () => {
-  execFileSync(globalThis.process.execPath, ['--import', 'tsx', 'tests/editorial-art.check.tsx'], { stdio: 'pipe' });
-});

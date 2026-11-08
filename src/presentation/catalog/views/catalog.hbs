@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Objetos · {{brand}}</title>
+  {{#if noindex}}<meta name="robots" content="noindex, nofollow">{{/if}}
+  <link rel="stylesheet" href="/assets/storefront/cart.css">
+  <link rel="stylesheet" href="/assets/storefront/catalog.css">
+  <link rel="stylesheet" href="/assets/storefront/shell.css">
+  <script src="/assets/storefront/generated/cart.js" defer></script>
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>
+  
+  {{> site_header}}
+  <div class="catalog-stage">
+    <div class="catalog-backdrop" aria-hidden="true">
+      <img src="/api/v1/catalog/branding/hero" width="1774" height="887" alt="" fetchpriority="high" decoding="async">
+    </div>
+  <main id="main" class="catalog-layout" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}">
+    <header class="catalog-intro">
+      <div><p class="eyebrow">Mali · Objetos de diseño</p><h1>La colección</h1></div>
+      <p class="catalog-intro-copy">Formas, colores y pequeños detalles para hacer tu espacio más tuyo.</p>
+    </header>
+    {{#if demo}}<p class="catalog-notice">Demostración: imágenes, categorías y precios de ejemplo. No representa ventas reales.</p>{{/if}}
+    {{#if invalid}}
+      <div role="alert"><p>{{message}}</p><a href="{{clear}}">Limpiar filtros</a></div>
+    {{else if unpublished}}
+      <section class="catalog-empty" aria-labelledby="catalog-empty-title">
+        <h2 id="catalog-empty-title">Todavía no hay objetos publicados.</h2>
+        <a href="{{routes.home}}">Volver al inicio</a>
+      </section>
+    {{else}}
+      <div class="catalog-body">
+      <div class="catalog-results-column">
+      {{#unless failed}}
+      <nav class="catalog-categories" aria-label="Categorías">{{#each categories}}{{#if disabled}}<span aria-disabled="true">{{label}}</span>{{else}}<a href="{{href}}" {{#if selected}}aria-current="true"{{/if}}>{{label}}</a>{{/if}}{{/each}}</nav>
+      {{#if activeFilters}}<nav class="active-filters" aria-label="Filtros activos">{{#each activeFilters}}<a href="{{href}}">{{label}} ×</a>{{/each}}<a href="{{clear}}">Limpiar todo</a></nav>{{/if}}
+      {{#if truncated}}<p>Las opciones de clasificación están limitadas a las primeras 200 por grupo.</p>{{/if}}
+      {{/unless}}
+      {{#if failed}}<div role="alert"><p>{{message}}</p><a href="{{retry}}">Reintentar</a></div>
+      {{else}}{{#if currencyUnavailable}}<div role="alert"><p>{{message}}</p><a href="{{clear}}">Limpiar filtros</a></div>
+      {{else}}
+        <section aria-label="Resultados del catálogo">
+          <p class="catalog-results-count">{{resultLabel}}</p>
+          {{#if empty}}
+          <div class="catalog-empty">
+            {{#if activeFilters}}<h2>No encontramos objetos con esos filtros.</h2><a href="{{clear}}">Limpiar filtros</a>
+            {{else}}<h2>No hay objetos en esta página.</h2>{{/if}}
+          </div>
+          {{else}}
+          <div class="catalog-grid">{{#each cards}}{{> catalog_card}}{{/each}}</div>
+          {{/if}}
+          {{#if showPagination}}<nav class="catalog-pages" aria-label="Páginas de resultados">{{#if previous}}<a href="{{previous}}">← Anterior</a>{{/if}}<span>Página {{page}}{{#if pages}} de {{pages}}{{/if}}</span>{{#if next}}<a href="{{next}}">Siguiente →</a>{{/if}}</nav>{{/if}}
+        </section>
+      {{/if}}{{/if}}
+      </div></div>
+    {{/if}}
+    <noscript>El carrito necesita JavaScript. Puedes explorar la tienda sin activarlo.</noscript>
+  </main>
+  </div>
+  {{> catalog_info}}
+  {{> cart_panel}}
+  {{> site_footer}}
+</body>
+</html>

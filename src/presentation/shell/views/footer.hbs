@@ -1,0 +1,45 @@
+<footer class="site-footer" id="pie-de-pagina">
+  <div class="site-footer-benefits" aria-label="Tu compra en la tienda">
+    <div><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z"/><path d="m3 7 9 5 9-5M12 12v10M7.5 4.5l9 5V15"/></svg><p><strong>Hecho a pedido</strong><span>Preparación estimada: 1 a 3 días.</span></p></div>
+    <div><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 5h11v12H3V5Zm11 4h4l3 4v4h-7M14 13h7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg><p><strong>Envíos en Argentina</strong><span>Consultá costo y cobertura en el carrito.</span></p></div>
+    <div><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20 11a8 8 0 0 1-8 8H5l-3 3V11a9 9 0 0 1 18 0Z"/><path d="M7 10h8M7 14h5"/></svg><p><strong>Te ayudamos a elegir</strong><span>Consultá por materiales, medidas y colores.</span></p></div>
+  </div>
+  <div class="site-footer-grid">
+    <div class="site-footer-brand">
+      <a class="site-brand" href="{{routes.home}}">{{brand}}</a>
+      <p>Diseño e impresión 3D.<br> Objetos para hacer tu espacio más tuyo.</p>
+      {{#if storeInfo.hasSocial}}
+        <nav class="site-footer-social" aria-label="Contactá con la tienda en redes">
+          {{#if storeInfo.whatsapp}}<a class="site-footer-social-button" href="{{storeInfo.whatsapp.href}}" target="_blank" rel="noopener noreferrer" aria-label="Abrir chat de WhatsApp de {{brand}} (nueva pestaña)" title="Escribinos por WhatsApp"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5A11.8 11.8 0 0 0 12 0 11.9 11.9 0 0 0 1.7 18l-1.7 6 6.2-1.6A12 12 0 0 0 12 24h.1A12 12 0 0 0 24 12a11.8 11.8 0 0 0-3.5-8.5ZM12.1 22a10 10 0 0 1-5.1-1.4l-.4-.2-3.7 1 1-3.6-.3-.4A10 10 0 1 1 12.1 22Zm5.4-7.5c-.3-.1-1.8-.9-2-.9s-.5-.1-.7.2-.8.9-1 1-.3.2-.6 0a8.1 8.1 0 0 1-2.3-1.4 8.7 8.7 0 0 1-1.6-2c-.2-.3 0-.4.1-.6l.5-.5.3-.5c.1-.1 0-.3 0-.5l-1-2.2c-.2-.6-.5-.5-.7-.5H8c-.2 0-.5.1-.8.4s-1 1-1 2.4 1 2.7 1.2 2.9 2.1 3.3 5.1 4.6c.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.5-.1 1.8-.7 2-1.4s.3-1.3.2-1.4-.3-.2-.6-.3Z"/></svg></a>{{/if}}
+          {{#if storeInfo.instagram}}<a class="site-footer-social-button" href="{{storeInfo.instagram.href}}" target="_blank" rel="noopener noreferrer" aria-label="Ver Instagram de {{brand}} (nueva pestaña)" title="Seguinos en Instagram"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.1"/><circle cx="17.4" cy="6.7" r="1" fill="currentColor" stroke="none"/></svg></a>{{/if}}
+        </nav>
+      {{/if}}
+      {{#if storeInfo.email}}<a class="site-footer-email" href="{{storeInfo.email.href}}">{{storeInfo.email.value}}</a>{{/if}}
+      {{#unless checkoutEnabled}}<p class="site-footer-order-note">Tomamos pedidos por Instagram.</p>{{/unless}}
+    </div>
+    <nav class="site-footer-links" aria-labelledby="footer-store-title">
+      <h2 id="footer-store-title">Tienda</h2>
+      <a href="{{routes.catalog}}">Todos los productos</a>
+      <a href="/sobre-mali">Sobre nosotros</a>
+      <a href="{{routes.cart}}">Mi carrito</a>
+    </nav>
+    <nav class="site-footer-links" aria-labelledby="footer-help-title">
+      <h2 id="footer-help-title">Te ayudamos</h2>
+      <a href="/contacto">Contacto</a>
+      <a href="/preguntas-frecuentes">Preguntas frecuentes</a>
+      <a href="/preguntas-frecuentes#cuidados">Cuidados de tus piezas</a>
+      <a href="/envios-y-reembolsos#seguimiento">Seguimiento del envío</a>
+    </nav>
+    <nav class="site-footer-links" aria-labelledby="footer-info-title">
+      <h2 id="footer-info-title">Información</h2>
+      <a href="/envios-y-reembolsos">Envíos y reembolsos</a>
+      <a href="/envios-y-reembolsos#devoluciones">Cambios y devoluciones</a>
+      <a href="/terminos-y-condiciones">Términos y condiciones</a>
+      <a href="/politica-de-privacidad">Política de privacidad</a>
+    </nav>
+  </div>
+  <div class="site-footer-bottom">
+    <p>© {{storeYear}} {{brand}}. Todos los derechos reservados.{{#if storeInfo.legalName}}<span>{{storeInfo.legalName}}{{#if storeInfo.taxId}} · CUIT {{storeInfo.taxId}}{{/if}}</span>{{/if}}</p>
+    <div><a href="/envios-y-reembolsos#devoluciones">Derecho de arrepentimiento</a>{{#if storeInfo.dataFiscalUrl}}<a href="{{storeInfo.dataFiscalUrl}}" rel="noopener noreferrer">Data Fiscal · ARCA <span aria-hidden="true">↗</span></a>{{/if}}<a class="site-footer-top" href="#main">Volver arriba <span aria-hidden="true">↑</span></a></div>
+  </div>
+</footer>

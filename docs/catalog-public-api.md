@@ -30,6 +30,8 @@ Cada elemento añade a `{id, slug, name, description}` estos campos:
 
 Cualquiera de `category`, `matchedVariant`, `material`, `color` o `priceRange` puede ser `null`. El rango y el representante consideran solo variantes que satisfacen el filtro; con moneda se elige el menor precio y luego ID. Sin moneda, el representante se elige por ID y el rango es `null`: nunca se comparan importes de distintas monedas. `matchedVariant` es solo un resumen, no la lista completa.
 
+Cada producto incluye además `matchedVariants` (hasta diez variantes que satisfacen los mismos filtros y orden que el representante), `variantCount` (cantidad de variantes activas del producto, sin filtros) e `images` (hasta diez imágenes públicas ordenadas). `primaryImage` sigue siendo la primera imagen o `null`. Las imágenes pertenecen al producto, no a una variante: no se debe inferir que representen un color específico. La lista completa de variantes se consulta mediante el detalle paginado.
+
 ## `GET /catalog/facets?currency=ARS`
 
 Devuelve `{categories, materials, colors, currencies, priceRange, truncated}`. Cada opción tiene `{id, slug, name, sortOrder}`; los colores agregan `hex` nullable. Las opciones provienen de datos públicos existentes y son globales, restringidas solo por la moneda opcional; `currencies` permanece global para permitir cambiarla. El rango existe solo con moneda explícita y variantes elegibles. Cada lista de taxonomía tiene como máximo 200 elementos, con flags `truncated.categories`, `.materials` y `.colors`; no hay recuentos dinámicos por faceta. Listas vacías y rango `null` no indican error.

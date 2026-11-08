@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Administración | Tienda</title>
+  <link rel="stylesheet" href="/assets/admin/admin.css">
+  <script src="/assets/admin/generated/admin.js" defer></script>
+</head>
+<body>
+<div class="admin-root" data-admin-root>
+  <noscript><p class="notice">Esta vista requiere JavaScript para iniciar sesión y conservar formularios durante la navegación.</p></noscript>
+  <div class="center-state" data-admin-session-state {{#unless unavailable}}hidden{{/unless}}>
+    <p role="status" data-admin-session-message>{{message}}</p>
+    <button type="button" data-admin-session-retry {{#unless unavailable}}hidden{{/unless}}>Reintentar</button>
+  </div>
+  <main class="login-page" data-admin-login {{#unless anonymous}}hidden{{/unless}}>
+    <div class="login-card">
+      <span class="eyebrow">Administración de la tienda</span>
+      <h1>Iniciar sesión</h1>
+      <p>Use su cuenta de administración para continuar.</p>
+      <form class="admin-form" data-admin-login-form method="post" action="/api/v1/auth/login">
+        <label>Correo electrónico<input data-admin-email type="email" name="email" autocomplete="username" maxlength="255" required></label>
+        <label>Contraseña<input data-admin-password type="password" name="password" autocomplete="current-password" required></label>
+        <p class="notice error" data-admin-login-error role="alert" hidden></p>
+        <button class="primary" data-admin-login-submit type="submit" disabled>Iniciar sesión</button>
+      </form>
+      <a href="/">Volver a la tienda</a>
+    </div>
+  </main>
+  <div class="admin-shell" data-admin-shell {{#unless authenticated}}hidden{{/unless}}>
+    <a class="admin-skip" href="#admin-content" data-admin-skip>Saltar al contenido</a>
+    <header class="admin-header">
+      <div><strong>Administración</strong><span class="header-divider">/</span><a href="/">Ver tienda</a></div>
+      <div class="header-account"><span data-admin-account>{{email}} · {{role}}</span><button type="button" data-admin-logout disabled>Cerrar sesión</button></div>
+    </header>
+    <p class="notice error shell-notice" data-admin-logout-error role="alert" hidden></p>
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <p class="eyebrow">Gestionar tienda</p>
+        <nav aria-label="Administración" data-admin-navigation>
+          {{#each navigation}}<a data-admin-nav-link href="{{href}}">{{label}}</a>{{/each}}
+        </nav>
+        <p class="admin-sidebar-note">Los formularios se conservan al cambiar de sección. Guarde antes de recargar o cerrar sesión.</p>
+      </aside>
+      <div class="admin-content" id="admin-content" data-admin-content tabindex="-1">
+        <div data-admin-unavailable hidden><h1>Sección no disponible</h1><p role="alert">El enlace no existe o su cuenta no tiene acceso a esta sección.</p></div>
+        <div data-admin-sections></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

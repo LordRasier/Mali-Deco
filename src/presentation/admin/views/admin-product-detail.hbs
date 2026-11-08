@@ -1,0 +1,26 @@
+<section class="admin-main" data-admin-section="products" data-product-view="detail" data-product-id="{{product.id}}" data-product-page="{{page}}" data-product-archived="{{#if archived}}true{{else}}false{{/if}}" aria-label="Detalle del artículo">
+  <button type="button" class="link-button" data-product-action="list">Volver al catálogo</button>
+  <p data-product-message class="notice error" role="alert" hidden></p><p data-product-loading role="status" hidden>Cargando artículo…</p>
+  <button type="button" data-product-action="retry" hidden>Reintentar lectura</button>
+  <div class="section-heading"><div><span class="eyebrow">Artículo · {{#if archived}}Archivado{{else}}{{#if active}}Activo{{else}}Borrador{{/if}}{{/if}}</span><h1>{{product.name}}</h1><p>/{{product.slug}}</p></div>
+    {{#unless archived}}<div class="actions"><button type="button" data-product-action="edit">Editar artículo</button><button type="button" class="danger" data-product-action="archive">Archivar</button></div>{{/unless}}
+  </div>
+  {{#if archived}}<p class="notice">Artículo archivado. Se conserva en consulta y no puede editarse ni restaurarse desde este panel.</p>{{/if}}
+  <div class="panel"><h2>Información general</h2><p>{{product.description}}</p><div class="spec-grid">
+    {{#each dimensions}}<div><h3>{{label}}</h3><dl>{{#each fields}}<dt>{{label}}</dt><dd>{{display}}</dd>{{/each}}</dl></div>{{/each}}
+  </div></div>
+  <section class="panel"><div class="section-heading compact"><div><h2>Variantes</h2><p>Precio en unidades menores y modalidad de suministro; no indica disponibilidad.</p></div>
+    {{#unless archived}}<button type="button" data-product-action="variant-create">Agregar variante</button>{{/unless}}
+  </div>
+    {{#if variants}}<div class="table-scroll"><table class="data-table"><thead><tr><th scope="col">Variante / SKU</th><th scope="col">Precio</th><th scope="col">Modalidad</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead><tbody>
+      {{#each variants}}<tr><td><strong>{{name}}</strong><br>{{sku}}</td><td>{{priceLabel}}</td><td>{{supplyLabel}}</td><td>{{#if archived}}Archivada{{else}}Vigente{{/if}}</td>
+      <td>{{#if editable}}<button type="button" data-product-action="variant-edit" data-variant-id="{{id}}">Editar</button><button type="button" class="danger" data-product-action="variant-archive" data-variant-id="{{id}}">Archivar</button>{{/if}}</td></tr>{{/each}}
+    </tbody></table></div>{{else}}<p>No hay variantes en esta página.</p>{{/if}}
+    <nav class="pagination" aria-label="Paginación de variantes"><span>Página {{variantPage}} de {{variantPages}} · {{variantTotal}} en total</span><div>
+      <button type="button" data-product-action="variant-page" data-product-page="{{previousVariantPage}}" {{#unless hasPreviousVariants}}disabled{{/unless}}>Anterior</button>
+      <button type="button" data-product-action="variant-page" data-product-page="{{nextVariantPage}}" {{#unless hasNextVariants}}disabled{{/unless}}>Siguiente</button>
+    </div></nav>
+  </section>
+  <div data-product-media-slot hidden>{{> admin_product_images}}</div>
+  <p class="notice" data-product-media-pending>La galería no está disponible en esta vista.</p>
+</section>

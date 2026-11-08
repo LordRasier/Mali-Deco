@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tu carrito | {{brand}}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/assets/storefront/cart.css">
+  <link rel="stylesheet" href="/assets/storefront/shell.css">
+  <script src="/assets/storefront/generated/cart.js" defer></script>
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>
+  
+  {{> site_header}}
+  <main id="main" class="cart-page" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}">
+    <nav aria-label="Ubicación"><a href="{{routes.home}}">Inicio</a> / Carrito</nav>
+    <h1>Tu carrito</h1>
+    {{#if demo}}<p class="cart-demo-notice">Vista de demostración. Productos y precios de ejemplo; no se realizan compras.</p>{{/if}}
+    <section data-cart-page-slot aria-label="Contenido del carrito"></section>
+    <noscript>El carrito necesita JavaScript para leer los artículos de este navegador. No se modificó tu carrito.</noscript>
+  </main>
+  {{> site_footer}}
+  {{> cart_panel}}
+</body>
+</html>

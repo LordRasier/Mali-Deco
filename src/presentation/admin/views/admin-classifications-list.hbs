@@ -1,0 +1,15 @@
+<section class="admin-main" data-admin-section="classifications" data-classification-view="list" data-classification-kind="{{kind}}" data-classification-page="{{page}}" aria-label="Clasificaciones">
+  <button type="button" class="link-button" data-classification-action="products">Volver al catálogo</button>
+  <div class="section-heading"><div><span class="eyebrow">Catálogo</span><h1>Clasificaciones</h1><p>Opciones que se pueden asignar a artículos y variantes.</p></div><button type="button" class="primary" data-classification-action="create">Agregar opción</button></div>
+  <nav class="taxonomy-tabs" aria-label="Tipo de clasificación">{{#each tabs}}<button type="button" data-classification-action="kind" data-classification-kind="{{id}}" {{#if selected}}aria-current="page"{{/if}}>{{label}}</button>{{/each}}</nav>
+  <p data-classification-message class="notice error" role="alert" hidden></p><p data-classification-loading role="status" hidden>Cargando opciones…</p><button type="button" data-classification-action="retry" hidden>Reintentar lectura</button>
+  <div class="panel"><h2>{{title}}</h2>
+    {{#if items}}<div class="table-scroll"><table class="data-table"><thead><tr><th scope="col">Nombre</th><th scope="col">Identificador</th><th scope="col">Orden</th>{{#if color}}<th scope="col">Color</th>{{/if}}<th scope="col">Acciones</th></tr></thead><tbody>
+      {{#each items}}<tr><td>{{name}}</td><td>{{slug}}</td><td>{{sortOrder}}</td>{{#if ../color}}<td>{{hex}}</td>{{/if}}<td><button type="button" data-classification-action="edit" data-classification-id="{{id}}">Editar</button><button type="button" class="danger" data-classification-action="archive" data-classification-id="{{id}}">Archivar</button></td></tr>{{/each}}
+    </tbody></table></div>{{else}}<p class="empty-state">No hay opciones en esta página.</p>{{/if}}
+    <nav class="pagination" aria-label="Paginación de clasificaciones"><span>Página {{page}} de {{pages}} · {{total}} en total</span><div>
+      <button type="button" data-classification-action="page" data-classification-page="{{previousPage}}" {{#unless hasPrevious}}disabled{{/unless}}>Anterior</button>
+      <button type="button" data-classification-action="page" data-classification-page="{{nextPage}}" {{#unless hasNext}}disabled{{/unless}}>Siguiente</button>
+    </div></nav>
+  </div><p class="muted">Las opciones en uso no se pueden archivar. Las asignaciones se cambian desde cada artículo o variante.</p>
+</section>

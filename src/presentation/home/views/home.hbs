@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{brand}} · Objetos de diseño</title>
+  {{#if noindex}}<meta name="robots" content="noindex, nofollow">{{/if}}
+  <link rel="stylesheet" href="/assets/storefront/cart.css"><link rel="stylesheet" href="/assets/storefront/shell.css"><link rel="stylesheet" href="/assets/storefront/catalog.css"><link rel="stylesheet" href="/assets/storefront/home.css">
+  <script src="/assets/storefront/generated/cart.js" defer></script>
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>{{> site_header}}
+  <main id="main" class="home-layout" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}">
+  {{#if failed}}
+    <section class="home-error"><h1>No pudimos cargar la tienda.</h1><p role="alert">Intentá nuevamente en unos instantes.</p><a href="">Reintentar</a></section>
+  {{else}}
+    {{#if demo}}<p class="home-demo">Vista de demostración · Imágenes, categorías y precios de ejemplo</p>{{/if}}
+    <section class="home-hero" aria-labelledby="home-title">
+      <div class="home-hero-picture" aria-hidden="true"><img src="/api/v1/catalog/branding/hero" width="1774" height="887" alt="" fetchpriority="high" decoding="async"></div>
+      <div class="home-hero-copy">
+        <p class="home-hero-eyebrow">Diseño que se siente diferente</p>
+        <h1 id="home-title">Objetos que salen de <span>lo común.</span></h1>
+        <p class="home-hero-description">Diseño e impresión 3D para darle otra forma a tus espacios. Un poco de color, todos los días.</p>
+        <a class="home-button" href="{{routes.catalog}}">Explorar objetos <span aria-hidden="true">↗</span></a>
+        <p class="home-hero-note">Formas simples. Espacios con personalidad.</p>
+      </div>
+    </section>
+    <section class="home-catalog" id="coleccion" aria-labelledby="home-objects">
+      <div class="home-heading"><div><p class="eyebrow">Una selección para empezar</p><h2 id="home-objects">Objetos para tu día a día<span aria-hidden="true">.</span></h2></div><a href="{{routes.catalog}}">Ver toda la colección <span aria-hidden="true">↗</span></a></div>
+      <div class="catalog-grid">{{#each cards}}{{> catalog_card}}{{else}}<p class="home-empty">Todavía no hay objetos publicados.</p>{{/each}}</div>
+    </section>
+    <section class="home-about" id="historia" aria-labelledby="home-about-title">
+      <figure class="home-about-art"><img src="/api/v1/catalog/branding/about" width="1024" height="683" alt="Diseño, formas y texturas de Mali Deco" loading="lazy" decoding="async"><figcaption>Imagen ilustrativa</figcaption></figure>
+      <div class="home-about-copy"><p class="eyebrow">DISEÑO EN CADA CAPA</p><h2 id="home-about-title">Ideas que<br>toman forma.</h2><p>Diseñamos e imprimimos en 3D objetos que combinan color, textura y formas para acompañarte todos los días.</p><div class="home-about-signature" aria-hidden="true"><span></span>Forma · Color · Textura</div></div>
+    </section>
+  {{/if}}
+  <noscript>Podés explorar la tienda sin JavaScript. El carrito necesita JavaScript para leer el estado de este navegador.</noscript>
+  </main>{{> site_footer}}{{> cart_panel}}{{> catalog_info}}
+</body>
+</html>

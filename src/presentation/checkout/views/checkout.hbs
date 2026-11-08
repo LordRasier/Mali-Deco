@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Checkout de prueba | {{brand}}</title>
+  <link rel="stylesheet" href="/assets/storefront/cart.css">
+  <link rel="stylesheet" href="/assets/storefront/shell.css">
+  <link rel="stylesheet" href="/assets/checkout/checkout.css">
+  <script src="/assets/storefront/generated/cart.js" defer></script>
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>
+  
+  {{> site_header}}
+  <main id="main" class="cart-page checkout-page" tabindex="-1" data-cart-mode="api" data-product-base="{{routes.product}}">
+    <nav class="breadcrumb" aria-label="Ubicación"><a href="{{routes.home}}">Inicio</a> / <a href="{{routes.cart}}">Carrito</a> / Checkout</nav>
+    {{#if ready}}
+    <section data-checkout-root>
+      <header class="checkout-heading">
+        <div><p class="eyebrow">UN PASO MÁS</p><h1>Finalizar pedido</h1><p>Completa tus datos y revisa la entrega.</p></div>
+        <span class="checkout-test-badge">Prueba local</span>
+      </header>
+      <p class="checkout-test-notice">No se realizarán cobros ni se generarán envíos. Usa datos ficticios. Los pedidos de prueba también descuentan el stock configurado.</p>
+      <div data-checkout-error-box class="checkout-alert" hidden>
+        <p data-checkout-error role="alert" tabindex="-1"></p>
+        <div data-checkout-reset-box hidden>
+          <p>Si otro intento tiene resultado incierto, no reinicies la sesión; consultá al administrador.</p>
+          <button type="button" data-checkout-reset hidden>Reiniciar sesión de compra</button>
+          <p data-checkout-reset-unavailable hidden>Este navegador no permite reiniciar la sesión de forma segura. Consultá al administrador.</p>
+        </div>
+      </div>
+      <div data-checkout-pending class="checkout-alert" role="alert" tabindex="-1" hidden>
+        <p>Hay un intento con resultado incierto. No crees otro pedido hasta resolverlo.</p>
+        <button type="button" data-checkout-retry hidden>Reintentar el mismo intento</button>
+        <button type="button" data-checkout-check hidden>Consultar estado del intento</button>
+      </div>
+      <section data-checkout-order tabindex="-1" class="checkout-section checkout-success" role="status" hidden>
+        <p class="eyebrow">PRUEBA COMPLETADA</p><h2>Pedido de prueba recibido</h2><p data-checkout-order-reference></p><p data-checkout-order-total></p>
+        <p data-checkout-order-payment-status>Puedes consultarlo en administración. Pago no iniciado. Envío no iniciado.</p>
+        <div data-checkout-payment-box hidden>
+          <h3>Mercado Pago de prueba</h3>
+          <p>Usa únicamente una cuenta compradora y tarjetas de prueba. El pago se abre en otra pestaña; conserva esta página para consultar el resultado.</p>
+          <p data-checkout-payment-message aria-live="polite"></p>
+          <button type="button" data-checkout-payment-start>Preparar pago de prueba</button>
+          <a data-checkout-payment-link target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" hidden>Abrir Mercado Pago de prueba</a>
+          <button type="button" data-checkout-payment-refresh>Consultar pago</button>
+        </div>
+        <button type="button" data-checkout-new-order hidden>Iniciar otra compra</button>
+        <a href="{{routes.catalog}}">Volver al catálogo</a>
+      </section>
+      <p data-checkout-loading role="status">Cargando carrito…</p>
+      <p data-checkout-empty hidden>Tu carrito está vacío. <a href="{{routes.catalog}}">Ver catálogo</a></p>
+      <form method="dialog" data-checkout-form hidden>
+        <fieldset data-checkout-fields disabled>
+          <legend class="sr-only">Datos del pedido de prueba</legend>
+          <div class="checkout-grid">
+            <div class="checkout-details">
+              <section class="checkout-section" aria-labelledby="checkout-contact-title">
+                <h2 id="checkout-contact-title"><span class="checkout-step" aria-hidden="true">01</span> Contacto</h2>
+                <div class="checkout-fields-row">
+                  <div class="checkout-field"><label for="checkout-name">Nombre y apellido</label><input id="checkout-name" data-checkout-name autocomplete="name" maxlength="255" required></div>
+                  <div class="checkout-field"><label for="checkout-document">DNI/CUIL <span>(opcional)</span></label><input id="checkout-document" data-checkout-document type="text" inputmode="numeric" autocomplete="off" maxlength="11" pattern="[0-9]{7,8}|[0-9]{11}" placeholder="Solo números" title="Ingresa 7 u 8 dígitos para DNI, u 11 para CUIL, sin puntos ni guiones."></div>
+                </div>
+                <div class="checkout-fields-row">
+                  <div class="checkout-field"><label for="checkout-email">Correo electrónico</label><input id="checkout-email" data-checkout-email type="email" autocomplete="email" maxlength="254" required></div>
+                  <div class="checkout-field"><label for="checkout-phone">Teléfono</label><input id="checkout-phone" data-checkout-phone type="tel" autocomplete="tel" maxlength="64" required></div>
+                </div>
+              </section>
+              <section class="checkout-section" data-checkout-delivery>
+                <h2><span class="checkout-step" aria-hidden="true">02</span> Entrega</h2>
+                <div class="checkout-destination-row">
+                  <div class="checkout-field"><label for="checkout-postal">Código postal</label>
+                    <div class="checkout-inline"><input id="checkout-postal" data-checkout-postal inputmode="numeric" autocomplete="postal-code" maxlength="16" aria-describedby="checkout-destination-message">
+                    <button type="button" data-checkout-lookup>Buscar</button></div>
+                  </div>
+                  <div class="checkout-field" data-checkout-candidates-box hidden><label for="checkout-destination">Localidad</label><select id="checkout-destination" data-checkout-candidates><option value="">Elige una localidad</option></select></div>
+                </div>
+                <p id="checkout-destination-message" data-checkout-destination-message role="status"></p>
+                <div class="checkout-address-row">
+                  <div class="checkout-field"><label for="checkout-street">Calle</label><input id="checkout-street" data-checkout-street autocomplete="address-line1" maxlength="255" required></div>
+                  <div class="checkout-field"><label for="checkout-number">Número</label><input id="checkout-number" data-checkout-number maxlength="64" required></div>
+                  <div class="checkout-field"><label for="checkout-unit">Piso / depto. <span>(opcional)</span></label><input id="checkout-unit" data-checkout-unit autocomplete="address-line2" maxlength="255"></div>
+                </div>
+                <p class="checkout-helper">Para retiro en un punto, completa tu domicilio de contacto.</p>
+                <button class="checkout-quote-button" type="button" data-checkout-quote>Consultar opciones</button>
+                <fieldset data-checkout-options-box hidden><legend>Elegí una opción de entrega</legend><div data-checkout-options></div></fieldset>
+                <div data-checkout-point-box hidden><label for="checkout-point">Punto de retiro</label><select id="checkout-point" data-checkout-point><option value="">Elegí un punto de retiro</option></select></div>
+                <p data-checkout-expired role="status" hidden>La cotización venció. Consultá las opciones nuevamente.</p>
+              </section>
+              <section class="checkout-section" aria-labelledby="checkout-payment-title">
+                <h2 id="checkout-payment-title"><span class="checkout-step" aria-hidden="true">03</span> Método de pago</h2>
+                <label class="checkout-payment" for="checkout-mercadopago">
+                  <input id="checkout-mercadopago" type="radio" data-checkout-payment disabled aria-describedby="checkout-payment-notice">
+                  <span><strong>Mercado Pago</strong><small>{{#if paymentAvailable}}Disponible después de registrar el pedido{{else}}Próximamente disponible{{/if}}</small></span>
+                  <span class="checkout-payment-badge">{{#if paymentAvailable}}Solo prueba{{else}}No activo{{/if}}</span>
+                </label>
+                <p id="checkout-payment-notice" class="checkout-helper">{{#if paymentAvailable}}Después de registrar el pedido podrás preparar un pago de prueba. Mercado Pago se abre en otra pestaña. Usa solo cuentas y tarjetas de prueba.{{else}}En esta prueba el pedido se registra sin pago. No se solicitarán datos de tarjeta ni se abrirá Mercado Pago.{{/if}}</p>
+              </section>
+            </div>
+            <aside class="checkout-section checkout-summary" aria-labelledby="checkout-summary-title">
+              <div class="checkout-summary-heading"><h2 id="checkout-summary-title">Tu pedido</h2><a href="{{routes.cart}}">Editar carrito</a></div><ul data-checkout-lines class="checkout-summary-lines"></ul>
+              <p data-checkout-unresolved role="status" hidden>Esperá a que se verifique el carrito.</p>
+              <dl data-checkout-totals></dl><p data-checkout-shipping-total></p><p data-checkout-grand-total></p><p data-checkout-total-message></p>
+              <p class="checkout-helper">Revisa tus datos y el total antes de confirmar. El envío es una estimación.</p>
+              <button type="submit" data-checkout-submit disabled>Registrar pedido de prueba</button>
+              <p class="checkout-submit-note">Sin cobro · Sin envío real</p>
+            </aside>
+          </div>
+        </fieldset>
+      </form>
+      <noscript>El checkout necesita JavaScript. No se inició ningún pedido.</noscript>
+    </section>
+    {{else}}
+    <h1>El checkout de prueba no está disponible.</h1><a href="{{routes.cart}}">Volver al carrito</a>
+    {{/if}}
+  </main>
+  {{> site_footer}}
+  {{> cart_panel}}
+</body>
+</html>

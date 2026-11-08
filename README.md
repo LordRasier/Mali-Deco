@@ -1,30 +1,55 @@
-# Base de tienda
+# Tienda · NestJS MVC
 
-Monorepo inicial para una tienda configurable. Contiene una API NestJS y una aplicación Next.js mínima; todavía no vende productos ni es apta para producción.
+Una aplicación NestJS sirve páginas Handlebars, archivos públicos y API JSON. Un manifiesto, un proceso y un origen; sin Next, React ni workspaces. Incluye catálogo, administración, medios, carrito y pedidos locales de prueba. **No está habilitada para ventas reales.**
 
-## Inicio local
+## Empezar
 
-Requiere Node.js 24 o posterior y npm. Ejecutar `npm ci`, luego `npm run dev:api` y `npm run dev:web` en terminales separadas. API en `http://127.0.0.1:3001/api/v1/health`, web en `http://127.0.0.1:3000`. Las variables del archivo `.env.example` deben exportarse al entorno de cada proceso: no se cargan automáticamente.
+Requiere Node.js 24 o posterior. Desde la raíz:
 
-La configuración apunta a MariaDB 10.4 de XAMPP y requiere todas las variables `DB_*` del ejemplo en el entorno. La API escucha únicamente en `127.0.0.1`; arranca sin persistencia cuando `DB_HOST` está vacío y `NODE_ENV` no es `production`. En producción la ausencia de base impide el arranque. Las migraciones y el catálogo se probaron localmente en MariaDB 10.4.32; aún faltan revisión independiente y validación de la aplicación completa, por lo que no deben usarse con datos reales. Son para una instalación nueva; no aplicarlas a bases existentes sin un plan de migración revisado. Véase [compatibilidad MariaDB](docs/mariadb-local.md).
+```sh
+npm ci
+npm run dev
+```
 
-Comprobaciones: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`. La configuración usa TypeORM con `synchronize: false`; los cambios de esquema requerirán migraciones explícitas.
+Abrir `http://127.0.0.1:3000`. Para desarrollo, copiar [.env.example](.env.example) a `.env` y completar una base autorizada: `npm run dev` lo lee antes de registrar la conexión. Las variables exportadas tienen prioridad; `npm start`, las pruebas y producción no leen este archivo. Si se modifica `.env`, reiniciar `npm run dev`. No guardar credenciales en Git. La tienda usa únicamente el catálogo de la base configurada. `STOREFRONT_MODE` está retirado: una variable antigua no reactiva datos de ejemplo. Sin base, las páginas dependientes del catálogo informan indisponibilidad, no muestran un catálogo ficticio.
 
-`@nestjs/platform-express` 11.2.8 fija Multer 2.4.0, afectado por [GHSA-q7qp-rjg7-q26m](https://github.com/advisories/GHSA-q7qp-rjg7-q26m). El override del proyecto fija 2.5.0, versión corregida; revisar su vigencia al actualizar Nest. No hay carga de archivos implementada.
+El carrito conserva su clave `storefront-cart-v1-api` para mantener los artículos reales ya guardados. No importa ni borra el antiguo carrito de demostración. Los dobles de prueba se inyectan desde las pruebas y no habilitan otro modo público.
 
-Con npm 11.6.2, `npm ls multer` informa `ELSPROBLEMS` porque Nest declara exactamente 2.4.0, aunque la instalación limpia resuelve 2.5.0; existe un [reporte similar de npm con overrides y workspaces](https://github.com/npm/cli/issues/9514). La suite verifica qué versión resuelve Nest. Usar `npm ci` con el lockfile y volver a verificar tras cambios de dependencias; no asumir que `npm update` conserva el override.
+El paso a checkout queda pausado con `LOCAL_TEST_CHECKOUT_ENABLED=false`. Se puede navegar y usar el carrito, pero no continuar a comprar ni crear pedidos/pagos mediante las rutas de checkout. El mismo bloqueo se aplica al acceso directo a `/checkout`. Al cambiar esta variable, reiniciar el proceso. La configuración de ejemplo conserva también Mercado Pago y los correos desactivados.
 
-La prueba de integración requiere un servidor local autorizado y una base vacía **exclusiva** llamada `store_integration_test`. Configure `DB_HOST=127.0.0.1` o `localhost`, las demás variables `DB_*` y `MARIADB_INTEGRATION=1`; luego ejecute `npm run test:integration -w @store/api`. La prueba rechaza bases no vacías, aplica y revierte las migraciones y usa modo estricto en su propia conexión. Si falla, deja el esquema para inspección. Sin `MARIADB_INTEGRATION=1` se omite. Para la cuenta local sin contraseña confirmada, véase la excepción exclusiva de prueba en [compatibilidad MariaDB](docs/mariadb-local.md).
+Artefacto: `npm run build` y `npm start`. Nest escucha únicamente en `127.0.0.1`. Conservar el puerto/origen del navegador anterior evita cambiar el ámbito del almacenamiento y las cookies; no iniciar dos servidores sobre ese puerto.
 
-El storefront requiere `API_BASE_URL` con el prefijo público completo, por ejemplo `http://127.0.0.1:3001/api/v1/`. Para revisar el concepto sin base de datos, iniciar Next en desarrollo con `STOREFRONT_MODE=demo`; ese modo usa imágenes generadas y precios de ejemplo y no está habilitado en producción. Véase [storefront](apps/web/README.md).
+## Encontrar una funcionalidad
 
-## Límites y decisiones
+1. Buscar la URL en el [mapa de rutas](docs/routes.md).
+2. Entrar en [presentación](src/presentation/README.md): controlador → modelo de página → plantilla → cliente opcional de esa funcionalidad.
+3. Seguir las reglas de negocio en [módulos](src/modules/README.md), no en las vistas.
 
-- La marca visible se configura en `store_settings` y se obtiene de la API. `STORE_NAME` es opcional para el título de metadatos de Next, con `Tienda` como valor neutral. No hay multitenencia.
-- La API ofrece `GET /api/v1/catalog/products` (parámetros `page`, `limit`, `search`), `GET /api/v1/catalog/products/:slug` (variantes paginadas con `page`, `limit`) y `GET /api/v1/catalog/settings`. El listado devuelve resúmenes; el detalle muestra variantes no archivadas. Ambos usan páginas de hasta 100 elementos. Los ajustes devuelven únicamente el nombre. Sin conexión devuelve 503 y no inventa datos. El owner puede indicar o cambiar el nombre visible desde Administración; no se crea uno automáticamente. `STORE_NAME` es opcional para los metadatos.
-- El catálogo administrativo tiene rutas protegidas por sesión, rol y CSRF, todavía pendientes de prueba contra MariaDB real. Véase [identidad administrativa](docs/identity-status.md). Inventario y disponibilidad aún no están implementados: las políticas `stock` y `made_to_order` no implican stock disponible. No hay datos iniciales de producción.
-- El detalle administrativo de un producto pagina sus variantes con `page` y `limit` (máximo 100), e incluye variantes archivadas para gestión.
-- La descripción del producto admite hasta 65.535 bytes UTF-8, el límite de `TEXT` de MariaDB.
-- [Decisiones pendientes para pagos y envíos](docs/architecture.md) describen restricciones para el trabajo posterior.
+[Mapa del código](src/README.md) · [Documentación](docs/README.md) · [Estado y límites](docs/estado-del-desarrollo.md) · [Cierre del rework](docs/rework-completion.md).
 
-Referencias: [NestJS](https://docs.nestjs.com/first-steps), [Next.js App Router](https://nextjs.org/docs/app/getting-started/installation), [opciones de TypeORM](https://typeorm.io/docs/data-source/data-source-options/).
+## Comprobar
+
+```sh
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run check:local-shipping
+```
+
+Las pruebas ordinarias usan servicios sintéticos, no una base ni proveedores. La [integración MariaDB](docs/mariadb-local.md) y el [arnés de checkout](docs/checkout-browser-e2e.md) son opt-in separados: requieren autorización y una base de prueba exclusiva. No se ejecutan durante el build.
+
+## Límites importantes
+
+- Sin `DB_HOST`, desarrollo inicia sin persistencia y las lecturas reales fallan explícitamente. En producción la falta de base impide arrancar. TypeORM conserva `synchronize: false`; no ejecutar migraciones sobre datos existentes sin un plan revisado.
+- Sesiones opacas HttpOnly, roles y CSRF siguen en la API. La navegación no sustituye autorización: [administración local](docs/admin-local.md).
+- Por defecto la tienda funciona como catálogo con pedidos por Instagram. Solo con `NODE_ENV=development` y `LOCAL_TEST_CHECKOUT_ENABLED=true` se habilitan el checkout y los pedidos locales de prueba. Mercado Pago está desactivado por defecto; existe una [integración opcional exclusivamente de prueba](src/modules/payments/README.md), pendiente de configuración y comprobación externa autorizada. No hay cobros reales ni creación de envíos. En producción las rutas de checkout siguen ausentes. Ver [límites y prueba local](docs/checkout-local.md).
+- Marca desde ajustes persistidos; no hay multitenencia. Imágenes con procesamiento y límites: [medios](docs/product-media-development.md).
+- Se conserva el override `multer: 2.5.0`; una prueba verifica la versión resuelta por Nest. No se actualizaron dependencias durante la reorganización.
+- Los emails de compra, despacho y entrega usan una cola transaccional y EnvíaloSimple; requieren configuración y validación real antes de activarlos. Ver [emails de pedidos](src/modules/order-emails/README.md).
+
+## Preparar la subida
+
+Conservar `src/`, `tests/`, `scripts/`, `resources/`, `docs/`, `tasks/`, el lockfile y las configuraciones versionables. `.env.example` contiene únicamente ejemplos y servicios desactivados. `.env`, `.env.mercadopago.local`, `envialosimple`, `.local-tools/`, `artifacts/`, `.atl/`, `node_modules/` y los archivos compilados quedan fuera de Git. Las evidencias locales se conservan en disco.
+
+Ejecutar los controles de la sección «Comprobar» antes de publicar. Consultar `git remote -v` y usar el repositorio remoto correcto: un `origin` que apunta a otra carpeta del equipo no es un destino de GitHub. Las credenciales y la base de datos se configuran por separado en el servidor; no se suben al repositorio.

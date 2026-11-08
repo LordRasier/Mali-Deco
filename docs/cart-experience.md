@@ -8,6 +8,6 @@ El panel y la página comparten el código postal, la selección y la cotizació
 
 El panel compacto muestra automáticamente el menor importe elegible como estimación. La página del carrito conserva los detalles y permite elegir otra opción; esa elección prevalece al volver al panel. Si el menor importe es para retiro, la estimación no selecciona ninguna sucursal: se debe elegir explícitamente en el detalle. La consulta en curso atenúa el campo postal, anuncia el estado a lectores de pantalla y no mantiene visible una tarifa anterior como vigente.
 
-Verificación local: `npm test`, `npm run lint`, `npm run typecheck`, `npm run build`. El chequeo `apps/web/tests/cart-ui.check.ts` cubre importes, monedas, enlaces, estado vacío y texto de envío; las regresiones del hook cubren conservación y eliminación concurrente.
+Verificación local: `npm test`, `npm run lint`, `npm run typecheck`, `npm run build`. El chequeo `tests/client/cart-ui.check.ts` cubre importes, monedas, enlaces, estado vacío y texto de envío; las regresiones del hook cubren conservación y eliminación concurrente.
 
 Regresión visual del panel: con cuatro artículos sintéticos, probar a 320×800 y 390×800; enfocar el código postal y después la localidad con Tab. Deben quedar visibles la cabecera, el botón de cierre y el pie, desplazándose únicamente el cuerpo del panel. Repetir en escritorio y comprobar que Escape cierra el diálogo. No es necesario consultar tarifas reales.

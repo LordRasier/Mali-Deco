@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{page.title}} | {{brand}}</title>
+  <meta name="description" content="{{page.intro}}">
+  {{#if noindex}}<meta name="robots" content="noindex, follow">{{/if}}
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <link rel="stylesheet" href="/assets/storefront/cart.css">
+  <link rel="stylesheet" href="/assets/storefront/shell.css">
+  <link rel="stylesheet" href="/assets/storefront/information.css">
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+  <script src="/assets/storefront/generated/cart.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>{{> site_header}}
+  <main id="main" class="information-page" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}">
+    <nav class="information-breadcrumb" aria-label="Ubicación"><a href="{{routes.home}}">Inicio</a><span aria-hidden="true">/</span><span aria-current="page">{{page.label}}</span></nav>
+    <header class="information-hero information-hero-compact">
+      <div><p class="information-eyebrow">{{page.eyebrow}}</p><h1>{{page.title}}<span>.</span></h1><p>{{page.intro}}</p></div>
+      {{#if page.about}}<div class="information-about-mark" aria-hidden="true"><span>3D</span><small>Hecho a pedido</small></div>{{/if}}
+    </header>
+    <div class="information-layout information-layout-bordered">
+      <aside class="information-index">
+        <p class="information-kicker">En esta página</p>
+        <nav aria-label="Secciones de {{page.label}}">
+          {{#if page.contact}}<a href="#canales">Canales de atención</a>{{/if}}
+          {{#each page.sections}}<a href="#{{id}}">{{title}}</a>{{/each}}
+          {{#if page.legal}}<a href="#responsable">Datos del responsable</a>{{/if}}
+        </nav>
+      </aside>
+      <div class="information-content">
+        {{#if page.contact}}
+          <section id="canales" class="information-section" aria-labelledby="canales-title">
+            <header><h2 id="canales-title">Canales de atención</h2></header>
+            {{#if storeInfo.hasContact}}
+              <div class="information-contact-grid">
+                {{#each storeInfo.channels}}<a class="information-contact-card" href="{{href}}" rel="noopener noreferrer"><span class="information-kicker">{{label}}</span><strong>{{value}}</strong><span aria-hidden="true">↗</span></a>{{/each}}
+              </div>
+            {{else}}
+              <p>Estamos preparando nuestros canales de contacto para esta página. Si ya coordinaste una compra por Instagram, continuá en esa misma conversación para consultar sobre tu pedido.</p>
+            {{/if}}
+            {{#if storeInfo.hours}}<p class="information-note">Atención al cliente · {{storeInfo.hours}}</p>{{/if}}
+          </section>
+        {{/if}}
+        {{#each page.sections}}
+          <section id="{{id}}" class="information-section" aria-labelledby="{{id}}-title">
+            <header><h2 id="{{id}}-title">{{title}}</h2></header>
+            {{#each paragraphs}}<p>{{this}}</p>{{/each}}
+            {{#if questions}}<div class="information-faq">{{#each questions}}
+              <details><summary>{{question}}<span aria-hidden="true">+</span></summary><p>{{answer}}</p></details>
+            {{/each}}</div>{{/if}}
+            {{#if links}}<div class="information-related">{{#each links}}<a href="{{href}}">{{label}} <span aria-hidden="true">↗</span></a>{{/each}}</div>{{/if}}
+          </section>
+        {{/each}}
+        {{#if page.legal}}
+          <section id="responsable" class="information-help" aria-labelledby="responsable-title">
+            <p class="information-eyebrow">Identificación y atención</p><h2 id="responsable-title">Datos del responsable</h2>
+            {{#if storeInfo.legalName}}<p>{{storeInfo.legalName}}{{#if storeInfo.taxId}} · CUIT {{storeInfo.taxId}}{{/if}}</p>{{else}}<p>Los datos de identificación del responsable se publicarán en esta sección.</p>{{/if}}
+            {{#if storeInfo.legalAddress}}<p>{{storeInfo.legalAddress}}</p>{{/if}}
+            <a class="information-back" href="/contacto">Ver contacto <span aria-hidden="true">↗</span></a>
+          </section>
+        {{else}}
+          {{#unless page.contact}}<section class="information-help" aria-labelledby="consulta-title"><p class="information-eyebrow">Estamos para ayudarte</p><h2 id="consulta-title">¿Te quedó alguna duda?</h2><p>Consultanos antes de elegir tu pieza o sobre un pedido que ya hiciste.</p><a class="information-back" href="/contacto">Ver contacto <span aria-hidden="true">↗</span></a></section>{{/unless}}
+        {{/if}}
+      </div>
+    </div>
+  </main>
+  {{> site_footer}}{{> cart_panel}}
+</body>
+</html>

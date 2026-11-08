@@ -1,0 +1,17 @@
+# Administrative product views
+
+[AdminProductsPage](admin-products-page.ts) renders the existing product service into server-owned [list](../views/admin-products-list.hbs), [product form](../views/admin-product-form.hbs), [detail](../views/admin-product-detail.hbs) and [variant form](../views/admin-variant-form.hbs) templates. [AdminPage](../admin-page.ts) checks the active session and owner/catalog role **before** calling this provider.
+
+## Contract
+
+The existing isolated section route accepts `view=list` with `page`/`search`, optional `status=all|active|draft|archived` and `sort=name_asc|name_desc`, `view=create` without other fields, or `view=detail|edit|variant-create|variant-edit` with product `id` and optional variant `page`. Variant edit additionally requires `variantId`, found only within that 24-row page; missing/off-page IDs never trigger a catalog scan. Repeated, unknown and cross-view parameters are rejected; request values never select a template file. Archived products/variants remain readable but cannot open editors. Price inputs use the canonical integer/currency conversion and legacy missing supply mode stays an explicit blank choice.
+
+The list searches product names and nonarchived variant SKUs. Its bounded page includes the first active image and summaries of nonarchived variants: stock, made-to-order availability and exact prices (or a minimum when prices vary). Mixed currencies remain explicit. Private thumbnails use the existing authenticated media endpoint; only active, nonarchived products expose a storefront link. The per-product expander loads a bounded variant page for quick price/stock edits. The product name and edit action still open the full editor. Archived products expose no quick-edit action.
+
+HTML GET performs reads only. The [retained DOM client](../client/browser/products/README.md) sends product/variant create/update/archive through the unchanged JSON API with current CSRF and existing guards. No restore or inventory action is invented. Category/material/color selectors reuse the complete bounded taxonomy snapshot through the existing API. The fixed `admin_product_images` partial sits outside all product/variant forms; the client retains its exact slot and owner across same-product reads.
+
+The product editor uses a main column for name/description, images, prices/variants and packaging, with publication, category/URL and a compact preview in the side column. Save/discard actions remain in a sticky top bar. Category, slug, dimensions and initial price controls retain their native `form="product-information"` association across cards; moving them must not omit them from saves or draft tracking. The separate media and variant forms keep their own save actions and ownership. Small controls follow the admin's Porto proportions, and the layout stacks on narrow screens.
+
+## Verify
+
+From the repository root: `node --import tsx --test src/presentation/admin/products/admin-products-page.test.ts src/presentation/admin/products/admin-variants.test.ts src/presentation/admin/products/admin-products-http.test.ts`. Tests cover authorization before reads, bounded variant lookup, exact money, escaped inputs, full form fields, archived controls and actual HTML responses, using synthetic services without a database. Register the fixed media partial and copy all feature templates into the compiled artifact. Return to [administrative integration](../README.md).

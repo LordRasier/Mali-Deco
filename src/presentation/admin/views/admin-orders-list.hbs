@@ -1,0 +1,24 @@
+<section class="admin-main orders" data-admin-section="orders" data-orders-page="{{page}}" data-order-filters="{{filterQuery}}">
+  <div class="section-heading"><div><span class="eyebrow">Gestión de ventas</span><h1>Pedidos</h1><p>Todos tus pedidos, desde el pago hasta la entrega.</p></div><div class="order-refresh"><span data-orders-updated>Actualización automática · 30 s</span><button type="button" data-orders-refresh>Actualizar</button></div></div>
+  <p data-orders-error class="notice error" role="alert" hidden></p><button type="button" data-orders-retry hidden>Reintentar</button>
+  <div class="order-metrics" aria-label="Resumen de los pedidos filtrados">
+    <div class="card metric"><span>Pedidos encontrados</span><strong>{{total}}</strong><small>Según los filtros actuales</small></div>
+    <div class="card metric"><span>Esperando pago</span><strong>{{stats.awaitingPayment}}</strong><small>Pendientes de confirmación</small></div>
+    <div class="card metric"><span>Por despachar</span><strong>{{stats.toPrepare}}</strong><small>Pagados, aún sin enviar</small></div>
+    <div class="card metric"><span>En camino</span><strong>{{stats.inTransit}}</strong><small>Esperando la entrega</small></div>
+  </div>
+  <section class="card card-admin order-list-card" aria-label="Listado de pedidos">
+    <header class="card-header"><h2 class="card-title">Listado de pedidos</h2><span class="muted">{{total}} resultados</span></header>
+    <form class="orders-filters" data-orders-filters>
+      <label class="order-search">Buscar pedido<input class="form-control" name="search" type="search" maxlength="120" value="{{search}}" placeholder="N.º, cliente, email o teléfono"></label>
+      <label>Pedido<select class="form-control" name="orderStatus"><option value="">Todos los estados</option>{{#each orderOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+      <label>Pago<select class="form-control" name="paymentStatus"><option value="">Todos los pagos</option>{{#each paymentOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+      <label>Envío<select class="form-control" name="shippingStatus"><option value="">Todos los envíos</option>{{#each shippingOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+      <div class="filter-actions"><button class="primary" type="submit">Filtrar</button><button class="link-button" type="button" data-orders-clear>Limpiar</button></div>
+    </form>
+    {{#if items}}<div class="table-scroll"><table class="data-table orders-table"><thead><tr><th scope="col">Pedido / Fecha</th><th scope="col">Cliente</th><th scope="col">Pedido</th><th scope="col">Pago</th><th scope="col">Envío / Preparación</th><th class="numeric" scope="col">Total</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead><tbody>
+      {{#each items}}<tr><td><button type="button" class="link-button order-number" data-order-id="{{id}}" title="{{id}}">#{{shortId}}</button><small>{{date}}</small>{{#if testLocal}}<span class="order-test">Prueba</span>{{/if}}</td><td><strong>{{customer}}</strong><small>{{email}}</small><small>{{city}}</small></td><td><span class="status-badge status-{{statusTone}}">{{status}}</span></td><td><span class="status-badge status-{{paymentTone}}">{{payment}}</span></td><td><span class="status-badge status-{{shippingTone}}">{{shippingStatus}}</span><small>{{fulfillment}}</small></td><td class="numeric"><strong>{{total}}</strong>{{#if itemCount}}<small>{{itemCount}} unidades</small>{{/if}}</td><td><button type="button" class="link-button" data-order-id="{{id}}" aria-label="Ver pedido {{shortId}}">Ver →</button></td></tr>{{/each}}
+    </tbody></table></div>{{else}}<div class="orders-empty"><span aria-hidden="true">◇</span><h3>No hay pedidos para mostrar</h3><p>Probá con otros filtros. Los nuevos pedidos aparecerán acá.</p></div>{{/if}}
+    <footer class="card-footer pagination" aria-label="Paginación de pedidos"><span>Página {{page}} de {{pages}} · {{total}} pedidos</span><div><button type="button" data-order-page="{{previous}}" {{#unless previous}}disabled{{/unless}}>Anterior</button><button type="button" data-order-page="{{next}}" {{#unless next}}disabled{{/unless}}>Siguiente</button></div></footer>
+  </section>
+</section>

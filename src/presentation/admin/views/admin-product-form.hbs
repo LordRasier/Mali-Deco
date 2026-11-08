@@ -1,0 +1,105 @@
+<section class="admin-main product-editor" data-admin-section="products" data-product-view="{{editorView}}" data-product-id="{{product.id}}" data-product-page="{{page}}" aria-label="{{#if editing}}Ficha del producto{{else}}Nuevo producto{{/if}}">
+  <div class="editor-actionbar" aria-label="Guardar producto">
+    <span data-editor-save-state role="status">{{#if editing}}Información guardada{{else}}Producto sin guardar{{/if}}</span>
+    <div class="actions"><button type="button" data-product-action="cancel">Descartar</button>
+      <button type="submit" form="product-information" class="primary btn-sm" data-product-save>{{#if editing}}Guardar cambios{{else}}Guardar producto{{/if}}</button></div>
+  </div>
+  <button type="button" class="link-button editor-back" data-product-action="list">← Productos</button>
+  <header class="editor-heading"><div><span class="eyebrow">Catálogo / Producto</span><h1>{{#if editing}}{{product.name}}{{else}}Nuevo producto{{/if}}</h1></div></header>
+  <p data-product-message class="notice error" role="alert" tabindex="-1" hidden></p><span data-editor-saved role="status"></span><p data-product-loading role="status" hidden>Cargando producto…</p>
+  <button type="button" data-product-action="retry" hidden>Reintentar lectura</button>
+  <div class="editor-layout"><div class="editor-sections">
+    <form class="panel editor-panel" id="product-information" data-product-form method="post" action="/admin" novalidate>
+      <h2>Información del producto</h2>
+      <input type="hidden" name="status" value="{{#if active}}active{{else}}draft{{/if}}">
+      <label>Nombre<input class="form-control-sm" name="name" maxlength="255" value="{{product.name}}" required></label>
+      <label>Descripción<textarea class="editor-description" name="description" rows="6" placeholder="Contá los detalles y características del producto.">{{product.description}}</textarea></label>
+    </form>
+    {{#if editing}}<div data-product-media-slot hidden>{{> admin_product_images}}</div>{{else}}
+    <section class="panel editor-panel"><h2>Fotos del producto</h2>
+      <div class="media-strip"><ol class="new-photos-list media-tiles" data-new-photos-list aria-label="Fotos seleccionadas"></ol>
+      <label class="media-add-tile"><span class="media-add-symbol" aria-hidden="true">+</span><span>Agregar imagen</span><input type="file" multiple data-new-photos-file accept="image/jpeg,image/png,image/webp" aria-label="Agregar imágenes" aria-describedby="new-photos-help"></label></div>
+      <p class="editor-caption" id="new-photos-help">Puede elegir hasta 10 fotos y marcar la portada. Se subirán al guardar el producto. JPG, PNG o WebP, hasta 5 MiB por foto.</p>
+      <p data-new-photos-note role="status"></p>
+      <form class="media-text-editor" data-new-photos-editor hidden><strong data-new-photos-title></strong><label>Texto alternativo (opcional)<input data-new-photos-alt maxlength="300"></label><div class="actions"><button type="submit">Guardar texto</button><button type="button" data-new-photos-cancel>Cancelar</button><button type="button" data-new-photos-remove>Quitar imagen</button></div></form>
+    </section>{{/if}}
+    <section class="panel editor-panel product-pricing {{#if hasVariants}}has-variants{{/if}}" data-pricing-complete="{{pricingComplete}}"><h2><span class="simple-pricing-title">Precio y opciones</span><span class="variant-only">Variantes</span></h2>
+      <p class="editor-caption simple-pricing-title">Ganancia sobre el costo. Completá dos valores para calcular el tercero; los campos vacíos no se toman como cero.</p>
+      <p class="editor-caption variant-only">Elegí la foto de cada variante y ajustá su precio y stock. En Costo podés calcular la ganancia.</p>
+      {{#unless editing}}
+      <div class="pricing-grid" data-pricing-fields data-initial-pricing data-pricing-currency="ARS">
+        <label>Costo (ARS)<input class="form-control-sm" form="product-information" name="initialCost" data-pricing-cost inputmode="decimal" placeholder="Opcional"></label>
+        <label>Ganancia %<input class="form-control-sm" form="product-information" name="initialMarkup" data-pricing-markup inputmode="decimal" placeholder="Opcional"></label>
+        <label>Precio de venta (ARS)<input class="form-control-sm" form="product-information" name="initialPrice" data-pricing-sale inputmode="decimal" placeholder="0,00" aria-describedby="initial-price-error"><span class="field-error" id="initial-price-error" data-initial-price-error role="alert"></span></label>
+        <div class="pricing-stock"><div class="pricing-stock-heading"><label for="initial-stock">Stock</label><label class="pricing-unlimited"><input type="checkbox" form="product-information" name="initialUnlimited" data-pricing-unlimited checked> Ilimitado</label></div><input class="form-control-sm" id="initial-stock" form="product-information" name="initialStock" data-pricing-stock type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="Cantidad" disabled></div>
+        <input type="hidden" form="product-information" name="initialSupplyMode" data-pricing-supply value="made_to_order">
+      </div>
+      <p class="editor-caption">Podés dejar el precio pendiente y guardar un borrador. Ilimitado permite comprar sin límite de stock.</p>
+      {{else}}
+      <div class="variant-properties variant-only">{{#each properties}}<div><strong>{{name}}</strong><div class="variant-property-values">{{#each values}}<span class="badge">{{this}}</span>{{/each}}</div></div>{{/each}}</div>
+      <div class="variant-table-head variant-only" aria-hidden="true"><span>Variante</span><span>Stock</span><span>Precio de venta</span><span>Acciones</span></div>
+      {{#if simpleAvailable}}{{#unless simpleId}}
+      <form class="pricing-variant" method="post" action="/admin" data-pricing-form data-pricing-fields data-variant-id="" data-variant-sku="{{simpleSku}}" data-pricing-currency="ARS" data-stock-quantity="0" novalidate>
+        <div class="pricing-grid">
+          <label>Costo (ARS)<input class="form-control-sm" name="cost" data-pricing-cost inputmode="decimal" placeholder="Opcional"></label>
+          <label>Ganancia %<input class="form-control-sm" name="markup" data-pricing-markup inputmode="decimal" placeholder="Opcional"></label>
+          <label>Precio de venta (ARS)<input class="form-control-sm" name="sale" data-pricing-sale inputmode="decimal" placeholder="0,00" required></label>
+          <div class="pricing-stock"><div class="pricing-stock-heading"><label for="standard-stock">Stock</label><label class="pricing-unlimited"><input type="checkbox" data-pricing-unlimited checked> Ilimitado</label></div><input class="form-control-sm" id="standard-stock" name="stock" data-pricing-stock type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="Cantidad" disabled></div>
+          <input type="hidden" data-pricing-supply value="made_to_order">
+        </div>
+        <div class="pricing-feedback"><span data-pricing-note role="status"></span><button type="submit" class="primary btn-sm" data-pricing-save hidden>Guardar precio y stock</button></div>
+      </form>{{/unless}}{{/if}}
+      {{#each variants}}
+      {{#if editable}}
+      <form class="pricing-variant" method="post" action="/admin" data-pricing-form data-pricing-fields data-variant-id="{{id}}" data-image-id="{{imageId}}" data-pricing-currency="{{currency}}" data-price-minor="{{priceMinor}}" data-cost-minor="{{costMinor}}" data-supply-mode="{{supplyMode}}" data-stock-quantity="{{stockQuantity}}" aria-label="Precio y stock de {{name}}" novalidate>
+        <div class="pricing-variant-heading"><button type="button" class="variant-image variant-only" data-variant-image aria-label="Elegir imagen de {{name}}"><img {{#if imageUrl}}src="{{imageUrl}}"{{else}}hidden{{/if}} alt="{{name}}"><span data-variant-image-placeholder {{#if imageUrl}}hidden{{/if}}>+ Foto</span><span class="variant-image-edit" aria-hidden="true">✎</span></button><div><strong>{{name}}</strong><small>{{optionsLabel}}</small><small>{{sku}}</small></div></div>
+        <div class="variant-row-actions"><button type="button" class="link-button" data-product-action="variant-edit" data-variant-id="{{id}}" aria-label="Editar {{name}}">Editar</button><button type="button" class="link-button variant-only" data-variant-cost-toggle aria-expanded="false">Costo</button><button type="button" class="link-button" data-product-action="variant-archive" data-variant-id="{{id}}" aria-label="Archivar {{name}}">Archivar</button></div>
+        <div class="pricing-grid">
+          <label class="variant-cost-field">Costo ({{currency}})<input class="form-control-sm" name="cost" data-pricing-cost inputmode="decimal" placeholder="Opcional" value="{{costDecimal}}"></label>
+          <label class="variant-markup-field">Ganancia %<input class="form-control-sm" name="markup" data-pricing-markup inputmode="decimal" placeholder="Opcional" value="{{markup}}"></label>
+          <label class="variant-sale-field">Precio de venta ({{currency}})<input class="form-control-sm" name="sale" data-pricing-sale inputmode="decimal" value="{{priceDecimal}}" required></label>
+          <div class="pricing-stock"><div class="pricing-stock-heading"><label for="stock-{{id}}">Stock</label><label class="pricing-unlimited"><input type="checkbox" data-pricing-unlimited {{#if unlimited}}checked{{/if}}> Ilimitado</label></div><input class="form-control-sm" id="stock-{{id}}" name="stock" data-pricing-stock type="number" min="0" max="1000000" step="1" inputmode="numeric" value="{{stockQuantity}}" {{#if unlimited}}disabled{{/if}}></div>
+          <input type="hidden" data-pricing-supply value="{{supplyMode}}">
+        </div>
+        <div class="pricing-feedback"><span data-pricing-note role="status"></span><button type="submit" class="primary btn-sm" data-pricing-save hidden>Guardar precio y stock</button></div>
+      </form>
+      {{/if}}
+      {{/each}}
+      {{#if archivedVariants}}<details class="variant-archived-list"><summary>Variantes archivadas ({{archivedVariants.length}})</summary>{{#each archivedVariants}}<div class="pricing-archived"><span>{{name}}</span><span>{{priceLabel}}</span></div>{{/each}}</details>{{/if}}
+      <p class="editor-caption">El stock se descuenta al registrar un pedido. Ilimitado permite comprar sin límite de inventario.</p>
+      {{#if variantPagination}}<nav class="pagination" aria-label="Páginas de variantes"><button type="button" data-product-action="variant-page" data-product-page="{{previousVariantPage}}" {{#unless hasPreviousVariants}}disabled{{/unless}}>Anterior</button><span>{{variantPage}} de {{variantPages}}</span><button type="button" data-product-action="variant-page" data-product-page="{{nextVariantPage}}" {{#unless hasNextVariants}}disabled{{/unless}}>Siguiente</button></nav>{{/if}}
+      <button type="button" data-product-action="variant-create" {{#if simpleId}}data-first-variant="{{simpleId}}"{{/if}}>Agregar variantes</button>
+      <div data-inline-variant-slot></div>{{/unless}}
+    </section>
+    <section class="panel editor-panel">
+      <details open class="editor-dimensions"><summary>Medidas y embalaje <small>Opcional para guardar</small></summary>
+      {{#each dimensions}}<fieldset><legend>{{label}}</legend><div class="editor-grid">
+        {{#each fields}}<label>{{label}}<input form="product-information" name="{{name}}" inputmode="{{inputMode}}" value="{{value}}"></label>{{/each}}
+      </div></fieldset>{{/each}}</details>
+      <details class="editor-bulk-warning"><summary>Aviso para pedidos grandes</summary>
+        <div class="editor-grid"><label>A partir de esta cantidad<input form="product-information" name="bulkWarningThreshold" type="number" min="1" max="1000" step="1" inputmode="numeric" value="{{product.bulkWarningThreshold}}"></label>
+        <label>Mensaje<input form="product-information" name="bulkWarningMessage" maxlength="300" value="{{product.bulkWarningMessage}}" placeholder="Los pedidos grandes pueden afectar el tiempo de despacho."></label></div>
+        <p class="editor-caption">Se suman todas las variantes de este producto. Deje ambos campos vacíos para desactivar el aviso.</p>
+      </details>
+    </section>
+  </div><aside class="editor-summary" aria-label="Publicación y organización del producto">
+    <section class="panel editor-panel"><div class="editor-card-heading"><h2>Publicación</h2><span class="badge">{{#if active}}Publicado{{else}}Borrador{{/if}}</span></div>
+      <div class="editor-channel"><strong>Tienda online</strong><span>{{#if active}}Visible en el catálogo{{else}}No visible en el catálogo{{/if}}</span></div>
+      <ul class="editor-checks"><li data-check-name>{{#if product.name}}Nombre guardado{{else}}Falta un nombre{{/if}}</li><li data-check-cover>{{#if editing}}Comprobando portada…{{else}}Falta una portada{{/if}}</li><li data-check-price>{{priceCheck}}</li></ul>
+      {{#if editing}}<div class="editor-publish-actions">{{#if draft}}<button type="button" class="primary btn-sm" data-product-publish>Publicar en catálogo</button>{{else}}<button type="button" data-product-unpublish>Volver a borrador</button>{{/if}}</div>{{else}}<p class="editor-caption">Guardá el borrador para continuar con la publicación.</p>{{/if}}
+    </section>
+    <section class="panel editor-panel"><h2>Organización</h2>
+      <div><label>Categoría principal<select form="product-information" name="categoryId" data-product-category disabled>
+        <option value="">Sin asignar</option>{{#if product.categoryId}}<option value="{{product.categoryId}}" selected>Asignación actual</option>{{/if}}
+      </select></label><p data-product-category-message class="editor-caption" role="status">Cargando opciones…</p>
+      <div class="editor-tools"><button type="button" class="link-button" data-taxonomy-create="categories" aria-expanded="false">Crear categoría</button>
+      <button type="button" class="link-button" data-product-action="categories" disabled>Actualizar</button></div>
+      <div class="taxonomy-inline" data-taxonomy-box="categories" hidden><label>Nombre de la categoría<input data-taxonomy-name="categories" maxlength="100"></label>
+        <button type="button" data-taxonomy-confirm="categories">Crear y seleccionar</button><span data-taxonomy-note="categories" role="status"></span></div></div>
+      <details open><summary>Dirección del producto</summary><label>Identificador (slug)<input form="product-information" name="slug" maxlength="255" value="{{product.slug}}" required><small>Se propone a partir del nombre. Puede editarlo antes de guardar.</small></label></details>
+    </section>
+    <section class="panel editor-panel" data-product-preview><span class="eyebrow">Vista previa del catálogo</span><div class="editor-preview-image"><span data-preview-placeholder>Sin portada</span><img data-preview-cover alt="" hidden></div>
+      <h3 data-preview-name>{{#if editing}}{{product.name}}{{else}}Nombre del producto{{/if}}</h3><p data-preview-price>{{#if previewPrice}}{{previewPrice}}{{else}}Sin precio{{/if}}</p></section>
+    {{#if editing}}<button type="button" class="link-button danger" data-product-action="archive">Archivar producto</button>{{/if}}
+  </aside></div>
+</section>

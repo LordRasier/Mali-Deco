@@ -1,0 +1,22 @@
+<form data-filter-form="{{prefix}}">
+  <fieldset data-filter-fields disabled>
+    <legend class="sr-only">Filtros del catálogo</legend>
+    <div class="filter-toolbar">{{#unless mobile}}<h2 class="filter-heading">Filtros</h2>{{/unless}}<button class="filter-clear" type="button" data-filter-clear>Limpiar</button></div>
+    <div class="filter-currency"><label for="{{prefix}}-currency">Moneda</label><select id="{{prefix}}-currency" data-filter-currency><option value="">Seleccionar moneda</option>{{#each currencies}}<option value="{{value}}" {{#if selected}}selected{{/if}} {{#if available}}data-available{{/if}}>{{label}}</option>{{/each}}</select></div>
+    {{#each groups}}
+      <details class="filter-section"{{#if expanded}} open{{/if}}>
+        <summary>{{label}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></summary>
+        <fieldset class="filter-group"><legend class="sr-only">{{label}}</legend>
+          {{#each choices}}<label class="filter-choice"><input type="checkbox" data-filter-group="{{../key}}" value="{{value}}" {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}>{{#if colorHex}}<svg class="filter-color-swatch" width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="8" fill="{{colorHex}}" stroke="#8b847b" stroke-width="1"/></svg>{{/if}}<span>{{label}}</span></label>{{else}}<p class="filter-help">Sin opciones publicadas.</p>{{/each}}
+          {{#if truncated}}<p class="filter-help">Se muestran las primeras 200 opciones.</p>{{/if}}
+        </fieldset>
+      </details>
+    {{/each}}
+    <fieldset class="filter-price"><legend>Precio</legend>
+      <div class="filter-price-range"><div><label for="{{prefix}}-min">Desde</label><input id="{{prefix}}-min" data-filter-min inputmode="decimal" value="{{min}}" {{#if priceDisabled}}disabled{{/if}}></div><div><label for="{{prefix}}-max">Hasta</label><input id="{{prefix}}-max" data-filter-max inputmode="decimal" value="{{max}}" {{#if priceDisabled}}disabled{{/if}}></div></div>
+      <p class="filter-help">Importes sin separador de miles.</p><p data-filter-error role="alert" hidden></p>
+    </fieldset>
+    <div class="filter-actions"><button class="filter-apply" type="submit">{{#if mobile}}Ver resultados{{else}}Aplicar precio{{/if}}</button>{{#if mobile}}<button class="filter-cancel" type="button" data-filter-cancel>Cancelar</button>{{/if}}</div>
+  </fieldset>
+  <noscript>Los controles avanzados necesitan JavaScript. Puedes usar búsqueda, orden y los enlaces de filtros activos.</noscript>
+</form>

@@ -1,6 +1,6 @@
 # Decisiones para próximas entregas
 
-La base adopta un monolito modular NestJS, MariaDB 10.4 con InnoDB como objetivo de desarrollo y un frontend Next.js. Las migraciones y el catálogo HTTP pasaron pruebas reales aisladas; véase [compatibilidad MariaDB](mariadb-local.md). Las fronteras previstas son identidad, catálogo, inventario, checkout, pedidos, pagos, envíos, medios, ajustes y auditoría. Crear módulos al implementar funcionalidad, no como capas vacías. La API usará `/api/v1` y OpenAPI; generar el cliente desde el contrato, sin compartir entidades ORM con la web.
+La base adopta un monolito modular NestJS, MariaDB 10.4 con InnoDB como objetivo de desarrollo y presentación Handlebars dentro del mismo proceso. Las migraciones y el catálogo HTTP pasaron pruebas reales aisladas; véase [compatibilidad MariaDB](mariadb-local.md). Las fronteras previstas son identidad, catálogo, inventario, checkout, pedidos, pagos, envíos, medios, ajustes y auditoría. Crear módulos al implementar funcionalidad, no como capas vacías. La API conserva `/api/v1`. Las páginas usan servicios mediante inyección; los clientes usan JSON del mismo origen, no entidades ORM. OpenAPI y generación de clientes no forman parte de este rework.
 
 ## Pedidos, dinero y stock
 
@@ -16,4 +16,6 @@ Implementar idempotencia propia, una intención durable y conciliación antes de
 
 Andreani requiere un puerto `ShippingQuoteProvider`; su esquema productivo no está verificado. Un eventual mock será explícito y estará prohibido en producción. La cotización debe vincular carrito, destino y origen, embalaje, servicio y política; usar gramos y milímetros internamente. Un error de cotización nunca equivale a envío gratis.
 
-La administración requerirá sesiones opacas HttpOnly/Secure, CSRF y autorización en la API; no guardar tokens en localStorage ni crear una cuenta productiva predeterminada. Argentina/ARS y las modalidades de stock o encargo son hipótesis pendientes de confirmar.
+La administración ya usa sesiones opacas HttpOnly (Secure en producción), CSRF y autorización en la API; no guarda tokens en localStorage ni crea una cuenta productiva predeterminada. Véase [administración local](admin-local.md). La entrada pública y su política de IP/límites siguen pendientes. Argentina/ARS y las modalidades de stock o encargo requieren confirmación comercial antes de vender.
+
+El flujo existente usa Andreani para resolver localidades y Zipnova para cotizar en desarrollo local explícito; no crea envíos. Hay pedidos locales con snapshots e idempotencia, pero no reservas, inbox/outbox ni conciliación de pagos. Estas restricciones futuras no deben confundirse con funcionalidades terminadas.

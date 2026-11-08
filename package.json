@@ -1,9 +1,6 @@
 {
   "name": "store-foundation",
   "private": true,
-  "workspaces": [
-    "apps/*"
-  ],
   "engines": {
     "node": ">=24"
   },
@@ -11,21 +8,54 @@
     "multer": "2.5.0"
   },
   "scripts": {
-    "dev:api": "npm run dev -w @store/api",
-    "dev:web": "npm run dev -w @store/web",
-    "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev": "npm run prepare:assets && tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "node scripts/clean-build.mjs && npm run prepare:assets && tsc -p tsconfig.build.json && node scripts/copy-view-assets.mjs",
+    "prepare:assets": "npm run prepare:art && npm run build:browser && npm run build:admin-browser",
+    "prepare:art": "node scripts/copy-storefront-art.mjs",
+    "build:browser": "node scripts/build-browser.mjs",
+    "build:admin-browser": "node scripts/build-admin-browser.mjs",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run prepare:assets && npm run test:server && npm run test:client && npm run test:architecture",
+    "test:server": "tsx --test src/**/*.test.ts tests/**/*.test.ts",
+    "test:client": "node --test tests/client/*.test.mjs",
+    "test:architecture": "node --test tests/architecture/*.test.mjs scripts/*.test.mjs",
+    "test:integration": "tsx --test tests/integration/*.integration.ts",
+    "test:payments:local": "node scripts/test-payments-local.mjs",
+    "payments:gateway": "node --env-file=.env scripts/payment-gateway.mjs",
+    "payments:tunnel": "node --env-file=.env scripts/payment-tunnel.mjs",
+    "check:local-shipping": "node scripts/check-local-shipping.mjs",
+    "bootstrap:owner": "tsx src/modules/identity/bootstrap/bootstrap.ts",
+    "migration:run": "tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/data-source.ts",
+    "migration:social-links": "node --env-file=.env --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/social-settings-data-source.ts",
+    "migration:social-links:local-root": "node --env-file=.env --import ./scripts/migration-local-root.mjs --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/social-settings-data-source.ts",
+    "migration:order-emails": "node --env-file=.env --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/order-emails-data-source.ts",
+    "migration:order-emails:local-root": "node --env-file=.env --import ./scripts/migration-local-root.mjs --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/order-emails-data-source.ts",
+    "emails:check": "node --env-file=.env --import tsx scripts/check-order-emails.ts",
+    "emails:test": "node --env-file=.env --import tsx scripts/test-order-emails.ts",
+    "migration:revert": "tsx node_modules/typeorm/cli.js migration:revert -d src/infrastructure/database/data-source.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.19.2",
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2",
     "eslint": "10.14.0",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.72.1"
+    "typescript-eslint": "8.72.1",
+    "@nestjs/testing": "11.2.8"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.2.8",
+    "@nestjs/core": "11.2.8",
+    "@nestjs/platform-express": "11.2.8",
+    "@nestjs/typeorm": "11.0.3",
+    "hbs": "4.4.0",
+    "mysql2": "3.24.6",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "sharp": "0.35.5",
+    "typeorm": "0.3.31"
   }
 }
