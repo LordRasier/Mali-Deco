@@ -80,6 +80,7 @@ test('assignments are validated, locked transactionally and omitted updates pres
   const locked: Array<{ sql: string; args: unknown[] }> = [];
   let exists = true;
   const repo = { update: async (_where: unknown, values: Record<string, unknown>) => { updates.push(values); return { affected: 1 }; },
+    findOne: async () => ({ id: 'p', ...product }),
     findOneBy: async () => ({ id: 'p' }) };
   const manager = { query: async (sql: string, args: unknown[]) => { locked.push({ sql, args }); return exists ? [{ id: uuid }] : []; }, getRepository: () => repo };
   const db = { isInitialized: true, getRepository: () => repo, transaction: async (work: (manager: unknown) => unknown) => work(manager) } as unknown as DataSource;

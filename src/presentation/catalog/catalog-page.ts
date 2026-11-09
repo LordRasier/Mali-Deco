@@ -12,7 +12,7 @@ import { fixtureImageId } from './shared/editorial-art';
 
 type Field = { name: string; value: string };
 type Model = {
-  checkoutEnabled: boolean; layout: false; routes: StorefrontRoutes; mode: 'demo' | 'api'; demo: boolean; brand: string;
+  checkoutEnabled: boolean; layout: false; routes: StorefrontRoutes; mode: 'demo' | 'api'; demo: boolean; brand: string; defaultCurrency: string;
   failed: boolean; message: string; invalid: boolean; currencyUnavailable: boolean; unpublished: boolean; showPagination: boolean;
   cards: ReturnType<typeof catalogCards>; empty: boolean; total: number; page: number; pages: number;
   previous: string; next: string; clear: string; retry: string; action: string; search: string;
@@ -32,7 +32,7 @@ export class CatalogPage {
   async read(params: URLSearchParams): Promise<Result> {
     const link = (query: CatalogQuery) => catalogLink(query, this.routes.catalog);
     const parsed = parseCatalogQuery(params), query = parsed.query;
-    const model: Model = { layout: false, routes: this.routes, checkoutEnabled: localCheckoutPageEnabled(this.env, this.mode), mode: this.mode, demo: this.mode === 'demo', brand: 'Tienda', failed: false, invalid: !!parsed.error,
+    const model: Model = { layout: false, routes: this.routes, checkoutEnabled: localCheckoutPageEnabled(this.env, this.mode), mode: this.mode, demo: this.mode === 'demo', brand: 'Tienda', defaultCurrency: '', failed: false, invalid: !!parsed.error,
       message: parsed.error ?? '', currencyUnavailable: false, unpublished: false, showPagination: false, cards: [], empty: false, total: 0, page: query.page, pages: 0,
       previous: '', next: '', clear: this.routes.catalog, retry: link(query), action: this.routes.catalog, search: query.search,
       searchFields: [], sortFields: [], sortOptions: [], activeFilters: [], categories: [], truncated: false, resultLabel: '', filters: null };
@@ -41,10 +41,11 @@ export class CatalogPage {
       const [settings, facets] = this.mode === 'demo' ? [{ name: demoCatalog.brand }, demoFacets(query.currency)]
         : await Promise.all([this.catalog.settings(), this.facets.get(query.currency ? { currency: query.currency } : {})]);
       model.brand = settings.name;
+      model.defaultCurrency = facets.currencies.includes('ARS') ? 'ARS' : facets.currencies[0] ?? '';
       if (!query.currency && facets.currencies.length) {
-        const next = { ...query, currency: facets.currencies[0], page: 1 };
+        const next = { ...query, currency: model.defaultCurrency };
         if (parseCatalogQuery(catalogQueryParams(next)).error) throw new Error('Invalid currency metadata');
-        return { status: 302, redirect: link(next), model };
+        query.currency = next.currency;
       }
       const clear: CatalogQuery = { ...emptyCatalogQuery(), currency: facets.currencies.includes(query.currency) ? query.currency : '' };
       model.clear = link(clear);
@@ -58,7 +59,8 @@ export class CatalogPage {
       model.categories = [{ label: 'Todos', href: remove({ category: [] }), selected: !query.category.length, disabled: false },
         ...facets.categories.map(category => {
           const selected = query.category.includes(category.slug), disabled = !selected && query.category.length >= 20;
-          return { label: category.name, selected, disabled, href: disabled ? '' : remove({ category: selected ? query.category.filter(slug => slug !== category.slug) : [...query.category, category.slug] }) };
+          const simple = !query.category.length && !query.search && !query.material.length && !query.color.length && !query.minPriceMinor && !query.maxPriceMinor && query.sort === 'name_asc' && query.currency === model.defaultCurrency;
+          return { label: category.name, selected, disabled, href: disabled ? '' : simple ? `/categorias/${encodeURIComponent(category.slug)}` : remove({ category: selected ? query.category.filter(slug => slug !== category.slug) : [...query.category, category.slug] }) };
         })];
       if (query.search) model.activeFilters.push({ label: `Búsqueda: ${query.search}`, href: remove({ search: '' }) });
       for (const [key, choices] of [['category', facets.categories], ['material', facets.materials], ['color', facets.colors]] as const) {
@@ -78,6 +80,10 @@ export class CatalogPage {
       model.unpublished = result.total === 0 && query.page === 1 && !query.currency && !model.activeFilters.length;
       model.resultLabel = `${result.total} ${result.total === 1 ? 'objeto' : 'objetos'}`;
       model.pages = Math.ceil(result.total / result.limit);
+      if (query.page > Math.max(1, model.pages)) {
+        model.previous = link({ ...query, page: Math.max(1, model.pages) }); model.showPagination = true;
+        return { status: 404, model };
+      }
       // Pagination preserves the requested page, unlike filter changes.
       if (query.page > 1) model.previous = link({ ...query, page: query.page - 1 });
       if (query.page < model.pages && query.page < 10000) model.next = link({ ...query, page: query.page + 1 });

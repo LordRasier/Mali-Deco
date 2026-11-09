@@ -6,7 +6,7 @@ import { createViewEngine } from '../view-engine';
 import { catalogCards } from './catalog-view';
 
 async function render(cards: ReturnType<typeof catalogCards>, categories: { label: string; href: string; selected?: boolean; disabled?: boolean }[] = []) {
-  const engine = createViewEngine({ site_header: '', site_footer: '', cart_panel: '', catalog_filters: '', catalog_card: readFileSync(join(__dirname, 'views/partials/card.hbs'), 'utf8'), catalog_info: readFileSync(join(__dirname, 'views/partials/info.hbs'), 'utf8') });
+  const engine = createViewEngine({ seo_head: readFileSync(join(__dirname, '../seo/views/head.hbs'), 'utf8'), site_header: '', site_footer: '', cart_panel: '', catalog_filters: '', catalog_card: readFileSync(join(__dirname, 'views/partials/card.hbs'), 'utf8'), catalog_info: readFileSync(join(__dirname, 'views/partials/info.hbs'), 'utf8') });
   return new Promise<string>((accept, reject) => engine.__express(join(__dirname, 'views/catalog.hbs'), {
     layout: false, brand: 'Test', mode: 'api', cards, categories, resultLabel: `${cards.length} objetos`, page: 1, pages: 1,
     routes: { home: '/', catalog: '/catalogo', product: '/productos', cart: '/carrito' },

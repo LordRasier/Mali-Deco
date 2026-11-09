@@ -13,7 +13,7 @@ function fixture(t: TestContext) {
   sql.exec(`CREATE TABLE product_images (id TEXT, product_id TEXT, width INTEGER, height INTEGER, position INTEGER, retired_at TEXT);
     CREATE TABLE product_image_derivatives (image_id TEXT, rendition INTEGER, byte_length INTEGER);
     CREATE TABLE product_variants (id TEXT, product_id TEXT, price_minor INTEGER, currency TEXT, archived_at TEXT);`);
-  const product = { id: 'p', status: 'draft', archivedAt: null as Date | null, name: 'Pieza' };
+  const product = { id: 'p', slug: 'editada', status: 'draft', archivedAt: null as Date | null, name: 'Pieza' };
   type Criteria = { id: string; status?: string; archivedAt: { type: string } };
   const matches = (where: Criteria) => where.id === product.id && where.archivedAt.type === 'isNull' && !product.archivedAt
     && (!where.status || where.status === product.status);

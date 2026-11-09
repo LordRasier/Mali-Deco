@@ -9,13 +9,15 @@ Un único proceso Nest sirve HTML, assets y JSON. [Entrada](../src/main.ts) → 
 | `/` | [Inicio](../src/presentation/home/home.controller.ts) | [Portada](../src/presentation/home/README.md) | [HTTP](../tests/http/home-mvc.test.ts) |
 | `/catalogo` | [Catálogo](../src/presentation/catalog/catalog.controller.ts) | [Listado y filtros](../src/presentation/catalog/README.md) | [HTTP](../tests/http/catalog-mvc.test.ts) |
 | `/productos/:slug` | [Producto](../src/presentation/products/product.controller.ts) | [Detalle](../src/presentation/products/README.md) | [HTTP](../tests/http/product-mvc.test.ts) |
+| `/categorias/:slug` | [Categorías](../src/presentation/catalog/category.controller.ts) | [SEO](seo-implementation.md) | [Recorrido SSR](../tests/http/seo-routing.test.ts) |
+| `/robots.txt`, `/sitemap.xml`, `/sitemaps/:name` | [Descubrimiento](../src/presentation/seo/discovery.controller.ts) | [SEO](seo-implementation.md) | [Recorrido SSR](../tests/http/seo-routing.test.ts) |
 | `/carrito` | [Carrito](../src/presentation/cart/cart.controller.ts) | [Página y panel](../src/presentation/cart/README.md) | [Estado](../tests/client/cart-store.check.ts), [DOM](../tests/client/cart-surface.check.ts) |
 | `/envios-y-reembolsos` | [Envíos y reembolsos](../src/presentation/information/shipping-returns.controller.ts) | [Información de compra](../src/presentation/information/README.md) | [HTTP](../tests/http/home-mvc.test.ts) |
 | `/contacto`, `/politica-de-privacidad`, `/terminos-y-condiciones`, `/preguntas-frecuentes`, `/sobre-mali` | [Información de la tienda](../src/presentation/information/information.controller.ts) | [Contenido, contacto y estado de publicación](../src/presentation/information/README.md) | [Renderizado y configuración](../src/presentation/information/information.test.ts) |
 | `/checkout` | [Checkout](../src/presentation/checkout/checkout.controller.ts) | [Pedido local](../src/presentation/checkout/README.md) | [Límites](../tests/http/mvc-checkout-boundary.test.ts), [estado](../tests/client/checkout-state.check.ts) |
 | `/admin` | [Administración](../src/presentation/admin/admin.controller.ts) | [Sesión y navegación](../src/presentation/admin/README.md) | [HTTP](../src/presentation/admin/admin-http.test.ts), [DOM](../tests/client/admin-dom.check.ts) |
 
-No existen rutas `__mvc`. La tienda devuelve 404 para `/checkout` y sus API salvo opt-in explícito de desarrollo (`LOCAL_TEST_CHECKOUT_ENABLED=true`). En producción nunca se registran. Las páginas públicas API correctas conservan indexación; demo, errores y páginas privadas usan noindex.
+No existen rutas `__mvc`. La tienda devuelve 404 para `/checkout` y sus API salvo opt-in explícito de desarrollo (`LOCAL_TEST_CHECKOUT_ENABLED=true`). En producción nunca se registran. Las páginas públicas de producción correctas conservan indexación; demo, desarrollo, errores, páginas privadas, filtros y búsquedas usan noindex. Las URLs antiguas de productos registrados en el historial redirigen 301 al slug vigente.
 
 ## Administración
 
@@ -34,7 +36,7 @@ Los fragmentos no llegan al servidor. El cliente obtiene HTML interno en `/admin
 
 ## API NestJS
 
-Todas las rutas de las tablas siguientes llevan el prefijo **`/api/v1`**, aplicado en [main](../src/main.ts). Son 50 combinaciones declaradas de método/ruta, verificadas contra metadatos de los controladores registrados, incluyendo métodos heredados. No se enumeran respuestas implícitas del adaptador como HEAD para GET. Las respuestas de éxito indicadas corresponden a decoradores/implementación: no constituyen evidencia de una prueba HTTP integral. Los errores de validación, autorización, ausencia, conflicto o servicio no disponible conservan sus status propios.
+Todas las rutas de las tablas siguientes llevan el prefijo **`/api/v1`**, aplicado en [main](../src/main.ts). El inventario de combinaciones declaradas de método/ruta se verifica contra metadatos de los controladores registrados, incluyendo métodos heredados. No se enumeran respuestas implícitas del adaptador como HEAD para GET. Las respuestas de éxito indicadas corresponden a decoradores/implementación: no constituyen evidencia de una prueba HTTP integral. Los errores de validación, autorización, ausencia, conflicto o servicio no disponible conservan sus status propios.
 
 ### Lectura pública y carrito
 
@@ -88,6 +90,7 @@ Entrada: [AdminCatalogController](../src/modules/catalog/controllers/admin.contr
 | GET / POST | `/admin/catalog/colors` | [AdminColorsController](../src/modules/catalog/controllers/admin-taxonomy.controller.ts) → [CatalogTaxonomy](../src/modules/catalog/services/catalog-taxonomy.ts) | owner/catalog; 200 / 201 | [taxonomías](../src/modules/catalog/services/catalog-taxonomy.test.ts) |
 | PUT / DELETE | `/admin/catalog/colors/:id` | Mismo controlador/servicio | owner/catalog; 200 / 200 | [taxonomías](../src/modules/catalog/services/catalog-taxonomy.test.ts) |
 | GET / PUT | `/admin/settings` | [StoreSettingsController → StoreSettings](../src/modules/settings/store-settings.ts) | owner; 200 | [ajustes](../src/modules/settings/store-settings.test.ts) |
+| GET / PUT | `/admin/settings/seo` | [SiteSettingsController → SiteSettings](../src/modules/settings/site-settings.ts) | owner; 200, CSRF/origen para guardar, 409 si la revisión cambió | [ajustes SEO](../src/modules/settings/site-settings.test.ts), [SSR y permisos](../tests/http/seo-routing.test.ts) |
 | GET | `/admin/orders` | [AdminOrdersController](../src/modules/orders/http/admin-orders.controller.ts) → [OrdersService](../src/modules/orders/services/orders.service.ts) | owner/operations; 200 | [pedidos](../src/modules/orders/services/orders.test.ts) |
 | GET | `/admin/orders/:id` | Mismo controlador/servicio | owner/operations; 200 | [pedidos](../src/modules/orders/services/orders.test.ts) |
 

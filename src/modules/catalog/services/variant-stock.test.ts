@@ -10,8 +10,9 @@ import { ProductSchema, VariantSchema } from '../models/catalog.entities';
 
 test('admin persists warning pairs without clearing omitted settings and exposes separate inventory action', async () => {
   const updates: Record<string, unknown>[] = [];
-  const repo = { update: async (_: unknown, v: Record<string, unknown>) => { updates.push(v); return { affected: 1 }; }, findOneBy: async () => ({ id: 'p' }) };
-  const admin = new CatalogAdmin({ isInitialized: true, getRepository: () => repo } as unknown as DataSource);
+  const repo = { update: async (_: unknown, v: Record<string, unknown>) => { updates.push(v); return { affected: 1 }; }, findOne: async () => ({ id: 'p', ...product }), findOneBy: async () => ({ id: 'p' }) };
+  const manager = { getRepository: () => repo };
+  const admin = new CatalogAdmin({ isInitialized: true, ...manager, transaction: async (run: (m: typeof manager) => unknown) => run(manager) } as unknown as DataSource);
   await admin.updateProduct('p', { ...product, bulkWarningThreshold: 3, bulkWarningMessage: '  Large order  ' });
   assert.equal(updates[0].bulkWarningThreshold, 3); assert.equal(updates[0].bulkWarningMessage, 'Large order');
   await admin.updateProduct('p', product); assert.equal('bulkWarningThreshold' in updates[1], false);

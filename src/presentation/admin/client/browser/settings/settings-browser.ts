@@ -2,6 +2,7 @@ import type { sessionStore } from '../../session-store';
 import { createSettingsEditor } from './settings-editor';
 import { createBrandEditor } from './brand-editor';
 import { mountSettingsTabs } from './settings-tabs';
+import { mountSiteEditor } from './site-editor';
 
 export function mountSettings(root: HTMLElement, session: typeof sessionStore) {
   const form = root.querySelector<HTMLFormElement>('[data-settings-form]');
@@ -14,6 +15,7 @@ export function mountSettings(root: HTMLElement, session: typeof sessionStore) {
   const reload = root.querySelector<HTMLButtonElement>('[data-settings-reload]');
   if (!form || !input || !color || !whatsapp || !instagram || !fields || !message || !reload) throw Error('Incomplete settings form');
   const tabs = mountSettingsTabs(root);
+  const disposeSite = mountSiteEditor(root, session);
   const schemaNotice = root.querySelector<HTMLElement>('[data-settings-schema-notice]');
   const editor = createSettingsEditor({
     primaryColor: () => color.value, setPrimaryColor: value => { color.value = value; },
@@ -40,5 +42,5 @@ export function mountSettings(root: HTMLElement, session: typeof sessionStore) {
     node?.addEventListener('submit', submit); return { node, submit };
   });
   form.addEventListener('submit', save); reload.addEventListener('click', refresh); fields.disabled = false;
-  return () => { editor.dispose(); brand.dispose(); tabs.dispose(); for (const item of brandForms) item.node?.removeEventListener('submit', item.submit); form.removeEventListener('submit', save); reload.removeEventListener('click', refresh); fields.disabled = true; };
+  return () => { editor.dispose(); brand.dispose(); tabs.dispose(); disposeSite(); for (const item of brandForms) item.node?.removeEventListener('submit', item.submit); form.removeEventListener('submit', save); reload.removeEventListener('click', refresh); fields.disabled = true; };
 }

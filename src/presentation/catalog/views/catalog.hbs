@@ -4,8 +4,7 @@
   <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Objetos · {{brand}}</title>
-  {{#if noindex}}<meta name="robots" content="noindex, nofollow">{{/if}}
+  {{> seo_head}}
   <link rel="stylesheet" href="/assets/storefront/cart.css">
   <link rel="stylesheet" href="/assets/storefront/catalog.css">
   <link rel="stylesheet" href="/assets/storefront/shell.css">
@@ -22,7 +21,7 @@
     </div>
   <main id="main" class="catalog-layout" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}">
     <header class="catalog-intro">
-      <div><p class="eyebrow">Mali · Objetos de diseño</p><h1>La colección</h1></div>
+      <div><p class="eyebrow">Mali · Objetos de diseño</p><h1>{{#if categoryName}}{{categoryName}}{{else}}La colección{{/if}}</h1></div>
       <p class="catalog-intro-copy">Formas, colores y pequeños detalles para hacer tu espacio más tuyo.</p>
     </header>
     {{#if demo}}<p class="catalog-notice">Demostración: imágenes, categorías y precios de ejemplo. No representa ventas reales.</p>{{/if}}

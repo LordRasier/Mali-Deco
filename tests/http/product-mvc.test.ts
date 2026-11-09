@@ -6,6 +6,7 @@ import { NotFoundException } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { PublicCatalog } from '../../src/modules/catalog/services/public-catalog';
 import { configureHttp } from '../../src/presentation/configure-http';
+import { SeoCatalog } from '../../src/modules/catalog/services/seo-catalog';
 
 async function application(mode: 'api' | 'demo', enabled: boolean, run: (origin: string) => Promise<void>, unavailable = false) {
   const saved = { ...process.env }, originalFetch = globalThis.fetch;
@@ -27,6 +28,7 @@ async function application(mode: 'api' | 'demo', enabled: boolean, run: (origin:
         productWidthMm: null, productHeightMm: null, productLengthMm: null, category: null, images: slug === 'multiple' ? [{ id: 'image-1', alt: 'Front' }, { id: 'image-2', alt: 'Back' }] : [], page: 1, limit: 100, total: 1,
         variants: [{ id: 'v1', name: 'Variant', priceMinor: 0, currency: 'ARS', supplyMode: null, material: null, color: null }] }; },
     });
+    builder.overrideProvider(SeoCatalog).useValue({ redirect: async () => undefined });
     app = (await builder.compile()).createNestApplication<NestExpressApplication>({ logger: false });
     configureHttp(app); await app.listen(0, '127.0.0.1'); origin = await app.getUrl(); await run(origin);
   } finally { await app?.close(); process.env = saved; globalThis.fetch = originalFetch; }

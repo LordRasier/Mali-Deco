@@ -6,9 +6,14 @@ import { catalogImageUrl, fixtureImageId, productPresentation } from '../catalog
 import type { Product } from '../catalog/shared/storefront-types';
 import { canonicalProductUrl } from '../catalog/shared/product-url';
 import { canonicalRoutes, type StorefrontRoutes } from '../routing/storefront-routes';
+import type { PublicCartResolver } from '../../modules/catalog/cart/cart-resolver';
+import { parseVariantQuery } from '../shared/products/product-selection';
+import { formatPrice } from '../catalog/shared/cart';
 
 type Detail = Awaited<ReturnType<PublicCatalog['detail']>>;
 type Model = { checkoutEnabled: boolean; layout: false; routes: StorefrontRoutes; mode: 'demo' | 'api'; demo: boolean; ready: boolean; brand: string; title: string; name: string; description: string;
+  productDetail?: Detail; selectedVariantId?: string; priceLabel: string; selectedName: string; availability: string; noindex: boolean; categoryName: string; categoryHref: string;
+  variantSummary: { name: string; href: string; price: string; availability: string }[];
   bootstrap: string; variants: { name: string; id: string }[]; hasVariants: boolean; moreImages: boolean;
   images: { url: string; srcset: string; alt: string; first: boolean; illustration: boolean; position: number }[];
   dimensions: { width: string; height: string; length: string }; message: string; canonical: string; retry: boolean };
@@ -24,10 +29,11 @@ function demoDetail(product: Product): Detail {
 /** Only a product lookup 404 is absence; settings/configuration failures remain unavailable. */
 export class ProductPage {
   constructor(private readonly catalog: Pick<PublicCatalog, 'settings' | 'detail'>, private readonly mode: 'demo' | 'api',
-    private readonly environment: { NODE_ENV?: string; LOCAL_TEST_CHECKOUT_ENABLED?: string; DEV_FIXTURE_PRODUCT_ID?: string; PUBLIC_SITE_URL?: string } = {}, private readonly routes: StorefrontRoutes = canonicalRoutes) {}
+    private readonly environment: { NODE_ENV?: string; LOCAL_TEST_CHECKOUT_ENABLED?: string; DEV_FIXTURE_PRODUCT_ID?: string; PUBLIC_SITE_URL?: string } = {}, private readonly routes: StorefrontRoutes = canonicalRoutes, private readonly resolver?: Pick<PublicCartResolver, 'resolve'>) {}
 
-  async read(slug: string) {
+  async read(slug: string, params = new URLSearchParams()) {
     const model: Model = { layout: false, routes: this.routes, checkoutEnabled: localCheckoutPageEnabled(this.environment, this.mode), mode: this.mode, demo: this.mode === 'demo', ready: false, brand: 'Tienda', title: 'Producto no disponible', name: '', description: '',
+      priceLabel: 'Seleccioná una variante', selectedName: 'Elegí una opción', availability: '', noindex: false, categoryName: '', categoryHref: '', variantSummary: [],
       bootstrap: '', variants: [], hasVariants: false, images: [], moreImages: false, dimensions: { width: '', height: '', length: '' }, message: 'No pudimos cargar el producto. Intentá nuevamente.', canonical: '', retry: true };
     try {
       const settings = this.mode === 'demo' ? { name: demoCatalog.brand } : await this.catalog.settings();
@@ -42,6 +48,22 @@ export class ProductPage {
         detail = demoDetail(demo);
       } else detail = await this.catalog.detail(slug, { page: '1', limit: '100' });
       model.title = model.name = detail.name; model.description = detail.description;
+      const requested = parseVariantQuery(params);
+      let selected = requested.kind === 'none' ? detail.variants[0] : requested.kind === 'id' ? detail.variants.find(v => v.id === requested.id) : undefined;
+      if (!selected && requested.kind === 'id' && this.mode === 'api' && this.resolver) {
+        const resolved = await this.resolver.resolve({ lines: [{ productId: detail.id, variantId: requested.id }] });
+        const found = resolved.resolved[0]?.variant;
+        if (found) selected = { ...found,
+          material: found.material?.slug && found.material.name ? { ...found.material, slug: found.material.slug, name: found.material.name } : null,
+          color: found.color?.slug && found.color.name ? { ...found.color, slug: found.color.slug, name: found.color.name } : null };
+      }
+      const visible = selected && !detail.variants.some(v => v.id === selected.id) ? [...detail.variants, selected] : detail.variants;
+      const availability = (v: Detail['variants'][number]) => v.supplyMode === 'made_to_order' ? 'Fabricación a pedido' : v.supplyMode === 'stock' ? v.stockQuantity > 0 ? 'En stock' : 'Sin stock' : 'Consultá disponibilidad';
+      model.productDetail = { ...detail, variants: visible };
+      model.variantSummary = visible.map(v => ({ name: v.name, price: formatPrice(v.priceMinor, v.currency), availability: availability(v), href: `${this.routes.product}/${encodeURIComponent(slug)}?variant=${encodeURIComponent(v.id)}` }));
+      model.noindex = requested.kind !== 'none' && !selected;
+      if (selected) { model.selectedVariantId = selected.id; model.priceLabel = formatPrice(selected.priceMinor, selected.currency); model.selectedName = selected.name; model.availability = availability(selected); }
+      model.categoryName = detail.category?.name ?? ''; model.categoryHref = detail.category ? `/categorias/${encodeURIComponent(detail.category.slug)}` : '';
       model.canonical = this.mode === 'api' ? canonicalProductUrl(this.environment.PUBLIC_SITE_URL, slug) ?? '' : '';
       model.bootstrap = JSON.stringify(detail); // Template escapes this as an HTML attribute, never as executable script.
       model.variants = detail.variants.map(({ id, name }) => ({ id, name })); model.hasVariants = !!detail.variants.length;

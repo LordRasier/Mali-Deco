@@ -11,7 +11,7 @@ const price = { priceMinor: 125000, currency: 'ARS', supplyMode: 'made_to_order'
 test('creates the product and its standard priced variant in one transaction', async () => {
   const writes: Array<{ kind: string; value: Record<string, unknown> }> = [];
   let transactions = 0;
-  const manager = { getRepository: (schema: unknown) => ({
+  const manager = { query: async () => [], getRepository: (schema: unknown) => ({
     create: (value: Record<string, unknown>) => value,
     save: async (value: Record<string, unknown>) => { writes.push({ kind: schema === ProductSchema ? 'product' : schema === VariantSchema ? 'variant' : 'unknown', value }); return value; },
   }) };
@@ -34,7 +34,7 @@ test('a variant failure aborts the transaction without committing the product', 
   const committed: unknown[] = [];
   const db = { isInitialized: true, transaction: async (work: (m: unknown) => Promise<unknown>) => {
     const staged: unknown[] = [];
-    const manager = { getRepository: (schema: unknown) => ({ create: (v: unknown) => v, save: async (v: unknown) => {
+    const manager = { query: async () => [], getRepository: (schema: unknown) => ({ create: (v: unknown) => v, save: async (v: unknown) => {
       if (schema === VariantSchema) throw new Error('variant failure'); staged.push(v); return v;
     } }) };
     const result = await work(manager); committed.push(...staged); return result;

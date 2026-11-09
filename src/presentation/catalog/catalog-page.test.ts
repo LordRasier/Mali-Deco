@@ -20,11 +20,12 @@ test('invalid and duplicate URL parameters fail before any service reads', async
   }
   assert.deepEqual(f.calls, []);
 });
-test('initial currency comes only from facets and redirect preserves filters while resetting page', async () => {
+test('default currency prefers ARS from facets and keeps requested pagination without a redirect', async () => {
   const f = fixture(), page = new CatalogPage(f.catalog, f.facets, 'api');
+  f.catalog.list = async (query) => { f.calls.push('list'); assert.equal(query.page, '3'); assert.equal(query.currency, 'ARS'); assert.equal(query.search, 'light'); return { items: [], page: 3, limit: 24, total: 50 }; };
   const result = await page.read(new URLSearchParams('search=light&category=deco&page=3'));
-  assert.equal(result.status, 302); assert.equal(result.redirect, '/catalogo?search=light&category=deco&currency=USD');
-  assert.equal(f.calls.includes('list'), false);
+  assert.equal(result.status, 200); assert.equal(result.redirect, undefined);
+  assert.equal(result.model.defaultCurrency, 'ARS'); assert.equal(f.calls.includes('list'), true);
 });
 test('projects matched variants explicitly, preserves zero prices and fixed local links', async () => {
   const f = fixture(), result = await new CatalogPage(f.catalog, f.facets, 'api').read(new URLSearchParams('currency=USD'));

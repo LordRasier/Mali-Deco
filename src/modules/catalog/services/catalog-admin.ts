@@ -12,6 +12,7 @@ import { saveVariantPricing, validateInitialPricing } from './variant-pricing';
 import { parseAdminProductListQuery, readAdminProductSummaries } from '../queries/admin-product-list';
 import { saveVariantImage, validateVariantOptions, type VariantOption } from './variant-options';
 import { writeConfiguredVariant } from './variant-configuration';
+import { availableProductSlug, saveProductWithHistory } from './product-slugs';
 
 export interface VariantInput {
   sku: string; name: string; priceMinor: number; currency: string; supplyMode: 'stock' | 'made_to_order';
@@ -62,8 +63,13 @@ export class CatalogAdmin {
     if (input.status !== 'draft') throw new ConflictException({ code: 'USE_PUBLICATION_ACTION' });
     if (!validAssignment(input.categoryId)) throw new BadRequestException('Invalid categoryId');
     const db = this.database();
-    return withAssignments(db, [['categories', input.categoryId]], async (manager) => {
+    return db.transaction(async manager => {
+      if (input.categoryId) {
+        const rows: unknown[] = await manager.query('SELECT id FROM categories WHERE id = ? AND archived_at IS NULL FOR UPDATE', [input.categoryId]);
+        if (!rows.length) throw new BadRequestException('Unknown or archived categories');
+      }
       const repo = manager.getRepository(ProductSchema);
+      await availableProductSlug(manager, input.slug);
       return this.saveUnique(repo.save(repo.create({ id: randomUUID(), archivedAt: null, ...this.productFields(input), categoryId: input.categoryId ?? null })));
     });
   }
@@ -76,6 +82,7 @@ export class CatalogAdmin {
     this.validateSupply(price.supplyMode);
     const db = this.database();
     return db.transaction(async manager => {
+      await availableProductSlug(manager, input.slug);
       if (input.categoryId) {
         const rows: unknown[] = await manager.query('SELECT id FROM categories WHERE id = ? AND archived_at IS NULL FOR UPDATE', [input.categoryId]);
         if (!rows.length) throw new BadRequestException('Unknown or archived categories');
@@ -92,16 +99,10 @@ export class CatalogAdmin {
     validateProduct(input);
     if (!validAssignment(input.categoryId)) throw new BadRequestException('Invalid categoryId');
     const db = this.database();
-    return withAssignments(db, [['categories', input.categoryId]], async (manager) => {
-      const repo = manager.getRepository(ProductSchema);
+    return db.transaction(async manager => {
+      if (input.categoryId) { const rows = await manager.query('SELECT id FROM categories WHERE id = ? AND archived_at IS NULL FOR UPDATE', [input.categoryId]); if (!rows.length) throw new BadRequestException('Unknown or archived categories'); }
       const values = { ...this.productFields(input), ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}) };
-      const result = await this.saveUnique(repo.update({ id, archivedAt: IsNull(), status: input.status }, values));
-      const product = await repo.findOneBy({ id, archivedAt: IsNull() });
-      if (!product) throw new NotFoundException('Product not found');
-      if (!result.affected) throw new ConflictException({
-        code: input.status === 'active' ? 'USE_PUBLICATION_ACTION' : 'PRODUCT_STATUS_CHANGED',
-      });
-      return product;
+      return this.saveUnique(saveProductWithHistory(manager, id, values));
     });
   }
   async publishProduct(id: string) { return changePublication(this.database(), id, 'active'); }

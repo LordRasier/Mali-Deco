@@ -3,10 +3,7 @@
 <head>
   <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{#if ready}}{{name}} | {{brand}}{{else}}{{title}}{{/if}}</title>
-  {{#if noindex}}<meta name="robots" content="noindex, nofollow">{{/if}}
-  {{#if ready}}{{#if description}}<meta name="description" content="{{description}}">{{/if}}{{/if}}
-  {{#if canonical}}<link rel="canonical" href="{{canonical}}">{{/if}}
+  {{> seo_head}}
   <link rel="stylesheet" href="/assets/storefront/cart.css"><link rel="stylesheet" href="/assets/storefront/product.css">
   <link rel="stylesheet" href="/assets/storefront/shell.css">
   <script src="/assets/storefront/generated/cart.js" defer></script>
@@ -16,7 +13,7 @@
   <a class="skip-link" href="#main">Ir al contenido</a>
   {{> site_header}}
   <main id="main" class="product-layout" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}" {{#if ready}}data-product-bootstrap="{{bootstrap}}"{{/if}}>
-    <nav aria-label="Ubicación"><a href="{{routes.home}}">Inicio</a> / <a href="{{routes.catalog}}">Objetos</a> / {{title}}</nav>
+    <nav aria-label="Ubicación"><a href="{{routes.home}}">Inicio</a> / <a href="{{routes.catalog}}">Objetos</a> / {{#if categoryHref}}<a href="{{categoryHref}}">{{categoryName}}</a> / {{/if}}{{title}}</nav>
     {{#if ready}}
     <div class="product-layout-grid">
       <section data-product-gallery aria-label="Imágenes del producto">
@@ -28,9 +25,10 @@
       </section>
       <section class="product-details" aria-labelledby="product-title">
         <p class="eyebrow">Objetos con personalidad</p><h1 id="product-title">{{name}}</h1>
-        <p data-product-price>Seleccioná una variante{{#if demo}} · precio de ejemplo{{/if}}</p>
+        <p data-product-price>{{priceLabel}}{{#if demo}} · precio de ejemplo{{/if}}</p>
         <p class="product-description">{{description}}</p>
-        <p>Variante: <strong data-product-selected>Elegí una opción</strong></p>
+        <p>Variante: <strong data-product-selected>{{selectedName}}</strong></p>
+        <p data-product-availability>{{availability}}</p>
         <div data-product-variants role="group" aria-label="Variantes disponibles">{{#each variants}}<button type="button" data-product-variant="{{id}}" disabled>{{name}}</button>{{/each}}</div>
         {{#unless hasVariants}}<p>No hay variantes disponibles.</p>{{/unless}}
         <p data-product-warning role="alert" hidden></p><p data-product-status role="status">Verificando variante…</p>
@@ -41,6 +39,7 @@
         <button type="button" data-product-reset hidden>Reiniciar carga</button>
         <button type="button" data-product-add disabled>Agregar al carrito ↗</button>
         <section class="product-dimensions" aria-labelledby="product-dimensions-title"><h2 id="product-dimensions-title">Medidas del producto</h2><dl><div><dt>Ancho</dt><dd>{{dimensions.width}}</dd></div><div><dt>Alto</dt><dd>{{dimensions.height}}</dd></div><div><dt>Largo</dt><dd>{{dimensions.length}}</dd></div></dl></section>
+        {{#if variantSummary}}<details class="product-variant-summary"><summary>Precios y disponibilidad de las opciones</summary><ul>{{#each variantSummary}}<li><a href="{{href}}">{{name}}</a>: {{price}} · {{availability}}</li>{{/each}}</ul></details>{{/if}}
         <p class="product-order-note">El carrito te permite estimar el total. Para hacer un pedido, escríbenos por Instagram.</p>
         <noscript>La selección de variantes y el carrito necesitan JavaScript. No se agregó ningún artículo.</noscript>
       </section>

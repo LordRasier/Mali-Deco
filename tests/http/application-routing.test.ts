@@ -25,6 +25,7 @@ const expectedRoutes = [
   "GET /admin/orders/:id",
   "GET /admin/orders/:id/attachments/:attachmentId",
   "GET /admin/settings",
+  "GET /admin/settings/seo",
   "GET /auth/me",
   "GET /catalog/branding/:kind",
   "GET /catalog/facets",
@@ -66,12 +67,13 @@ const expectedRoutes = [
   "PUT /admin/orders/:id",
   "PUT /admin/settings",
   "PUT /admin/settings/branding/:kind",
+  "PUT /admin/settings/seo",
 ];
 
 const featureOwnership: Record<string, string[]> = {
   IdentityModule: ['IdentityService', 'CatalogGuard', 'OwnerGuard'],
   CatalogModule: ['PublicCatalog', 'PublicFacets', 'PublicCartResolver', 'CatalogAdmin', 'CatalogTaxonomy'],
-  SettingsModule: ['StoreSettings'],
+  SettingsModule: ['StoreSettings', 'SiteSettings'],
   ShippingModule: ['PostalCodeResolver', 'ShippingQuoteService'],
   OrdersModule: ['OrdersService', 'OrdersGuard'],
   MediaModule: ['MediaRepository', 'MediaService', 'MediaUploadInterceptor'],

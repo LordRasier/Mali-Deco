@@ -7,6 +7,7 @@ import { configureHttp } from '../../src/presentation/configure-http';
 import { PublicCatalog } from '../../src/modules/catalog/services/public-catalog';
 import { PublicFacets } from '../../src/modules/catalog/services/public-facets';
 import { publicCatalogFixture, publicFacetsFixture } from '../support/public-storefront';
+import { SeoCatalog } from '../../src/modules/catalog/services/seo-catalog';
 
 async function appFor(env: NodeJS.ProcessEnv, run: (origin: string) => Promise<void>, fixture = false) {
   const saved = { ...process.env }; let app: NestExpressApplication | undefined;
@@ -16,6 +17,7 @@ async function appFor(env: NodeJS.ProcessEnv, run: (origin: string) => Promise<v
     const { applicationModule } = await import('../../src/app.module');
     const builder = Test.createTestingModule({ imports: [applicationModule(env)] });
     if (fixture) builder.overrideProvider(PublicCatalog).useValue(publicCatalogFixture).overrideProvider(PublicFacets).useValue(publicFacetsFixture);
+    if (fixture) builder.overrideProvider(SeoCatalog).useValue({ redirect: async () => undefined });
     app = (await builder.compile()).createNestApplication<NestExpressApplication>({ logger: false });
     configureHttp(app); await app.listen(0, '127.0.0.1'); await run(await app.getUrl());
   } finally { await app?.close(); process.env = saved; }
@@ -31,7 +33,7 @@ test('canonical public controllers keep fixed local links and API boundaries wit
       assert.equal((await fetch(origin + path, { method: 'POST' })).status, 404);
     }
     const redirect = await fetch(origin + '/catalogo?search=Ondas', { redirect: 'manual' });
-    assert.equal(redirect.status, 302); assert.equal(redirect.headers.get('location'), '/catalogo?search=Ondas&currency=ARS');
+    assert.equal(redirect.status, 200); assert.equal(redirect.headers.get('location'), null);
     assert.match(await (await fetch(origin + '/catalogo?currency=ARS')).text(), /href="\/productos\/florero-ondas\?variant&#x3D;arena"/);
     assert.equal((await fetch(origin + '/catalogo?_rsc=invalid')).status, 400);
     assert.equal((await fetch(origin + '/productos/missing')).status, 404);

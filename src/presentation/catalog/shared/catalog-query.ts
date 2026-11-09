@@ -14,7 +14,8 @@ export function parseCatalogQuery(params: URLSearchParams): { query: CatalogQuer
   const one = (key: string) => { const values = params.getAll(key); if (values.length > 1) throw new Error(); return values[0] ?? ''; };
   try {
     const allowed = new Set(['search', 'category', 'material', 'color', 'currency', 'minPriceMinor', 'maxPriceMinor', 'sort', 'page']);
-    if ([...params.keys()].some(key => !allowed.has(key))) throw new Error();
+    const attribution = new Set(['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id', 'gclid', 'dclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid']);
+    for (const [key, value] of params) if (!allowed.has(key) && (!attribution.has(key) || value.length > 500 || params.getAll(key).length > 1 || /[\p{Cc}]/u.test(value))) throw new Error();
     // Search may be blank; defined empty filters and pagination are invalid at the API boundary.
     for (const key of ['category', 'material', 'color', 'currency', 'minPriceMinor', 'maxPriceMinor', 'sort', 'page']) {
       if (params.has(key) && one(key) === '') throw new Error();

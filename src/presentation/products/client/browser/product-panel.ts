@@ -18,6 +18,7 @@ export function mountProductPanel(cart: ReturnType<typeof createCartStore>, open
   const product = createProductStore(initial.product, initial.total, mode);
   const variants = required<HTMLElement>(root, '[data-product-variants]');
   const price = required<HTMLElement>(root, '[data-product-price]'), selected = required<HTMLElement>(root, '[data-product-selected]');
+  const availability = root.querySelector<HTMLElement>('[data-product-availability]');
   const warning = required<HTMLElement>(root, '[data-product-warning]'), status = required<HTMLElement>(root, '[data-product-status]');
   const add = required<HTMLButtonElement>(root, '[data-product-add]'), more = required<HTMLButtonElement>(root, '[data-product-more]');
   const retry = required<HTMLButtonElement>(root, '[data-product-retry]'), pageRetry = required<HTMLButtonElement>(root, '[data-product-page-retry]');
@@ -49,6 +50,7 @@ export function mountProductPanel(cart: ReturnType<typeof createCartStore>, open
     });
     }
     selected.textContent = state.selected?.name ?? 'Elegí una opción';
+    if (availability) availability.textContent = state.selected?.supplyMode === 'made_to_order' ? 'Se fabrica a pedido' : state.selected?.supplyMode === 'stock' ? (state.selected.stockQuantity ?? 0) > 0 ? 'En stock' : 'Sin stock' : 'Consultá disponibilidad';
     price.textContent = state.selected ? formatPrice(state.selected.priceMinor, state.selected.currency) : 'Seleccioná una variante';
     warning.textContent = state.warning ?? ''; warning.hidden = !state.warning;
     status.textContent = state.status === 'loading' ? 'Verificando variante…' : state.status === 'error' ? 'No pudimos verificar la variante.' : '';

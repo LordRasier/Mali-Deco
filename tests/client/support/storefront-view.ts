@@ -10,7 +10,7 @@ export function renderStorefront(view: 'home' | 'catalog' | 'product', model: Re
   const feature = view === 'product' ? 'products' : view;
   const file = resolve(__dirname, '../../../src/presentation', feature, 'views', `${view}.hbs`);
   const partial = (name: string) => readFileSync(resolve(__dirname, '../../../src/presentation/catalog/views/partials', name + '.hbs'), 'utf8');
-  const engine = createViewEngine({ site_header: '', site_footer: '', cart_panel: '', catalog_filters: '', catalog_card: partial('card'), catalog_info: partial('info') });
+  const engine = createViewEngine({ seo_head: readFileSync(resolve(__dirname, '../../../src/presentation/seo/views/head.hbs'), 'utf8'), site_header: '', site_footer: '', cart_panel: '', catalog_filters: '', catalog_card: partial('card'), catalog_info: partial('info') });
   return new Promise<string>((accept, reject) => engine.__express(file, { ...model, layout: false }, (error, html) => {
     if (error) reject(error); else if (typeof html === 'string') accept(html); else reject(Error('Missing rendered HTML'));
   }));

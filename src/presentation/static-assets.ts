@@ -2,8 +2,8 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'node:path';
 
 const groups = [
-  { prefix: '/assets/storefront', roots: ['cart/public', 'catalog/public', 'products/public', 'home/public', 'shell/public', 'information/public'],
-    files: ['cart.css', 'catalog.css', 'product.css', 'home.css', 'shell.css', 'information.css', 'generated/cart.js',
+  { prefix: '/assets/storefront', roots: ['cart/public', 'catalog/public', 'products/public', 'home/public', 'shell/public', 'information/public', 'seo/public'],
+    files: ['cart.css', 'catalog.css', 'product.css', 'home.css', 'shell.css', 'information.css', 'analytics.css', 'generated/cart.js', 'generated/analytics.js',
       'fonts/figtree-variable.woff2', 'fonts/dm-mono-regular.woff2', 'fonts/dm-mono-medium.woff2', 'fonts/OFL-Figtree.txt', 'fonts/OFL-DMMono.txt'] },
   { prefix: '/assets/admin', roots: ['admin/public'], files: ['admin.css', 'generated/admin.js', 'generated/admin.css'] },
   { prefix: '/assets/checkout', roots: ['checkout/public'], files: ['checkout.css'] },
@@ -20,8 +20,8 @@ export function configureStaticAssets(app: NestExpressApplication): void {
       next();
     });
     for (const root of group.roots) app.useStaticAssets(join(__dirname, root), {
-      prefix: `${group.prefix}/`, index: false, redirect: false, dotfiles: 'deny', etag: false, lastModified: false,
-      setHeaders(response) { response.setHeader('Cache-Control', 'no-store'); response.setHeader('X-Content-Type-Options', 'nosniff'); },
+      prefix: `${group.prefix}/`, index: false, redirect: false, dotfiles: 'deny', etag: true, lastModified: true,
+      setHeaders(response) { response.setHeader('Cache-Control', group.prefix === '/assets/admin' || group.prefix === '/assets/checkout' ? 'no-store' : 'public, max-age=0, must-revalidate'); response.setHeader('X-Content-Type-Options', 'nosniff'); },
     });
   }
 }

@@ -75,7 +75,7 @@ test('canonical HTML composes fixed shell/partials and exposes only approved CSS
     assert.match(html, /class="site-footer"/); assert.doesNotMatch(html, /data-mvc-notice|__mvc/);
     for (const method of ['GET', 'HEAD']) {
       const css = await fetch(origin + '/assets/storefront/cart.css', { method }); assert.equal(css.status, 200);
-      assert.equal(css.headers.get('cache-control'), 'no-store'); assert.equal(css.headers.get('x-content-type-options'), 'nosniff');
+      assert.equal(css.headers.get('cache-control'), 'public, max-age=0, must-revalidate'); assert.equal(css.headers.get('x-content-type-options'), 'nosniff');
       assert.match(css.headers.get('content-type') ?? '', /text\/css/); await css.arrayBuffer();
     }
   });

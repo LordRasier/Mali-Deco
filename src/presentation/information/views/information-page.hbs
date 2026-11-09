@@ -2,9 +2,7 @@
 <html lang="es-AR">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{page.title}} | {{brand}}</title>
-  <meta name="description" content="{{page.intro}}">
-  {{#if noindex}}<meta name="robots" content="noindex, follow">{{/if}}
+  {{> seo_head}}
   <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
   <link rel="stylesheet" href="/assets/storefront/cart.css">
   <link rel="stylesheet" href="/assets/storefront/shell.css">

@@ -37,10 +37,11 @@ async function application(mode: 'api' | 'demo', fixture: boolean, run: (origin:
   } finally { await app?.close(); process.env = original; globalThis.fetch = originalFetch; }
 }
 
-test('SSR catalog renders escaped HTML, shared cart and exact local canonical redirects', async () => {
+test('SSR catalog renders escaped HTML, shared cart and a default currency without redirects', async () => {
   await application('api', true, async origin => {
     const redirect = await fetch(origin + '/catalogo?search=light&page=3');
-    assert.equal(redirect.status, 302); assert.equal(redirect.headers.get('location'), '/catalogo?search=light&currency=USD');
+    assert.equal(redirect.status, 404); assert.equal(redirect.headers.get('location'), null);
+    assert.equal((await fetch(origin + '/catalogo?search=light')).status, 200);
     const response = await fetch(origin + '/catalogo?currency=USD');
     assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
     assert.match(response.headers.get('content-security-policy') ?? '', /form-action 'self'/);
@@ -89,9 +90,9 @@ test('metadata failure never exposes forms that could silently discard existing 
 
 test('unpublished, filtered and out-of-range pages offer only meaningful actions', async () => {
   await application('api', true, async origin => {
-    const body = async (query: string) => {
+    const body = async (query: string, status = 200) => {
       const res = await fetch(origin + '/catalogo' + query);
-      assert.equal(res.status, 200);
+      assert.equal(res.status, status);
       return res.text();
     };
     const empty = await body('');
@@ -105,7 +106,7 @@ test('unpublished, filtered and out-of-range pages offer only meaningful actions
     assert.match(filtered, /href="\/catalogo">Limpiar filtros<\/a>/);
     assert.doesNotMatch(filtered, /data-filter-(open|form|dialog)|mvc-search|mvc-sort/);
     assert.doesNotMatch(filtered, /Todavía no hay objetos publicados|catalog-pages/);
-    const later = await body('?page=2');
+    const later = await body('?page=2', 404);
     assert.match(later, /Anterior/);
     assert.doesNotMatch(later, /Todavía no hay objetos publicados|>Limpiar filtros<\/a>/);
   }, { emptyStore: true });

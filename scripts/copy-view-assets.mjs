@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // Explicit allowlist: never copy arbitrary neighboring files into the HTTP asset root.
 const assets = [
+  'presentation/seo/views/head.hbs', 'presentation/seo/public/analytics.css', 'presentation/seo/public/generated/analytics.js',
   'presentation/cart/views/cart.hbs',
   'presentation/cart/public/cart.css',
   'presentation/cart/public/generated/cart.js',

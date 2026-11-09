@@ -7,6 +7,8 @@ import { InformationController } from './information.controller';
 import { informationPages, type InformationPageKey } from './information-content';
 import { storeInformation, StoreInformationReader } from './store-information';
 import { createViewEngine } from '../view-engine';
+import { pageMetadata } from '../seo/metadata';
+import { defaultSiteConfig } from '../../modules/settings/site-config';
 
 test('public contact configuration exposes only allowed fields and rejects unsafe links', () => {
   const configured = storeInformation({ STORE_CONTACT_EMAIL: 'hola@example.test', STORE_WHATSAPP_NUMBER: '+54 (9) 223-555-0123',
@@ -32,12 +34,13 @@ async function renderedPage(key: InformationPageKey, env: NodeJS.ProcessEnv = {}
   let model: Record<string, unknown> = {};
   await controller.render(key, { render(view, data) { assert.equal(view, 'information-page'); model = { ...data }; } });
   const engine = createViewEngine({
+    seo_head: readFileSync(join(__dirname, '../seo/views/head.hbs'), 'utf8'),
     site_header: readFileSync(join(__dirname, '../shell/views/header.hbs'), 'utf8'),
     site_footer: readFileSync(join(__dirname, '../shell/views/footer.hbs'), 'utf8'),
     cart_panel: readFileSync(join(__dirname, '../cart/views/partials/cart-panel.hbs'), 'utf8'),
   });
   return new Promise<string>((resolve, reject) => engine.__express(join(__dirname, 'views/information-page.hbs'),
-    { ...model, storeYear: 2026 }, (error, html) => error ? reject(error) : resolve(html ?? '')));
+    { ...model, seo: pageMetadata('information-page', model, '/' + key, new URLSearchParams(), 200, defaultSiteConfig(), { NODE_ENV: 'production' }), storeYear: 2026 }, (error, html) => error ? reject(error) : resolve(html ?? '')));
 }
 
 test('information pages render their anchors, shared footer and cart with escaped content', async () => {

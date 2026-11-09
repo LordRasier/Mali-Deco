@@ -17,6 +17,7 @@
 - Catálogo: [API](catalog-public-api.md), [detalle](product-detail.md), [clasificaciones](catalog-taxonomy-admin.md), [medios](product-media-development.md).
 - Compra: [carrito](cart-experience.md), [checkout local](checkout-local.md), [cotizaciones](shipping-quote-foundation.md), [Zipnova](zipnova-quote-foundation.md).
 - Seguridad: [identidad](identity-status.md), [arquitectura](architecture.md).
+- SEO y medición: [configuración, instalación y límites](seo-implementation.md), [análisis inicial](seo-audit-2026-11-08.md).
 
 ## Historial y mantenimiento
 

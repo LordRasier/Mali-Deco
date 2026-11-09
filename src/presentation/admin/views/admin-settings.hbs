@@ -8,6 +8,7 @@
       <button class="settings-tab" type="button" id="settings-tab-identity" role="tab" aria-controls="settings-panel-identity" aria-selected="true" tabindex="0" data-settings-tab="identity">Identidad</button>
       <button class="settings-tab" type="button" id="settings-tab-social" role="tab" aria-controls="settings-panel-social" aria-selected="false" tabindex="-1" data-settings-tab="social">Redes y contacto</button>
       <button class="settings-tab" type="button" id="settings-tab-images" role="tab" aria-controls="settings-panel-images" aria-selected="false" tabindex="-1" data-settings-tab="images">Imágenes</button>
+      <button class="settings-tab" type="button" id="settings-tab-seo" role="tab" aria-controls="settings-panel-seo" aria-selected="false" tabindex="-1" data-settings-tab="seo">SEO y medición</button>
       <button class="settings-tab" type="button" id="settings-tab-emails" role="tab" aria-controls="settings-panel-emails" aria-selected="false" tabindex="-1" data-settings-tab="emails">Emails</button>
     </div>
     <div class="settings-feedback">
@@ -34,6 +35,26 @@
         <div class="settings-actions"><p class="admin-hint">Nombre, color y redes se guardan juntos.</p><button class="primary" type="submit">Guardar cambios</button></div>
       </fieldset>
     </form>
+    <section class="settings-tab-panel" id="settings-panel-seo" role="tabpanel" aria-labelledby="settings-tab-seo" tabindex="0" data-settings-panel="seo" hidden>
+      <div class="settings-section-heading"><h2>SEO y medición</h2><p>Elegí cómo se presenta tu tienda en buscadores y cómo medir sus visitas.</p></div>
+      <form class="admin-form" data-site-form data-revision="{{siteRevision}}" data-available="{{siteAvailable}}">
+        <fieldset data-site-fields disabled>
+          <legend>Presencia en buscadores</legend>
+          <label>Dominio público<input type="url" name="publicSiteUrl" value="{{site.publicSiteUrl}}" maxlength="250" placeholder="https://tu-dominio.com"><span class="admin-hint">HTTPS, sin barra final. Vacío utiliza el dominio configurado en el servidor.</span></label>
+          <label>Título del inicio<input name="homeTitle" value="{{site.homeTitle}}" maxlength="150" placeholder="Mali Deco · Objetos de diseño impresos en 3D"><span class="admin-hint">Vacío utiliza el nombre de la tienda y su descripción general.</span></label>
+          <label>Descripción del inicio<textarea name="homeDescription" rows="3" maxlength="350">{{site.homeDescription}}</textarea><span class="admin-hint">Una presentación breve y fiel a los productos que ofrecés.</span></label>
+          <label>Medición de visitas<select name="analyticsMode" data-initial-value="{{site.analyticsMode}}"><option value="off">Desactivada</option><option value="ga4">Google Analytics 4</option><option value="gtm">Google Tag Manager</option></select></label>
+          <div class="settings-grid">
+            <label>ID de Google Analytics<input name="ga4Id" value="{{site.ga4Id}}" maxlength="32" placeholder="G-XXXXXXXXXX" autocomplete="off"><span class="admin-hint">Pegá solo el ID de medición, no el código HTML.</span></label>
+            <label>ID de Google Tag Manager<input name="gtmId" value="{{site.gtmId}}" maxlength="32" placeholder="GTM-XXXXXXX" autocomplete="off"><span class="admin-hint">Si elegís Tag Manager, configurá Analytics dentro de ese contenedor.</span></label>
+          </div>
+          <p class="admin-hint">Se utiliza un único modo para evitar visitas duplicadas. La medición funciona en la tienda publicada, después de que el visitante la acepte. Administración, carrito, checkout y errores quedan excluidos. Esta integración habilita medición de Analytics; las etiquetas publicitarias requieren configuración adicional.</p>
+          <div class="settings-actions"><button class="primary" type="submit">Guardar SEO y medición</button></div>
+        </fieldset>
+        <p data-site-message role="status">{{#unless siteAvailable}}La configuración estará disponible después de actualizar la base de datos.{{/unless}}</p>
+        <button type="button" data-site-reload>Recargar SEO y medición</button>
+      </form>
+    </section>
     <section class="settings-tab-panel" id="settings-panel-images" role="tabpanel" aria-labelledby="settings-tab-images" tabindex="0" data-settings-panel="images" hidden>
       <div class="settings-section-heading"><h2>Imágenes de la tienda</h2><p>Cada imagen se guarda por separado. Podés usar archivos JPG, PNG o WebP de hasta 5 MiB.</p></div>
       <div class="brand-assets">

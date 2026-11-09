@@ -1,0 +1,9 @@
+<title>{{seo.title}}</title>
+{{#if seo.description}}<meta name="description" content="{{seo.description}}">{{/if}}
+<meta name="robots" content="{{seo.robots}}">
+{{#if seo.canonical}}<link rel="canonical" href="{{seo.canonical}}"><meta property="og:url" content="{{seo.canonical}}">{{/if}}
+<meta property="og:title" content="{{seo.title}}"><meta property="og:description" content="{{seo.description}}"><meta property="og:site_name" content="{{seo.brand}}"><meta property="og:type" content="{{seo.socialType}}"><meta property="og:locale" content="es_AR">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{{seo.title}}"><meta name="twitter:description" content="{{seo.description}}">
+{{#if seo.image}}<meta property="og:image" content="{{seo.image}}"><meta property="og:image:alt" content="{{seo.imageAlt}}"><meta name="twitter:image" content="{{seo.image}}"><meta name="twitter:image:alt" content="{{seo.imageAlt}}">{{/if}}
+{{#if seo.jsonLd}}<script type="application/ld+json" nonce="{{seo.nonce}}">{{{seo.jsonLd}}}</script>{{/if}}
+{{#if seo.analyticsId}}<link rel="stylesheet" href="/assets/storefront/analytics.css"><script src="/assets/storefront/generated/analytics.js" data-site-analytics="{{seo.analyticsMode}}" data-measurement-id="{{seo.analyticsId}}" data-page-path="{{seo.trackingPath}}" nonce="{{seo.nonce}}" defer></script>{{/if}}

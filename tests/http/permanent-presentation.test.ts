@@ -8,6 +8,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { PublicCatalog } from '../../src/modules/catalog/services/public-catalog';
 import { PublicFacets } from '../../src/modules/catalog/services/public-facets';
 import { configureHttp } from '../../src/presentation/configure-http';
+import { SeoCatalog } from '../../src/modules/catalog/services/seo-catalog';
 
 async function application(env: NodeJS.ProcessEnv, run: (origin: string) => Promise<void>, options: { failed?: boolean; afterDefinition?: () => void } = {}) {
   const saved = { ...process.env }; let app: NestExpressApplication | undefined;
@@ -24,6 +25,7 @@ async function application(env: NodeJS.ProcessEnv, run: (origin: string) => Prom
       detail: async (slug: string) => { if (slug === 'missing') throw new NotFoundException(); return { id: 'p1', slug, name: 'Synthetic product', description: 'Public description',
         category: null, images: [], productWidthMm: null, productHeightMm: null, productLengthMm: null, variants: [variant], page: 1, limit: 100, total: 1 }; },
     }).overrideProvider(PublicFacets).useValue({ get: async () => ({ categories: [], materials: [], colors: [], currencies: ['ARS'], priceRange: null, truncated: { categories: false, materials: false, colors: false } }) });
+    builder.overrideProvider(SeoCatalog).useValue({ redirect: async () => undefined });
     app = (await builder.compile()).createNestApplication<NestExpressApplication>({ logger: false });
     configureHttp(app); await app.listen(0, '127.0.0.1'); await run(await app.getUrl());
   } finally { await app?.close(); process.env = saved; }
@@ -64,7 +66,7 @@ test('public API pages are indexable, demo/error/private pages are not, and cano
   });
   await application({ NODE_ENV: 'development', STOREFRONT_MODE: 'demo' }, async origin => {
     for (const path of ['/', '/catalogo?currency=ARS', '/productos/synthetic']) {
-      const response = await fetch(origin + path); assert.equal(response.headers.get('x-robots-tag'), null);
+      const response = await fetch(origin + path); assert.equal(response.headers.get('x-robots-tag'), 'noindex, follow');
       const html = await response.text(); assert.match(html, /data-cart-mode="api"/); assert.doesNotMatch(html, /Vista de demostración|TU MARCA/);
     }
   });
@@ -127,7 +129,7 @@ test('asset roots serve only the fixed public files for GET/HEAD, never adjacent
     for (const path of ['/assets/storefront/cart.css', '/assets/storefront/catalog.css', '/assets/storefront/product.css', '/assets/storefront/home.css', '/assets/storefront/shell.css',
       '/assets/storefront/generated/cart.js', '/assets/admin/admin.css', '/assets/admin/generated/admin.js', '/assets/admin/generated/admin.css', '/assets/checkout/checkout.css', '/storefront/hero-3d-objects.webp']) {
       for (const method of ['GET', 'HEAD']) { const response = await fetch(origin + path, { method }); assert.equal(response.status, 200, path);
-        assert.equal(response.headers.get('cache-control'), 'no-store'); assert.equal(response.headers.get('x-content-type-options'), 'nosniff'); await response.arrayBuffer(); }
+        assert.equal(response.headers.get('cache-control'), path.startsWith('/assets/admin/') || path.startsWith('/assets/checkout/') ? 'no-store' : 'public, max-age=0, must-revalidate'); assert.equal(response.headers.get('x-content-type-options'), 'nosniff'); await response.arrayBuffer(); }
       assert.equal((await fetch(origin + path, { method: 'POST' })).status, 404);
     }
     for (const path of ['/assets/storefront/README.md', '/assets/admin/README.md', '/assets/checkout/README.md', '/assets/storefront/generated/cart.js.map', '/assets/admin/.env', '/assets/storefront/',
