@@ -1,0 +1,31 @@
+<section class="panel product-images" data-admin-media-root aria-labelledby="media-heading-{{product.id}}">
+  <div class="section-heading compact"><div><h2 id="media-heading-{{product.id}}" data-media-heading tabindex="-1">Imágenes</h2><p class="muted">Hasta 10 imágenes activas. La primera se muestra como portada del producto.</p></div></div>
+  <p data-media-loading role="status">Cargando imágenes…</p>
+  <p data-media-error class="notice error" role="alert" hidden></p>
+  <button type="button" data-media-reload disabled hidden>Recargar imágenes</button>
+  <p data-media-message role="status" hidden></p>
+  <div data-media-content hidden>
+    <p class="empty-state" data-media-empty hidden>Sin imágenes activas. La primera imagen que se suba será la portada.</p>
+    <div class="media-strip">
+      <ol class="image-list media-tiles" data-media-active aria-label="Imágenes del producto"></ol>
+      <label class="media-add-tile" data-media-add><span class="media-add-symbol" aria-hidden="true">+</span><span>Agregar imagen</span>
+        <input type="file" multiple data-media-file accept="image/jpeg,image/png,image/webp" aria-label="Agregar imágenes" aria-describedby="media-help-{{product.id}} media-selection-{{product.id}}" disabled>
+      </label>
+    </div>
+    <div data-media-editor hidden></div>
+    <form class="image-upload" method="dialog" data-media-upload hidden>
+      <label data-media-alt-label>Texto alternativo (opcional)<input data-media-alt maxlength="300" disabled></label>
+      <div class="actions"><button type="submit" class="primary" data-media-submit disabled>Subir imagen</button>
+        <button type="button" data-media-discard disabled hidden>Descartar selección</button></div>
+      <p data-media-queue-summary role="status" aria-atomic="true"></p>
+      <ul class="upload-queue" data-media-queue aria-label="Estado de carga por archivo" hidden></ul>
+    </form>
+    <p data-media-limit hidden>Se alcanzó el máximo de 10 imágenes activas. Retirá una imagen antes de subir otra.</p>
+    <details class="media-upload-help"><summary>Formatos y recomendaciones de carga</summary>
+      <p class="admin-hint" id="media-help-{{product.id}}" data-media-upload-help>JPG, PNG o WebP sin animaciones; hasta 5 MiB, 16 megapíxeles y 8000 píxeles por lado.</p>
+      <p class="admin-hint" id="media-selection-{{product.id}}">Los archivos se suben en orden. Una nueva selección reemplaza la lista de carga. Usá el lápiz de cada imagen para editar su texto alternativo.</p>
+    </details>
+    <details data-media-retired-box hidden><summary>Imágenes retiradas</summary><ul class="image-list media-tiles" data-media-retired></ul></details>
+    <details class="media-storage"><summary>Límites de almacenamiento</summary><p id="media-storage-{{product.id}}" data-media-storage-help>Las imágenes retiradas siguen ocupando la cuota de almacenamiento. Cada versión procesada admite hasta 384 KiB y las versiones de una imagen, hasta 1 MiB en total.</p></details>
+  </div>
+</section>

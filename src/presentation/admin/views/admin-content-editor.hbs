@@ -1,0 +1,49 @@
+<section class="content-studio-page" data-admin-section="editor" aria-labelledby="content-studio-title">
+  <form class="content-studio" data-content-form>
+    <header class="content-topbar">
+      <div class="content-topbar-brand"><a href="#settings" class="content-back" aria-label="Volver a la administración" title="Volver a la administración"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg></a><h1 id="content-studio-title">Editor de tienda</h1></div>
+      <label class="content-page-picker"><span class="sr-only">Página</span><select data-content-scope aria-label="Página para editar" disabled></select></label>
+      <div class="content-toolbar-actions">
+        <button type="button" data-content-command="undo" title="Deshacer el último cambio" disabled>Deshacer</button>
+        <button type="button" data-content-command="redo" title="Rehacer el último cambio" disabled>Rehacer</button>
+        <button type="submit" data-content-command="draft" disabled>Guardar borrador</button>
+        <button type="button" class="primary" data-content-command="publish" disabled>Publicar cambios</button>
+      </div>
+    </header>
+    <fieldset class="content-workspace" data-content-fields disabled>
+      <legend class="sr-only">Contenido de la tienda</legend>
+      <aside class="content-sidebar" id="content-sidebar" aria-label="Controles del editor">
+        <div class="content-sidebar-heading"><strong>Controles</strong><button type="button" data-content-close>Cerrar panel</button></div>
+        <div class="content-panel-tabs" role="tablist" aria-label="Panel del editor">
+          <button type="button" role="tab" id="content-tab-pages" data-content-tab="pages" aria-controls="content-panel-pages" aria-selected="true">Páginas</button>
+          <button type="button" role="tab" id="content-tab-structure" data-content-tab="structure" aria-controls="content-panel-structure" aria-selected="false" tabindex="-1">Estructura</button>
+          <button type="button" role="tab" id="content-tab-properties" data-content-tab="properties" aria-controls="content-panel-properties" aria-selected="false" tabindex="-1">Propiedades</button>
+        </div>
+        <div class="content-sidebar-scroll">
+          <section id="content-panel-pages" role="tabpanel" aria-labelledby="content-tab-pages" data-content-panel="pages">
+            <p class="content-panel-hint">Elegí la página que querés editar. Los cambios se guardan como borrador.</p>
+            <nav data-content-pages aria-label="Páginas de la tienda"></nav>
+          </section>
+          <section id="content-panel-structure" role="tabpanel" aria-labelledby="content-tab-structure" data-content-panel="structure" hidden>
+            <p class="content-panel-hint">Desplegá un grupo o seleccioná un elemento en la página.</p>
+            <nav class="content-outline" data-content-outline aria-label="Estructura de la página"></nav>
+          </section>
+          <section id="content-panel-properties" role="tabpanel" aria-labelledby="content-tab-properties" data-content-panel="properties" hidden>
+            <h2 data-content-selection>Propiedades</h2><div data-content-editor></div>
+          </section>
+        </div>
+        <details class="content-draft-options"><summary>Opciones del borrador</summary><p>Los cambios de todas las páginas se publican juntos. Desactivar una página bloquea su URL al publicar.</p><button type="button" data-content-command="restore">Restaurar desde publicado</button></details>
+      </aside>
+      <div class="content-stage">
+        <div class="content-stage-controls">
+          <button type="button" data-content-toggle aria-controls="content-sidebar" aria-expanded="true">Ocultar panel</button>
+          <label><span class="sr-only">Tamaño de vista previa</span><select data-content-viewport aria-label="Tamaño de vista previa"><option value="desktop">Escritorio</option><option value="tablet">Tablet · 768 px</option><option value="mobile">Móvil · 390 px</option></select></label>
+          <a class="content-open-store" href="/" target="_blank" rel="noopener noreferrer">Ver tienda</a>
+        </div>
+        <div class="content-preview-host" data-content-preview data-viewport="desktop"></div>
+        <p class="content-preview-status" data-content-preview-status role="status">Cargando página completa…</p>
+      </div>
+    </fieldset>
+    <footer class="content-statusbar"><span class="content-save-state" data-content-state role="status"></span><p data-content-message role="status">Cargando contenido.</p><button type="button" data-content-reload>Recargar</button></footer>
+  </form>
+</section>

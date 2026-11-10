@@ -1,0 +1,27 @@
+<section class="admin-main" data-admin-section="products" data-product-view="{{#if editingVariant}}variant-edit{{else}}variant-create{{/if}}" data-product-id="{{product.id}}" data-product-variant-id="{{variant.id}}" data-product-page="{{page}}" aria-label="{{title}}">
+  <div class="section-heading"><div><span class="eyebrow">{{product.name}}</span><h1>{{title}}</h1></div></div>
+  <p data-product-message class="notice error" role="alert" hidden></p><p data-product-loading role="status" hidden>Cargando artículo…</p>
+  <button type="button" data-product-action="retry" hidden>Reintentar lectura</button>
+  <form class="admin-form" data-variant-form data-auto-variant-name="{{autoVariantName}}" data-property-catalog="{{propertyCatalog}}" method="post" action="/admin" novalidate>
+    <h3 data-variant-form-title>{{title}}</h3><div class="editor-grid" data-variant-details>
+      <label>Nombre de la variante<input name="name" maxlength="255" value="{{variant.name}}" placeholder="Se completa con los valores elegidos" required></label>
+      <label>Precio<input name="price" inputmode="decimal" value="{{variant.price}}" required><small data-variant-price-help>Hasta {{priceDigits}} decimales; no se realiza conversión de moneda.</small></label>
+      <label>Modo de suministro<select name="supplyMode"><option value="" {{#if supplyUnset}}selected{{/if}}>Elegir…</option><option value="stock" {{#if supplyStock}}selected{{/if}}>Stock</option><option value="made_to_order" {{#if supplyMadeToOrder}}selected{{/if}}>A pedido</option></select></label>
+      <details class="variant-advanced"><summary>SKU y moneda</summary><div class="editor-grid"><label>Código (SKU)<input name="sku" maxlength="255" value="{{variant.sku}}" required><small>Se propone automáticamente. Puede editarlo.</small></label>
+      <label>Moneda<input name="currency" maxlength="3" value="{{variant.currency}}" required><small>Código de tres letras, por ejemplo ARS.</small></label></div></details>
+    </div><div class="editor-grid" data-default-properties>
+      <div data-variant-property="material"><label>Material<select name="materialId" data-variant-material disabled><option value="">Sin asignar</option>{{#if variant.materialId}}<option value="{{variant.materialId}}" selected>Asignación actual no disponible</option>{{/if}}</select></label>
+        <p data-variant-material-message class="editor-caption" role="status">Cargando opciones…</p><button type="button" class="link-button" data-taxonomy-create="materials" aria-expanded="false">Crear material</button><button type="button" class="link-button" data-product-action="materials" disabled>Actualizar</button>
+        <div class="taxonomy-inline" data-taxonomy-box="materials" hidden><label>Nombre del material<input data-taxonomy-name="materials" maxlength="100"></label><button type="button" data-taxonomy-confirm="materials">Crear y seleccionar</button><span data-taxonomy-note="materials" role="status"></span></div></div>
+      <div data-variant-property="color"><label>Color<select name="colorId" data-variant-color disabled><option value="">Sin asignar</option>{{#if variant.colorId}}<option value="{{variant.colorId}}" selected>Asignación actual no disponible</option>{{/if}}</select></label>
+        <p data-variant-color-message class="editor-caption" role="status">Cargando opciones…</p><button type="button" class="link-button" data-taxonomy-create="colors" aria-expanded="false">Crear color</button><button type="button" class="link-button" data-product-action="colors" disabled>Actualizar</button>
+        <div class="taxonomy-inline" data-taxonomy-box="colors" hidden><label>Nombre del color<input data-taxonomy-name="colors" maxlength="100"></label><label>Muestra opcional<input data-taxonomy-hex maxlength="7" placeholder="#F47B6B"></label><button type="button" data-taxonomy-confirm="colors">Crear y seleccionar</button><span data-taxonomy-note="colors" role="status"></span></div></div>
+    </div>
+    <fieldset class="custom-variations"><legend>Variaciones personalizadas</legend><p class="editor-caption">Material y Color están disponibles arriba. Agregá otra propiedad y el valor de esta variante, por ejemplo Tamaño → Grande.</p>
+      <div data-variations>{{#each variant.options}}<div class="variation-row" data-variation-row><label>Propiedad<input name="variationName" data-variation-name maxlength="60" value="{{name}}" placeholder="Ej.: Tamaño"></label><label>Valor<input name="variationValue" data-variation-value maxlength="100" value="{{value}}" placeholder="Ej.: Grande"></label><button type="button" data-variation-remove aria-label="Quitar variación">Quitar</button></div>{{/each}}</div>
+      <button type="button" data-variation-add>+ Agregar variación</button>
+    </fieldset>
+    <div class="admin-actions"><button type="submit">Guardar variante</button><button type="button" data-product-action="cancel">Cancelar</button></div>
+  </form>
+  <div data-product-media-slot hidden>{{> admin_product_images}}</div>
+</section>

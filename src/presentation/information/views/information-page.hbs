@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  {{> seo_head}}
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <link rel="stylesheet" href="/assets/storefront/cart.css">
+  <link rel="stylesheet" href="/assets/storefront/shell.css">
+  <link rel="stylesheet" href="/assets/storefront/information.css">
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+  {{#unless visualPreview}}<script src="/assets/storefront/generated/cart.js" defer></script>{{/unless}}
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>{{> site_header}}
+  {{> information_body}}
+  {{> site_footer}}{{> cart_panel}}
+</body>
+</html>

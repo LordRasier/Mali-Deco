@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  {{> seo_head}}
+  <link rel="stylesheet" href="/assets/storefront/cart.css"><link rel="stylesheet" href="/assets/storefront/shell.css"><link rel="stylesheet" href="/assets/storefront/catalog.css"><link rel="stylesheet" href="/assets/storefront/home.css">
+  {{#unless visualPreview}}<script src="/assets/storefront/generated/cart.js" defer></script>{{/unless}}
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>{{> site_header}}
+  <main id="main" class="home-layout" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}" data-listing-columns="{{listing.columns}}" data-listing-price="{{listing.cardPriceEnabled}}" data-listing-description="{{listing.cardDescriptionEnabled}}" data-listing-category="{{listing.cardCategoryEnabled}}">
+  {{#if failed}}
+    <section class="home-error"><h1>No pudimos cargar la tienda.</h1><p role="alert">Intentá nuevamente en unos instantes.</p><a href="">Reintentar</a></section>
+  {{else}}
+    {{#if demo}}<p class="home-demo">Vista de demostración · Imágenes, categorías y precios de ejemplo</p>{{/if}}
+    <section {{#if visualPreview}}data-editor-path="blocks.home.hero"{{/if}} class="home-hero" aria-labelledby="home-title">
+      <div class="home-hero-picture" aria-hidden="true"><img {{#if visualPreview}}data-editor-path="source.hero"{{/if}} src="/api/v1/catalog/branding/hero" width="1774" height="887" alt="" fetchpriority="high" decoding="async"></div>
+      <div class="home-hero-copy">
+        <p {{#if visualPreview}}data-editor-path="copy.home.eyebrow"{{/if}} class="home-hero-eyebrow">{{copy.home.eyebrow}}</p>
+        <h1 {{#if visualPreview}}data-editor-path="copy.home.title"{{/if}} id="home-title">{{copy.home.title}} <span {{#if visualPreview}}data-editor-path="copy.home.titleAccent"{{/if}}>{{copy.home.titleAccent}}</span></h1>
+        <p {{#if visualPreview}}data-editor-path="copy.home.description"{{/if}} class="home-hero-description">{{copy.home.description}}</p>
+        {{#unless catalogDisabled}}<a {{#if visualPreview}}data-editor-path="copy.home.action"{{/if}} class="home-button" href="{{routes.catalog}}">{{copy.home.action}} <span aria-hidden="true">↗</span></a>{{/unless}}
+        <p {{#if visualPreview}}data-editor-path="copy.home.note"{{/if}} class="home-hero-note">{{copy.home.note}}</p>
+      </div>
+    </section>
+    {{#unless catalogDisabled}}<section {{#if visualPreview}}data-editor-path="blocks.home.collection"{{/if}} class="home-catalog" id="coleccion" aria-labelledby="home-objects">
+      <div class="home-heading"><div><p {{#if visualPreview}}data-editor-path="copy.home.collectionEyebrow"{{/if}} class="eyebrow">{{copy.home.collectionEyebrow}}</p><h2 {{#if visualPreview}}data-editor-path="copy.home.collectionTitle"{{/if}} id="home-objects">{{copy.home.collectionTitle}}<span aria-hidden="true">.</span></h2></div><a {{#if visualPreview}}data-editor-path="copy.home.collectionAction"{{/if}} href="{{routes.catalog}}">{{copy.home.collectionAction}} <span aria-hidden="true">↗</span></a></div>
+      <div class="catalog-grid">{{#each cards}}{{> catalog_card}}{{else}}<p {{#if visualPreview}}data-editor-path="copy.home.empty"{{/if}} class="home-empty">{{copy.home.empty}}</p>{{/each}}</div>
+    </section>
+    {{/unless}}{{#if content.features.homeAbout}}<section {{#if visualPreview}}data-editor-path="blocks.home.about"{{/if}} class="home-about" id="historia" aria-labelledby="home-about-title">
+      <figure class="home-about-art"><img {{#if visualPreview}}data-editor-path="source.about"{{/if}} src="/api/v1/catalog/branding/about" width="1024" height="683" alt="{{copy.home.aboutAlt}}" loading="lazy" decoding="async"><figcaption {{#if visualPreview}}data-editor-path="copy.home.aboutCaption"{{/if}}>{{copy.home.aboutCaption}}</figcaption></figure>
+      <div class="home-about-copy"><p {{#if visualPreview}}data-editor-path="copy.home.aboutEyebrow"{{/if}} class="eyebrow">{{copy.home.aboutEyebrow}}</p><h2 {{#if visualPreview}}data-editor-path="copy.home.aboutTitle"{{/if}} id="home-about-title">{{copy.home.aboutTitle}}</h2><p {{#if visualPreview}}data-editor-path="copy.home.aboutDescription"{{/if}}>{{copy.home.aboutDescription}}</p><div {{#if visualPreview}}data-editor-path="copy.home.aboutSignature"{{/if}} class="home-about-signature" aria-hidden="true"><span></span>{{copy.home.aboutSignature}}</div></div>
+    </section>{{/if}}
+  {{/if}}
+  <noscript>Podés explorar la tienda sin JavaScript. El carrito necesita JavaScript para leer el estado de este navegador.</noscript>
+  </main>{{> site_footer}}{{> cart_panel}}{{> catalog_info}}
+</body>
+</html>

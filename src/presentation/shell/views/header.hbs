@@ -1,0 +1,12 @@
+<header class="site-header" {{#if visualPreview}}data-editor-path="blocks.header"{{/if}} data-site-header {{#if cartDisabled}}data-store-cart-disabled{{/if}}>
+  <a {{#if visualPreview}}data-editor-path="source.brand"{{/if}} class="site-brand" href="{{routes.home}}" aria-label="{{brand}}" title="{{brand}}"><img {{#if visualPreview}}data-editor-path="source.logo"{{/if}} src="/api/v1/catalog/branding/logo" alt=""> <span>{{brand}}</span></a>
+  <nav id="main-nav" class="site-nav" aria-label="Navegación principal">
+    {{#unless catalogDisabled}}<a {{#if visualPreview}}data-editor-path="copy.catalog.headerLink"{{/if}} href="{{routes.catalog}}">{{copy.catalog.headerLink}}</a>{{/unless}}
+  </nav>
+  <div {{#if visualPreview}}data-editor-path="features.cart"{{/if}} class="site-actions">
+    {{#unless cartDisabled}}<button type="button" class="cart-trigger" data-cart-open aria-label="Abrir carrito" aria-controls="cart-dialog" aria-haspopup="dialog" title="Carrito" disabled>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 7h14l1 14H4L5 7Z"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></svg>
+      <span class="cart-badge" data-cart-badge aria-hidden="true" hidden>0</span>
+    </button>{{/unless}}
+  </div>
+</header>

@@ -1,0 +1,14 @@
+<section class="admin-main" data-admin-section="classifications" data-classification-view="{{#if editing}}edit{{else}}create{{/if}}" data-classification-kind="{{kind}}" data-classification-page="{{page}}" data-classification-id="{{item.id}}" aria-label="{{title}}">
+  <div class="section-heading"><div><span class="eyebrow">Clasificaciones</span><h1>{{title}}</h1></div></div>
+  <p data-classification-message class="notice error" role="alert" hidden></p><p data-classification-loading role="status" hidden>Cargando opciones…</p><button type="button" data-classification-action="retry" hidden>Reintentar lectura</button>
+  <p class="admin-hint">Guarde o cancele la edición para cambiar el tipo de clasificación.</p>
+  <form class="admin-form classification-form" data-classification-form method="post" action="/admin" novalidate>
+    <div class="admin-form-grid">
+      <label>Nombre<input name="name" maxlength="100" value="{{item.name}}" required></label>
+      <label>Identificador (slug)<input name="slug" maxlength="80" value="{{item.slug}}" {{#if editing}}disabled{{else}}placeholder="Se genera a partir del nombre"{{/if}} aria-describedby="classification-slug-help"><small id="classification-slug-help">{{#if editing}}Se establece al crear y no puede cambiarse.{{else}}Se genera automáticamente. Podés ajustarlo antes de guardar.{{/if}}</small></label>
+      <label>Orden<input name="sortOrder" inputmode="numeric" value="{{item.sortOrder}}"><small>Los números menores aparecen primero.</small></label>
+      {{#if color}}<label>Color hexadecimal (opcional)<input name="hex" maxlength="7" value="{{item.hex}}" placeholder="#F47B6B"></label>{{/if}}
+    </div>
+    <div class="admin-actions"><button type="submit">Guardar</button><button type="button" data-classification-action="cancel">Cancelar</button></div>
+  </form>
+</section>

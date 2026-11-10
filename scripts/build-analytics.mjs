@@ -1,0 +1,10 @@
+import { build } from 'esbuild';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const result = await build({ absWorkingDir: root, entryPoints: ['src/presentation/seo/client/analytics.ts'], outfile: 'analytics.js', bundle: true, platform: 'browser', format: 'iife', target: 'es2022', write: false, metafile: true, minify: true, legalComments: 'none' });
+for (const [input, metadata] of Object.entries(result.metafile.inputs)) if (!input.startsWith('src/presentation/seo/client/') || metadata.imports.some(i => i.external)) throw Error('Unexpected analytics dependency');
+if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 10000) throw Error('Unexpected analytics bundle size');
+const path = resolve(root, 'src/presentation/seo/public/generated/analytics.js'); mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, result.outputFiles[0].contents);
+globalThis.process.stdout.write(`Built analytics client: ${result.outputFiles[0].contents.length} bytes.\n`);

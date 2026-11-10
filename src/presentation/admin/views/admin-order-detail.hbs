@@ -1,0 +1,81 @@
+<section class="admin-main orders order-detail" data-admin-section="orders" data-orders-page="{{page}}" data-order-filters="{{filterQuery}}" data-order-current="{{order.id}}">
+  <button type="button" class="link-button order-back" data-order-page="{{page}}">← Volver a pedidos</button>
+  <p data-orders-error class="notice error" role="alert" hidden></p><button type="button" data-orders-retry hidden>Reintentar lectura</button>
+  <p data-orders-success class="notice order-success" role="status" hidden></p>
+  {{#with order}}
+  <div class="section-heading order-detail-heading">
+    <div><span class="eyebrow">Detalle del pedido</span><h1>#{{shortId}} <span class="status-badge status-{{statusTone}}">{{status}}</span></h1><p>{{date}}{{#if testLocal}} <span class="order-test">Prueba</span>{{/if}}</p><small class="order-full-id">{{id}}</small></div>
+    <div class="order-refresh"><span>Actualizado: {{updated}}</span><button type="button" data-orders-refresh>Actualizar datos</button></div>
+  </div>
+  <section class="card card-admin order-shipping-card" aria-label="Estado del envío">
+    <div class="order-shipping-overview">
+      <div class="order-shipping-progress">
+        <div class="order-shipping-heading"><h2>Estado del envío</h2><span class="status-badge status-{{shippingTone}}">{{shippingStatus}}</span><span class="muted">{{carrier}} · {{service}}</span></div>
+        <ol class="order-shipping-steps" aria-label="Progreso del envío">
+          {{#each shippingSteps}}<li class="shipping-step is-{{tone}}" {{#if current}}aria-current="step"{{/if}}><span class="shipping-step-marker" aria-hidden="true">{{#if completed}}✓{{else}}{{number}}{{/if}}</span><span class="shipping-step-label">{{label}}</span>{{#if current}}<span class="sr-only">Estado actual</span>{{/if}}</li>{{/each}}
+        </ol>
+      </div>
+      {{#if canManage}}<div class="order-shipping-control"><label for="order-shipping-{{id}}">Modificar estado<select id="order-shipping-{{id}}" class="form-control" name="shippingStatus" form="order-edit-{{id}}" data-order-shipping aria-describedby="shipping-edit-hint-{{id}}">{{#each shippingOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label><span class="field-hint" id="shipping-edit-hint-{{id}}">Se aplica al guardar los cambios.</span></div>{{/if}}
+    </div>
+    <div class="order-tracking">
+      {{#if canManage}}<div class="order-form-grid">
+        <label>Número de seguimiento<input class="form-control" name="trackingNumber" form="order-edit-{{id}}" maxlength="160" value="{{trackingNumber}}" placeholder="Código del transportista"></label>
+        <label>Enlace de seguimiento<input class="form-control" name="trackingUrl" form="order-edit-{{id}}" type="url" maxlength="1000" value="{{trackingUrl}}" placeholder="https://..."></label>
+      </div>{{else}}<dl class="order-details"><div><dt>Seguimiento</dt><dd>{{#if trackingNumber}}{{trackingNumber}}{{else}}Sin asignar{{/if}}</dd></div></dl>{{/if}}
+      <div class="order-tracking-footer"><span class="field-hint">Para despachar: pago aprobado y preparación completa.</span>{{#if trackingUrl}}<a class="link-button" href="{{trackingUrl}}" target="_blank" rel="noopener noreferrer">Seguir envío ↗</a>{{/if}}</div>
+    </div>
+  </section>
+  <div class="order-workspace">
+    <div class="order-primary-column">
+      <section class="card card-admin"><header class="card-header"><h2>Artículos del pedido</h2></header>
+        <div class="table-scroll"><table class="data-table order-items"><thead><tr><th scope="col">Artículo</th><th class="numeric" scope="col">Cant.</th><th class="numeric" scope="col">Precio unit.</th><th class="numeric" scope="col">Subtotal</th></tr></thead><tbody>{{#each lines}}<tr><td><strong>{{name}}</strong><small>{{variant}}</small></td><td class="numeric">{{quantity}}</td><td class="numeric">{{price}}</td><td class="numeric">{{total}}</td></tr>{{/each}}</tbody></table></div>
+        <div class="order-totals"><div><span>Subtotal</span><strong>{{subtotal}}</strong></div><div><span>Envío</span><strong>{{shippingAmount}}</strong></div><div class="order-grand-total"><span>Total</span><strong>{{total}}</strong></div></div>
+      </section>
+      <section class="card card-admin order-payment-card"><header class="card-header"><h2>Pago</h2><span class="status-badge status-{{paymentTone}}">{{payment}}</span></header><div class="card-body">
+        <div class="order-payment-summary">
+          <div class="order-payment-amount"><span class="muted">Importe del pedido</span><strong>{{total}}</strong><span class="field-hint">{{#if managedPayment}}Mercado Pago{{else}}Gestión manual{{/if}}</span></div>
+          {{#if canManage}}<label>Estado del pago<select class="form-control" name="paymentStatus" form="order-edit-{{id}}" {{#if managedPayment}}disabled{{/if}}>{{#each paymentOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select><span class="field-hint">{{#if managedPayment}}Sincronizado con Mercado Pago.{{else}}Se aplica al guardar los cambios.{{/if}}</span></label>{{/if}}
+        </div>
+        <details class="order-payment-receipts"><summary class="order-subheading"><h3>Comprobantes <span class="badge">{{attachmentCount}}</span></h3><span class="muted">Ver{{#if canManage}} y adjuntar{{/if}}</span></summary>
+          <ul class="order-attachments">{{#each attachments}}<li><a href="{{url}}" download>{{name}}</a><small>{{sizeLabel}} · {{date}}</small></li>{{else}}<li class="attachments-empty">Sin archivos adjuntos.</li>{{/each}}</ul>
+          {{#if canManage}}<form method="post" class="order-upload" data-order-upload data-id="{{id}}"><label>Adjuntar comprobante<input type="file" name="file" accept="application/pdf,image/png,image/jpeg" required><span class="field-hint">PDF, JPG o PNG · hasta 2 MB · máximo 20</span></label><button type="submit">Adjuntar archivo</button><p data-upload-message role="status" hidden></p></form>{{/if}}
+        </details>
+      </div></section>
+      <details class="card card-admin order-history"><summary class="card-header"><h2>Historial de actividad</h2><span class="muted">Ver movimientos</span></summary><div class="card-body"><ol class="order-timeline">{{#each events}}<li><div class="timeline-heading"><strong>{{title}}</strong><time>{{date}}</time></div><small>{{actor}}</small>{{#if reason}}<p>{{reason}}</p>{{/if}}{{#if paymentId}}<small>Pago MP: {{paymentId}}</small>{{/if}}{{#each changes}}<p><span class="muted">{{label}}:</span> {{value}}</p>{{/each}}</li>{{/each}}<li><div class="timeline-heading"><strong>Pedido recibido</strong><time>{{date}}</time></div><p>Se registraron los artículos y los datos del checkout.</p></li></ol></div></details>
+    </div>
+    <aside class="order-secondary-column" aria-label="Preparación, cliente y entrega">
+      <section class="card card-admin order-preparation-card"><header class="card-header"><h2>Preparación del pedido</h2></header><div class="card-body">
+        {{#if canManage}}<div class="order-preparation-fields">
+          <div class="order-status-grid">
+            <label>Estado del pedido<select class="form-control" name="orderStatus" form="order-edit-{{id}}">{{#each orderOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+            <label>Preparación<select class="form-control" name="fulfillmentStatus" form="order-edit-{{id}}">{{#each fulfillmentOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+          </div>
+          <label>Nota interna<textarea class="form-control" name="internalNote" form="order-edit-{{id}}" maxlength="4000" rows="2" placeholder="Indicaciones para el equipo">{{internalNote}}</textarea></label>
+        </div>{{else}}<dl class="order-details"><div><dt>Pedido</dt><dd>{{status}}</dd></div><div><dt>Preparación</dt><dd>{{fulfillment}}</dd></div></dl>{{#if internalNote}}<p class="order-internal-note">{{internalNote}}</p>{{/if}}<p class="field-hint">La gestión avanzada todavía no está habilitada.</p>{{/if}}
+      </div>
+      </section>
+      <section class="card card-admin"><header class="card-header"><h2>Cliente y entrega</h2></header><div class="card-body">
+        <div class="order-customer"><span class="customer-avatar" aria-hidden="true">{{customerInitials}}</span><strong>{{contactName}}</strong></div>
+        <dl class="order-details"><div><dt>Email</dt><dd>{{email}}</dd></div><div><dt>Teléfono</dt><dd>{{phone}}</dd></div><div><dt>DNI / CUIL</dt><dd>{{document}}</dd></div></dl>
+        <div class="order-delivery-summary"><h3>Dirección de entrega</h3><p class="order-address"><strong>{{address}}</strong><br>{{city}}, {{state}} · CP {{postal}} · {{country}}</p>
+          {{#if pickup}}<p class="order-pickup"><span class="muted">Punto de retiro:</span> {{pickup.description}}</p>{{/if}}
+        </div>
+      </div></section>
+      <section class="card card-admin order-email-card" aria-labelledby="order-emails-title"><header class="card-header"><h2 id="order-emails-title">Emails al cliente</h2><span class="badge">{{emailSettings.label}}</span></header><div class="card-body">
+        <p class="field-hint order-email-notice">{{emailSettings.notice}} Abrir una vista previa no envía el email.</p>
+        <ul class="order-email-statuses" aria-label="Estado de los correos por etapa">
+          {{#each emailPreviews}}<li class="order-email-row" data-email-stage="{{kind}}" data-email-status="{{deliveryStatus}}">
+            <div class="order-email-stage"><strong>{{label}}</strong><small>{{#if deliveryDate}}<time datetime="{{deliveryAt}}">{{deliveryDate}}</time>{{else}}{{#if stageDate}}Etapa registrada<br><time datetime="{{stageAt}}">{{stageDate}}</time>{{else}}{{trigger}}{{/if}}{{/if}}</small>{{#if recipient}}<small>{{#if test}}Prueba · {{/if}}{{recipient}}</small>{{/if}}{{#if error}}<small class="order-email-error">{{error}}</small>{{/if}}</div>
+            <span class="status-badge status-{{statusTone}}">{{statusLabel}}</span>
+            <a class="link-button order-email-preview" href="{{url}}" target="_blank" rel="noopener noreferrer" aria-label="Ver vista previa: {{label}}" title="Ver vista previa">Ver <span aria-hidden="true">↗</span></a>
+          </li>{{/each}}
+        </ul>
+      </div></section>
+    </aside>
+  </div>
+  {{#if canManage}}<form id="order-edit-{{id}}" method="post" class="order-changes-bar" data-order-edit data-id="{{id}}" data-revision="{{revision}}" data-payment="{{paymentValue}}" data-order-save-bar hidden aria-label="Guardar cambios del pedido">
+    <label>Motivo del cambio<input class="form-control" name="reason" maxlength="1000" required placeholder="Indicá el motivo de los cambios"></label>
+    <div class="order-changes-actions"><span data-order-dirty role="status">Sin cambios pendientes</span><div class="order-save-actions"><button type="button" class="link-button" data-order-discard>Descartar</button><button type="submit" class="primary" data-order-save disabled>Guardar cambios</button></div></div>
+  </form>{{/if}}
+  {{/with}}
+</section>

@@ -1,0 +1,52 @@
+  <main id="main" class="information-page" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}">
+    <nav class="information-breadcrumb" aria-label="Ubicación"><a href="{{routes.home}}">Inicio</a><span aria-hidden="true">/</span><span {{#if visualPreview}}data-editor-path="{{pageEditorPath}}.label"{{/if}} aria-current="page">{{page.label}}</span></nav>
+    <header {{#if visualPreview}}data-editor-path="{{pageEditorPath}}"{{/if}} class="information-hero information-hero-compact">
+      <div><p {{#if visualPreview}}data-editor-path="{{pageEditorPath}}.eyebrow"{{/if}} class="information-eyebrow">{{page.eyebrow}}</p><h1 {{#if visualPreview}}data-editor-path="{{pageEditorPath}}.title"{{/if}}>{{page.title}}<span>.</span></h1><p {{#if visualPreview}}data-editor-path="{{pageEditorPath}}.intro"{{/if}}>{{page.intro}}</p></div>
+      {{#if page.about}}<div class="information-about-mark" aria-hidden="true"><span {{#if visualPreview}}data-editor-path="copy.information.aboutMark"{{/if}}>{{copy.information.aboutMark}}</span><small {{#if visualPreview}}data-editor-path="copy.information.aboutNote"{{/if}}>{{copy.information.aboutNote}}</small></div>{{/if}}
+    </header>
+    <div class="information-layout information-layout-bordered">
+      <aside class="information-index">
+        <p {{#if visualPreview}}data-editor-path="copy.information.indexTitle"{{/if}} class="information-kicker">{{copy.information.indexTitle}}</p>
+        <nav aria-label="Secciones de {{page.label}}">
+          {{#if page.contact}}<a {{#if visualPreview}}data-editor-path="copy.information.contactTitle"{{/if}} href="#canales">{{copy.information.contactTitle}}</a>{{/if}}
+          {{#each page.sections}}<a {{#if @root.visualPreview}}data-editor-path="{{editorPath}}.title"{{/if}} href="#{{id}}">{{title}}</a>{{/each}}
+          {{#if page.legal}}<a {{#if visualPreview}}data-editor-path="copy.information.legalTitle"{{/if}} href="#responsable">{{copy.information.legalTitle}}</a>{{/if}}
+        </nav>
+      </aside>
+      <div class="information-content">
+        {{#if page.contact}}
+          <section {{#if visualPreview}}data-editor-path="contact"{{/if}} id="canales" class="information-section" aria-labelledby="canales-title">
+            <header><h2 {{#if visualPreview}}data-editor-path="copy.information.contactTitle"{{/if}} id="canales-title">{{copy.information.contactTitle}}</h2></header>
+            {{#if storeInfo.hasContact}}
+              <div class="information-contact-grid">
+                {{#each storeInfo.channels}}<a {{#if @root.visualPreview}}data-editor-path="{{editorPath}}"{{/if}} class="information-contact-card" href="{{href}}" rel="noopener noreferrer"><span class="information-kicker">{{label}}</span><strong>{{value}}</strong><span aria-hidden="true">↗</span></a>{{/each}}
+              </div>
+            {{else}}
+              <p {{#if visualPreview}}data-editor-path="copy.information.contactEmpty"{{/if}}>{{copy.information.contactEmpty}}</p>
+            {{/if}}
+            {{#if storeInfo.hours}}<p {{#if visualPreview}}data-editor-path="contact.hours"{{/if}} class="information-note">{{copy.information.hoursLabel}} · {{storeInfo.hours}}</p>{{/if}}
+          </section>
+        {{/if}}
+        {{#each page.sections}}
+          <section {{#if @root.visualPreview}}data-editor-path="{{editorPath}}"{{/if}} id="{{id}}" class="information-section" aria-labelledby="{{id}}-title">
+            <header><h2 {{#if @root.visualPreview}}data-editor-path="{{editorPath}}.title"{{/if}} id="{{id}}-title">{{title}}</h2></header>
+            {{#each paragraphs}}<p {{#if @root.visualPreview}}data-editor-path="{{../editorPath}}.paragraphs.{{@index}}"{{/if}}>{{this}}</p>{{/each}}
+            {{#if questions}}<div class="information-faq">{{#each questions}}
+              <details><summary {{#if @root.visualPreview}}data-editor-path="{{../editorPath}}.questions.{{@index}}.question"{{/if}}>{{question}}<span aria-hidden="true">+</span></summary><p {{#if @root.visualPreview}}data-editor-path="{{../editorPath}}.questions.{{@index}}.answer"{{/if}}>{{answer}}</p></details>
+            {{/each}}</div>{{/if}}
+            {{#if links}}<div class="information-related">{{#each links}}<a {{#if @root.visualPreview}}data-editor-path="{{editorPath}}"{{/if}} href="{{href}}">{{label}} <span aria-hidden="true">↗</span></a>{{/each}}</div>{{/if}}
+          </section>
+        {{/each}}
+        {{#if page.legal}}
+          <section {{#if visualPreview}}data-editor-path="blocks.information.legal"{{/if}} id="responsable" class="information-help" aria-labelledby="responsable-title">
+            <p {{#if visualPreview}}data-editor-path="copy.information.legalEyebrow"{{/if}} class="information-eyebrow">{{copy.information.legalEyebrow}}</p><h2 {{#if visualPreview}}data-editor-path="copy.information.legalTitle"{{/if}} id="responsable-title">{{copy.information.legalTitle}}</h2>
+            {{#if storeInfo.legalName}}<p {{#if visualPreview}}data-editor-path="contact"{{/if}}>{{storeInfo.legalName}}{{#if storeInfo.taxId}} · CUIT {{storeInfo.taxId}}{{/if}}</p>{{else}}<p {{#if visualPreview}}data-editor-path="copy.information.legalEmpty"{{/if}}>{{copy.information.legalEmpty}}</p>{{/if}}
+            {{#if storeInfo.legalAddress}}<p {{#if visualPreview}}data-editor-path="contact.legalAddress"{{/if}}>{{storeInfo.legalAddress}}</p>{{/if}}
+            {{#if contactHref}}<a {{#if visualPreview}}data-editor-path="copy.information.contactAction"{{/if}} class="information-back" href="{{contactHref}}">{{copy.information.contactAction}} <span aria-hidden="true">↗</span></a>{{/if}}
+          </section>
+        {{else}}
+          {{#unless page.contact}}<section {{#if visualPreview}}data-editor-path="blocks.information.help"{{/if}} class="information-help" aria-labelledby="consulta-title"><p {{#if visualPreview}}data-editor-path="copy.information.helpEyebrow"{{/if}} class="information-eyebrow">{{copy.information.helpEyebrow}}</p><h2 {{#if visualPreview}}data-editor-path="copy.information.helpTitle"{{/if}} id="consulta-title">{{copy.information.helpTitle}}</h2><p {{#if visualPreview}}data-editor-path="copy.information.helpDescription"{{/if}}>{{copy.information.helpDescription}}</p>{{#if contactHref}}<a {{#if visualPreview}}data-editor-path="copy.information.contactAction"{{/if}} class="information-back" href="{{contactHref}}">{{copy.information.contactAction}} <span aria-hidden="true">↗</span></a>{{/if}}</section>{{/unless}}
+        {{/if}}
+      </div>
+    </div>
+  </main>

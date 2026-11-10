@@ -1,0 +1,29 @@
+<dialog class="catalog-info-dialog" data-info-dialog aria-labelledby="catalog-info-title">
+  <header>
+    <h2 id="catalog-info-title" data-info-title>Información del producto</h2>
+    <button type="button" class="catalog-info-close" data-info-close aria-label="Cerrar información">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+  </header>
+  <p data-info-loading role="status" hidden>Cargando información…</p>
+  <p data-info-error role="alert" hidden></p><button type="button" data-info-retry hidden>Reintentar</button>
+  <div data-info-content hidden>
+    <div data-info-general>
+      <p class="catalog-info-description" data-info-description></p>
+      <dl class="catalog-info-dimensions" data-info-dimensions></dl>
+    </div>
+    <div data-info-options hidden>
+      <label for="catalog-info-choice">Opciones del producto</label>
+      <select id="catalog-info-choice" data-info-choice></select>
+      <p data-info-count class="catalog-help"></p>
+      <button type="button" data-info-more hidden>Cargar más opciones</button>
+      <button type="button" class="catalog-add" data-info-use disabled>Elegir opción</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="catalog-zoom-dialog" data-zoom-dialog aria-labelledby="catalog-zoom-title">
+  <header><h2 id="catalog-zoom-title" data-zoom-title>Imagen del producto</h2><button type="button" class="catalog-info-close" data-zoom-close aria-label="Cerrar imagen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+  <div class="catalog-zoom-viewport" data-zoom-viewport tabindex="0" role="region" aria-label="Imagen ampliada; usá las flechas para desplazarla"><img data-zoom-image alt="" decoding="async"></div>
+  <div class="catalog-zoom-actions"><button type="button" data-zoom-toggle aria-pressed="false" disabled>Ampliar 2×</button><p data-zoom-error role="alert" hidden>No pudimos cargar la imagen.</p><button type="button" data-zoom-retry hidden>Reintentar</button></div>
+</dialog>

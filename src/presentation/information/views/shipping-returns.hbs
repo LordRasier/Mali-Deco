@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  {{> seo_head}}
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <link rel="stylesheet" href="/assets/storefront/cart.css">
+  <link rel="stylesheet" href="/assets/storefront/shell.css">
+  <link rel="stylesheet" href="/assets/storefront/information.css">
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+  <script src="/assets/storefront/generated/cart.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>{{> site_header}}
+  <main id="main" class="information-page" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}">
+    <nav class="information-breadcrumb" aria-label="Ubicación"><a href="{{routes.home}}">Inicio</a><span aria-hidden="true">/</span><span aria-current="page">Envíos y reembolsos</span></nav>
+    <header class="information-hero">
+      <div>
+        <p class="information-eyebrow">Tu compra, paso a paso</p>
+        <h1>Envíos y <span>reembolsos.</span></h1>
+        <p>Todo lo que necesitás saber para recibir tu pedido y qué hacer si algo no sale como esperabas.</p>
+      </div>
+      <div class="information-stamp" aria-hidden="true">
+        <svg width="68" height="68" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="m32 6 23 13v26L32 58 9 45V19L32 6Z"/><path d="m9 19 23 13 23-13M32 32v26M20 13l23 13v11"/><path d="m16 39 8 5"/></svg>
+        <span>Hecho en 3D.<br>Pensado para vos.</span>
+      </div>
+    </header>
+    <div class="information-highlights" aria-label="Información esencial">
+      <div><span class="information-kicker">Destino</span><strong>Envíos en Argentina</strong><span>Según cobertura en tu localidad.</span></div>
+      <div><span class="information-kicker">Costo</span><strong>Por código postal</strong><span>Calculalo con tus productos en el carrito.</span></div>
+      <div><span class="information-kicker">Fabricación</span><strong>Cada pieza, a pedido</strong><a href="#devoluciones">Conocé las condiciones de cambio <span aria-hidden="true">↗</span></a></div>
+    </div>
+    <div class="information-layout">
+      <aside class="information-index">
+        <p class="information-kicker">En esta página</p>
+        <nav aria-label="Secciones de envíos y reembolsos">
+          <a href="#envios"><span>01</span> Envíos y tiempos</a>
+          <a href="#seguimiento"><span>02</span> Seguimiento</a>
+          <a href="#devoluciones"><span>03</span> Cambios y devoluciones</a>
+          <a href="#reembolsos"><span>04</span> Reembolsos</a>
+          <a href="#ayuda"><span>05</span> Ayuda con tu pedido</a>
+        </nav>
+      </aside>
+      <div class="information-content">
+        <section id="envios" class="information-section" aria-labelledby="envios-title">
+          <header><span class="information-number" aria-hidden="true">01</span><h2 id="envios-title">Envíos y tiempos</h2></header>
+          <p>Los medios de entrega disponibles dependen de tu código postal y de los productos del pedido. En el carrito podés consultar el costo estimado y las opciones para tu localidad: entrega a domicilio o retiro en un punto, cuando estén disponibles.</p>
+          <p>El envío de tu compra se abona por separado y está a tu cargo. Podés consultar su importe antes de confirmar el pedido, para elegir la opción que mejor te resulte.</p>
+          <div class="information-delivery-steps">
+            <div><span>01 / Preparación</span><p>Fabricamos, revisamos y embalamos cada pieza para tu pedido. Este proceso suele llevar entre <strong>1 y 3 días</strong>, según la pieza.</p></div>
+            <div><span>02 / Despacho</span><p>El pedido se entrega al transportista una vez aprobado el pago y terminada la preparación.</p></div>
+            <div><span>03 / Entrega</span><p>El tiempo de traslado depende del servicio y del destino. Se cuenta desde el despacho.</p></div>
+          </div>
+          <p class="information-note">El plazo de transporte no incluye la fabricación o preparación. Si necesitás tu pedido para una fecha especial, consultá la disponibilidad antes de comprar.</p>
+        </section>
+        <section id="seguimiento" class="information-section" aria-labelledby="seguimiento-title">
+          <header><span class="information-number" aria-hidden="true">02</span><h2 id="seguimiento-title">Seguí tu pedido</h2></header>
+          <p>Cuando tu pedido sea despachado, podrás consultar su recorrido con el código o enlace de seguimiento del transportista. Si todavía no lo recibiste, consultanos por el mismo canal por el que coordinaste la compra.</p>
+          <p>Revisá que el domicilio, la localidad y el código postal sean correctos. Si elegiste un punto de retiro, consultá sus horarios, la documentación requerida y el plazo para retirar. Ante una demora o un problema con la entrega, <a href="#ayuda">te ayudamos a revisarlo</a>.</p>
+        </section>
+        <section id="devoluciones" class="information-section" aria-labelledby="devoluciones-title">
+          <header><span class="information-number" aria-hidden="true">03</span><h2 id="devoluciones-title">Cambios y devoluciones</h2></header>
+          <h3>Elegí tu pieza con tranquilidad</h3>
+          <p>Cada artículo se imprime en 3D a pedido. Antes de confirmar, revisá el modelo, las medidas, el material y el color; si tenés dudas, podemos orientarte.</p>
+          <p>Una vez fabricada la pieza, <strong>no ofrecemos cambios voluntarios por errores en la elección de modelo o color</strong>. Esta condición no afecta el derecho de arrepentimiento cuando corresponda ni los reclamos por fallas o por recibir un artículo distinto al comprado.</p>
+          <div class="information-callout">
+            <h3>Productos personalizados</h3>
+            <p>Las piezas realizadas según tus especificaciones —por ejemplo, con un nombre, medidas especiales o un diseño exclusivo— quedan exceptuadas de la devolución por arrepentimiento. Esto no limita los reclamos por fallas o errores nuestros. Un modelo estándar del catálogo conserva los derechos que le corresponden aunque se imprima después de la compra.</p>
+          </div>
+          <h3>Si algo no llegó como esperabas</h3>
+          <p>Si recibís una pieza dañada, con una falla o distinta a la que pediste, escribinos preferentemente dentro de los <strong>primeros 5 días corridos desde la entrega</strong>. Si podés, incluí el número de pedido y fotos de la pieza y del embalaje para ayudarnos a resolverlo. Es un plazo recomendado de aviso: no reduce tus derechos de garantía ni los plazos legales para reclamar.</p>
+          <h3>Cómo coordinamos los envíos de un cambio</h3>
+          <p>Si acordamos excepcionalmente un cambio voluntario, fuera del derecho de arrepentimiento y sin una falla o error nuestro, los envíos de ida y vuelta quedan a tu cargo. Te informaremos los importes antes de avanzar. Si el motivo es una falla, un daño en la entrega o un error nuestro, nos hacemos cargo de los envíos necesarios para resolverlo.</p>
+          <h3>Derecho de arrepentimiento</h3>
+          <p>En compras a distancia, cuando corresponde este derecho, tenés <strong>10 días corridos</strong> desde que recibís el producto o celebrás el contrato, lo que ocurra después, para comunicar tu arrepentimiento, sin explicar el motivo. Si el último día es inhábil, se extiende al siguiente día hábil.</p>
+          <p>En este caso, la devolución no tiene costo para vos: coordinamos el retiro o envío a nuestro cargo. Si conservás el embalaje, usalo para proteger la pieza durante el traslado.</p>
+        </section>
+        <section id="reembolsos" class="information-section" aria-labelledby="reembolsos-title">
+          <header><span class="information-number" aria-hidden="true">04</span><h2 id="reembolsos-title">Cómo se devuelve tu dinero</h2></header>
+          <p>El reintegro se gestiona por el medio de pago original. En una devolución por arrepentimiento que corresponda, se reintegra el importe de la compra, incluido el envío original, sin penalidades ni cargos de gestión.</p>
+          <p>Si pagaste con Mercado Pago, la acreditación depende del medio utilizado y de tu banco o tarjeta. La gestión del reembolso y su aparición en la cuenta pueden ocurrir en momentos distintos; te informaremos cuando se haya emitido.</p>
+          <p class="information-note">Si el reintegro no aparece una vez cumplido el plazo informado por el medio de pago, contactanos para revisar el comprobante de devolución.</p>
+        </section>
+        <section id="ayuda" class="information-help" aria-labelledby="ayuda-title">
+          <p class="information-eyebrow">Estamos para ayudarte</p>
+          <h2 id="ayuda-title">¿Algo más sobre tu pedido?</h2>
+          <p>Si ya compraste, escribinos por el mismo canal donde coordinaste tu pedido. Indicá el número de pedido, si lo tenés, y qué necesitás resolver. No envíes la pieza antes de coordinar la devolución.</p>
+          <a class="information-back" href="{{routes.catalog}}">Seguir explorando <span aria-hidden="true">→</span></a>
+        </section>
+        <details class="information-legal">
+          <summary>Información sobre tus derechos</summary>
+          <p>Estas condiciones no limitan los derechos que te corresponden como consumidor. Podés consultar la <a href="https://www.argentina.gob.ar/normativa/nacional/638/actualizacion">Ley 24.240 de Defensa del Consumidor</a> (artículo 34), el <a href="https://www.argentina.gob.ar/normativa/nacional/ley-26994-235975/actualizacion">Código Civil y Comercial</a> (artículos 1110 a 1116) y la <a href="https://www.argentina.gob.ar/normativa/nacional/disposici%C3%B3n-954-2025-417152/texto">Disposición 954/2025</a>, complementada por la <a href="https://www.argentina.gob.ar/normativa/nacional/disposici%C3%B3n-3-2026-423007/texto">Disposición 3/2026</a>.</p>
+        </details>
+      </div>
+    </div>
+  </main>
+  {{> site_footer}}{{> cart_panel}}
+</body>
+</html>

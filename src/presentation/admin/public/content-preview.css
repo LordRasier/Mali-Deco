@@ -1,0 +1,5 @@
+html { scroll-behavior: auto; }
+[data-editor-path] { cursor: pointer; outline-offset: -2px; }
+[data-editor-path]:hover:not(.editor-selected):not(:has([data-editor-path]:hover)) { outline: 2px dashed #1683ba; }
+[data-editor-path].editor-selected { outline: 3px solid #1683ba; }
+[data-editor-path]:focus-visible { outline: 3px solid #1683ba; }

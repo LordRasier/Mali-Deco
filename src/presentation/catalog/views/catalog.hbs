@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {{> seo_head}}
+  <link rel="stylesheet" href="/assets/storefront/cart.css">
+  <link rel="stylesheet" href="/assets/storefront/catalog.css">
+  <link rel="stylesheet" href="/assets/storefront/shell.css">
+  {{#unless visualPreview}}<script src="/assets/storefront/generated/cart.js" defer></script>{{/unless}}
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>
+  
+  {{> site_header}}
+  <div class="catalog-stage">
+    <div class="catalog-backdrop" aria-hidden="true">
+      <img {{#if visualPreview}}data-editor-path="source.hero"{{/if}} src="/api/v1/catalog/branding/hero" width="1774" height="887" alt="" fetchpriority="high" decoding="async">
+    </div>
+  <main id="main" class="catalog-layout" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}" data-listing-columns="{{listing.columns}}" data-listing-categories="{{listing.categoriesEnabled}}" data-listing-count="{{listing.countEnabled}}" data-listing-price="{{listing.cardPriceEnabled}}" data-listing-description="{{listing.cardDescriptionEnabled}}" data-listing-category="{{listing.cardCategoryEnabled}}">
+    <header {{#if visualPreview}}data-editor-path="copy.catalog"{{/if}} class="catalog-intro">
+      <div><p {{#if visualPreview}}data-editor-path="copy.catalog.eyebrow"{{/if}} class="eyebrow">{{brand}} · {{copy.catalog.eyebrow}}</p><h1 {{#if visualPreview}}data-editor-path="copy.catalog.title"{{/if}}>{{#if categoryName}}{{categoryName}}{{else}}{{copy.catalog.title}}{{/if}}</h1></div>
+      <p {{#if visualPreview}}data-editor-path="copy.catalog.description"{{/if}} class="catalog-intro-copy">{{copy.catalog.description}}</p>
+    </header>
+    {{#if demo}}<p class="catalog-notice">Demostración: imágenes, categorías y precios de ejemplo. No representa ventas reales.</p>{{/if}}
+    {{#if invalid}}
+      <div role="alert"><p>{{message}}</p><a href="{{clear}}">Limpiar filtros</a></div>
+    {{else if unpublished}}
+      <section class="catalog-empty" aria-labelledby="catalog-empty-title">
+        <h2 {{#if visualPreview}}data-editor-path="copy.catalog.empty"{{/if}} id="catalog-empty-title">{{copy.catalog.empty}}</h2>
+        <a href="{{routes.home}}">Volver al inicio</a>
+      </section>
+    {{else}}
+      <div class="catalog-body">
+      <div class="catalog-results-column">
+      {{#unless failed}}
+      <nav {{#if visualPreview}}data-editor-path="listing"{{/if}} class="catalog-categories" aria-label="Categorías">{{#each categories}}{{#if disabled}}<span aria-disabled="true">{{label}}</span>{{else}}<a {{#if @root.visualPreview}}data-editor-path="{{#if @first}}listing.allCategoriesLabel{{else}}source.categories{{/if}}"{{/if}} href="{{href}}" {{#if selected}}aria-current="true"{{/if}}>{{label}}</a>{{/if}}{{/each}}</nav>
+      {{#if activeFilters}}<nav class="active-filters" aria-label="Filtros activos">{{#each activeFilters}}<a href="{{href}}">{{label}} ×</a>{{/each}}<a href="{{clear}}">Limpiar todo</a></nav>{{/if}}
+      {{#if truncated}}<p>Las opciones de clasificación están limitadas a las primeras 200 por grupo.</p>{{/if}}
+      {{/unless}}
+      {{#if failed}}<div role="alert"><p>{{message}}</p><a href="{{retry}}">Reintentar</a></div>
+      {{else}}{{#if currencyUnavailable}}<div role="alert"><p>{{message}}</p><a href="{{clear}}">Limpiar filtros</a></div>
+      {{else}}
+        <section aria-label="Resultados del catálogo">
+          <p {{#if visualPreview}}data-editor-path="blocks.listing.labels"{{/if}} class="catalog-results-count">{{resultLabel}}</p>
+          {{#if empty}}
+          <div class="catalog-empty">
+            {{#if activeFilters}}<h2 {{#if visualPreview}}data-editor-path="copy.catalog.noResults"{{/if}}>{{copy.catalog.noResults}}</h2><a href="{{clear}}">Limpiar filtros</a>
+            {{else}}<h2 {{#if visualPreview}}data-editor-path="copy.catalog.emptyPage"{{/if}}>{{copy.catalog.emptyPage}}</h2>{{/if}}
+          </div>
+          {{else}}
+          <div {{#if visualPreview}}data-editor-path="listing"{{/if}} class="catalog-grid">{{#each cards}}{{> catalog_card}}{{/each}}</div>
+          {{/if}}
+          {{#if showPagination}}<nav class="catalog-pages" aria-label="Páginas de resultados">{{#if previous}}<a href="{{previous}}">← Anterior</a>{{/if}}<span>Página {{page}}{{#if pages}} de {{pages}}{{/if}}</span>{{#if next}}<a href="{{next}}">Siguiente →</a>{{/if}}</nav>{{/if}}
+        </section>
+      {{/if}}{{/if}}
+      </div></div>
+    {{/if}}
+    <noscript>El carrito necesita JavaScript. Puedes explorar la tienda sin activarlo.</noscript>
+  </main>
+  </div>
+  {{> catalog_info}}
+  {{> cart_panel}}
+  {{> site_footer}}
+</body>
+</html>

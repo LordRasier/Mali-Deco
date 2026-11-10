@@ -1,0 +1,28 @@
+/** Initial editorial content. Each installation can replace it from the owner admin. */
+export const contentCopy = {
+  home: {
+    eyebrow: 'Diseño que se siente diferente', title: 'Objetos que salen de', titleAccent: 'lo común.',
+    description: 'Diseño e impresión 3D para darle otra forma a tus espacios. Un poco de color, todos los días.',
+    action: 'Explorar objetos', note: 'Formas simples. Espacios con personalidad.',
+    collectionEyebrow: 'Una selección para empezar', collectionTitle: 'Objetos para tu día a día', collectionAction: 'Ver toda la colección',
+    empty: 'Todavía no hay objetos publicados.', aboutAlt: 'Diseño, formas y texturas', aboutCaption: 'Imagen ilustrativa',
+    aboutEyebrow: 'DISEÑO EN CADA CAPA', aboutTitle: 'Ideas que toman forma.',
+    aboutDescription: 'Diseñamos e imprimimos en 3D objetos que combinan color, textura y formas para acompañarte todos los días.',
+    aboutSignature: 'Forma · Color · Textura',
+  },
+  catalog: { eyebrow: 'Objetos de diseño', title: 'La colección', description: 'Formas, colores y pequeños detalles para hacer tu espacio más tuyo.',
+    seoTitle: 'Objetos de diseño impresos en 3D', seoDescription: 'Conocé los diseños, precios, materiales y colores disponibles.',
+    empty: 'Todavía no hay productos publicados.', noResults: 'No encontramos productos con esos filtros.', emptyPage: 'No hay productos en esta página.', headerLink: 'Ver productos' },
+  product: { eyebrow: 'Objetos con personalidad', orderNote: 'El carrito te permite estimar el total. Para hacer un pedido, escribinos por Instagram.' },
+  information: { indexTitle: 'En esta página', contactTitle: 'Canales de atención', hoursLabel: 'Atención al cliente', legalEyebrow: 'Identificación y atención', legalTitle: 'Datos del responsable',
+    aboutMark: '3D', aboutNote: 'Hecho a pedido', helpEyebrow: 'Estamos para ayudarte', helpTitle: '¿Te quedó alguna duda?',
+    helpDescription: 'Consultanos antes de elegir tu pieza o sobre un pedido que ya hiciste.', contactAction: 'Ver contacto',
+    contactEmpty: 'Estamos preparando nuestros canales de contacto para esta página.', legalEmpty: 'Los datos de identificación del responsable se publicarán en esta sección.' },
+  cart: { orderNote: 'Por ahora, los pedidos se gestionan por Instagram. Pronto habilitaremos los pagos en línea.' },
+  email: { tagline: 'DISEÑO EN CADA CAPA', bannerAlt: 'Objetos de diseño e impresión 3D', footer: 'Diseño e impresión 3D', itemsTitle: 'Tus piezas',
+    helpTitle: 'Estamos para ayudarte.', helpDescription: 'Si tenés una consulta sobre tu pedido,', contactAction: 'contactanos', thanks: 'Gracias por elegir',
+    confirmed: { subject: 'Tu compra está confirmada', title: '¡Gracias por elegirnos!', intro: 'Recibimos tu pago y ya podemos empezar a preparar tus piezas.', detail: 'Cada pieza se imprime a pedido. La preparación suele llevar entre 1 y 3 días, según el artículo. A ese plazo se suma el tiempo del transporte. Te vamos a avisar cuando despachemos tu pedido.', action: 'Conocé cómo preparamos tu envío' },
+    shipped: { subject: 'Tu pedido está en camino', title: '¡Ya salió para encontrarte!', intro: 'Despachamos tu pedido. Tus piezas ya están en manos del transportista.', detail: 'Abajo encontrás los datos del envío. El seguimiento puede demorar un poco en mostrar sus primeros movimientos.', action: 'Seguir mi envío' },
+    delivered: { subject: 'Tu pedido figura como entregado', title: '¡Que lo disfrutes mucho!', intro: 'Tu pedido figura como entregado. Esperamos que disfrutes tus piezas y que le den un toque especial a tu espacio.', detail: 'Gracias por elegir nuestro trabajo y acompañar el diseño y la impresión 3D. Si todavía no recibiste tu pedido o necesitás ayuda, escribinos para que podamos acompañarte.', action: 'Cómo cuidar tus piezas' },
+  },
+};

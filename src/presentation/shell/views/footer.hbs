@@ -1,0 +1,29 @@
+<footer {{#if visualPreview}}data-editor-path="footer"{{/if}} class="site-footer" id="pie-de-pagina">
+  {{#if footer.benefits}}<div class="site-footer-benefits" aria-label="Tu compra en la tienda">
+    {{#each footer.benefits}}<div {{#if @root.visualPreview}}data-editor-path="{{editorPath}}"{{/if}}><svg {{#if @root.visualPreview}}data-editor-path="{{editorPath}}.icon"{{/if}} aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+      {{#if box}}<path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z"/><path d="m3 7 9 5 9-5M12 12v10M7.5 4.5l9 5V15"/>{{/if}}
+      {{#if truck}}<path d="M3 5h11v12H3V5Zm11 4h4l3 4v4h-7M14 13h7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>{{/if}}
+      {{#if chat}}<path d="M20 11a8 8 0 0 1-8 8H5l-3 3V11a9 9 0 0 1 18 0Z"/><path d="M7 10h8M7 14h5"/>{{/if}}
+      {{#if star}}<path d="m12 2 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z"/>{{/if}}
+      {{#if shield}}<path d="m12 2 9 4v6c0 5-9 10-9 10S3 17 3 12V6Z"/><path d="m7 12 3 3 7-7"/>{{/if}}
+    </svg><p><strong {{#if @root.visualPreview}}data-editor-path="{{editorPath}}.title"{{/if}}>{{title}}</strong><span {{#if @root.visualPreview}}data-editor-path="{{editorPath}}.description"{{/if}}>{{description}}</span></p></div>{{/each}}
+  </div>{{/if}}
+  <div class="site-footer-grid">
+    {{#if footer.brandColumn}}<div {{#if visualPreview}}data-editor-path="footer"{{/if}} class="site-footer-brand">
+      {{#if footer.brandEnabled}}<a {{#if visualPreview}}data-editor-path="source.brand"{{/if}} class="site-brand" href="{{routes.home}}">{{brand}}</a><p {{#if visualPreview}}data-editor-path="footer.description"{{/if}}>{{footer.description}}</p>{{/if}}
+      {{#if footer.hasSocial}}
+        <nav {{#if visualPreview}}data-editor-path="source.social"{{/if}} class="site-footer-social" aria-label="Contactá con la tienda en redes">
+          {{#if footer.whatsapp}}<a class="site-footer-social-button" href="{{footer.whatsapp.href}}" target="_blank" rel="noopener noreferrer" aria-label="Abrir chat de WhatsApp de {{brand}} (nueva pestaña)" title="Escribinos por WhatsApp"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5A11.8 11.8 0 0 0 12 0 11.9 11.9 0 0 0 1.7 18l-1.7 6 6.2-1.6A12 12 0 0 0 12 24h.1A12 12 0 0 0 24 12a11.8 11.8 0 0 0-3.5-8.5ZM12.1 22a10 10 0 0 1-5.1-1.4l-.4-.2-3.7 1 1-3.6-.3-.4A10 10 0 1 1 12.1 22Zm5.4-7.5c-.3-.1-1.8-.9-2-.9s-.5-.1-.7.2-.8.9-1 1-.3.2-.6 0a8.1 8.1 0 0 1-2.3-1.4 8.7 8.7 0 0 1-1.6-2c-.2-.3 0-.4.1-.6l.5-.5.3-.5c.1-.1 0-.3 0-.5l-1-2.2c-.2-.6-.5-.5-.7-.5H8c-.2 0-.5.1-.8.4s-1 1-1 2.4 1 2.7 1.2 2.9 2.1 3.3 5.1 4.6c.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.5-.1 1.8-.7 2-1.4s.3-1.3.2-1.4-.3-.2-.6-.3Z"/></svg></a>{{/if}}
+          {{#if footer.instagram}}<a class="site-footer-social-button" href="{{footer.instagram.href}}" target="_blank" rel="noopener noreferrer" aria-label="Ver Instagram de {{brand}} (nueva pestaña)" title="Seguinos en Instagram"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.1"/><circle cx="17.4" cy="6.7" r="1" fill="currentColor" stroke="none"/></svg></a>{{/if}}
+        </nav>
+      {{/if}}
+      {{#if footer.email}}<a {{#if visualPreview}}data-editor-path="contact.email"{{/if}} class="site-footer-email" href="{{footer.email.href}}">{{footer.email.value}}</a>{{/if}}
+      {{#unless checkoutEnabled}}{{#if footer.orderNoteEnabled}}<p {{#if visualPreview}}data-editor-path="footer.orderNote"{{/if}} class="site-footer-order-note">{{footer.orderNote}}</p>{{/if}}{{/unless}}
+    </div>{{/if}}
+    {{#each footer.columns}}<nav {{#if @root.visualPreview}}data-editor-path="{{editorPath}}"{{/if}} class="site-footer-links" aria-labelledby="{{id}}"><h2 {{#if @root.visualPreview}}data-editor-path="{{editorPath}}.title"{{/if}} id="{{id}}">{{title}}</h2>{{#each links}}<a {{#if @root.visualPreview}}data-editor-path="{{editorPath}}"{{/if}} href="{{href}}">{{label}}</a>{{/each}}</nav>{{/each}}
+  </div>
+  <div class="site-footer-bottom">
+    <p {{#if visualPreview}}data-editor-path="footer.copyright"{{/if}}>{{#if footer.copyrightEnabled}}© {{storeYear}} {{brand}}. {{footer.copyright}}{{/if}}{{#if footer.legalEnabled}}{{#if storeInfo.legalName}}<span {{#if visualPreview}}data-editor-path="contact"{{/if}}>{{storeInfo.legalName}}{{#if storeInfo.taxId}} · CUIT {{storeInfo.taxId}}{{/if}}</span>{{/if}}{{/if}}</p>
+    <div>{{#if footer.withdrawalHref}}<a {{#if visualPreview}}data-editor-path="footer.withdrawalLabel"{{/if}} href="{{footer.withdrawalHref}}">{{footer.withdrawalLabel}}</a>{{/if}}{{#if footer.dataFiscalUrl}}<a {{#if visualPreview}}data-editor-path="contact.dataFiscalUrl"{{/if}} href="{{footer.dataFiscalUrl}}" rel="noopener noreferrer">{{footer.dataFiscalLabel}} <span aria-hidden="true">↗</span></a>{{/if}}{{#if footer.topEnabled}}<a {{#if visualPreview}}data-editor-path="footer.topLabel"{{/if}} class="site-footer-top" href="#main">{{footer.topLabel}} <span aria-hidden="true">↑</span></a>{{/if}}</div>
+  </div>
+</footer>
