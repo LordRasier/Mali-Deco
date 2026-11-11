@@ -230,6 +230,12 @@ test('builder drag docking, nesting, cancellation, undo, draft and mobile use re
     await waitStyle('h1', 'fontFamily', 'Manrope, Arial, sans-serif');
     assert.match(await page.locator('.content-font-sample').first().evaluate(node => getComputedStyle(node).fontFamily), /Manrope/, 'Default heading sample matches the inherited preview font');
     assert.equal((await settings.get()).settings.appearance.backgroundColor, '#f0e8d8', 'Reset preview must not fall back to the published appearance');
+    const shareMenu = preview.locator('[data-product-share]').first();
+    await shareMenu.locator('summary').click();
+    assert.equal(await shareMenu.locator('[data-share-actions]').isVisible(), false, 'Preview never initializes outbound sharing');
+    const previewLocation = await preview.locator('body').evaluate(() => window.location.href);
+    await shareMenu.locator('[data-share-basic]').click();
+    assert.equal(await preview.locator('body').evaluate(() => window.location.href), previewLocation, 'Sharing cannot navigate out of the draft');
     assert.deepEqual(errors, []);
   } catch (error) {
     process.stdout.write(JSON.stringify({ errors, message: error.message }) + '\n');

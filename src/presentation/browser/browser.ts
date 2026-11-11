@@ -6,9 +6,10 @@ import { mountSiteHeader } from './site-header';
 import { mountCheckout } from '../checkout/client/browser/checkout-browser';
 import { mountProductGallery } from '../products/client/browser/product-gallery';
 import { mountCatalogGalleries } from '../catalog/client/browser/catalog-gallery';
+import { mountCatalogSharing } from '../catalog/client/browser/catalog-sharing';
 
 try {
-  mountSiteHeader(); mountCatalogFilters();
+  mountCatalogSharing(); mountSiteHeader(); mountCatalogFilters();
   if (document.querySelector('[data-store-cart-disabled]')) {
     mountProductGallery(document); mountCatalogGalleries(document);
   } else {

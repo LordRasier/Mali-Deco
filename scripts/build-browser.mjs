@@ -17,7 +17,8 @@ for (const [input, metadata] of Object.entries(result.metafile.inputs)) {
 }
 for (const output of Object.values(result.metafile.outputs)) if (output.imports.length) throw new Error('Browser bundle must be self-contained');
 // Includes the shared material/property selectors on cards and product detail.
-if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 105000) throw new Error('Unexpected browser output size');
+// Includes the local sharing controller (~2.6 KB); no social SDKs are bundled.
+if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 106000) throw new Error('Unexpected browser output size');
 const file = result.outputFiles[0];
 if (/process\.env|sourceMappingURL|__webpack_require__/.test(file.text)) throw new Error('Unexpected runtime or environment dependency');
 const destination = resolve(root, 'src/presentation/cart/public/generated/cart.js');

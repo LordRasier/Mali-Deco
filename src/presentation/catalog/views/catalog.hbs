@@ -33,6 +33,11 @@
         <a href="{{routes.home}}">Volver al inicio</a>
       </section>
     {{else}}
+      {{#if sharedCard}}<section class="catalog-shared-section" aria-labelledby="shared-product-title">
+        <h2 id="shared-product-title">Artículo compartido</h2>
+        {{#with sharedCard}}{{> catalog_card}}{{/with}}
+        <a class="catalog-shared-return" href="{{routes.catalog}}">Ver el catálogo completo</a>
+      </section>{{/if}}
       {{#unless failed}}
       <nav {{#if visualPreview}}data-editor-path="listing"{{/if}} class="catalog-categories" aria-label="Categorías">{{#each categories}}{{#if disabled}}<span aria-disabled="true">{{label}}</span>{{else}}<a {{#if @root.visualPreview}}data-editor-path="{{#if @first}}listing.allCategoriesLabel{{else}}source.categories{{/if}}"{{/if}} href="{{href}}" {{#if selected}}aria-current="true"{{/if}}>{{label}}</a>{{/if}}{{/each}}</nav>
       {{#if activeFilters}}<nav class="active-filters" aria-label="Filtros activos">{{#each activeFilters}}<a href="{{href}}">{{label}} ×</a>{{/each}}<a href="{{clear}}">Limpiar todo</a></nav>{{/if}}

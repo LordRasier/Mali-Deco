@@ -11,9 +11,11 @@ import { canonicalRoutes, type StorefrontRoutes } from '../routing/storefront-ro
 import { fixtureImageId } from './shared/editorial-art';
 import { defaultContentConfig, type ContentConfig } from '../../modules/settings/content-config';
 import type { ContentSettings } from '../../modules/settings/content-settings';
+import { productAnchor, productSharePath, type SharedProduct } from './shared/product-sharing';
 
 type Field = { name: string; value: string };
 type Model = {
+  sharedCard?: ReturnType<typeof catalogCards>[number] & { anchorId: string }; sharedProduct?: SharedProduct;
   checkoutEnabled: boolean; layout: false; routes: StorefrontRoutes; mode: 'demo' | 'api'; demo: boolean; brand: string; defaultCurrency: string;
   failed: boolean; message: string; invalid: boolean; currencyUnavailable: boolean; unpublished: boolean; showPagination: boolean;
   cards: ReturnType<typeof catalogCards>; empty: boolean; total: number; page: number; pages: number;
@@ -28,12 +30,13 @@ type Result = { status: number; redirect?: string; model: Model };
 
 /** Read-only SSR orchestration; service failures never become demonstration data. */
 export class CatalogPage {
-  constructor(private readonly catalog: Pick<PublicCatalog, 'settings' | 'list'>,
+  constructor(private readonly catalog: Pick<PublicCatalog, 'settings' | 'list'> & Partial<Pick<PublicCatalog, 'selected'>>,
     private readonly facets: Pick<PublicFacets, 'get'>, private readonly mode: 'api' | 'demo', private readonly routes: StorefrontRoutes = canonicalRoutes,
     private readonly env: { NODE_ENV?: string; LOCAL_TEST_CHECKOUT_ENABLED?: string; DEV_FIXTURE_PRODUCT_ID?: string } = {},
     private readonly content?: Pick<ContentSettings, 'get'>) {}
 
   async read(params: URLSearchParams, previewListing?: ContentConfig['listing']): Promise<Result> {
+    if (params.has('articulo')) return this.readShared(params, previewListing);
     const link = (query: CatalogQuery) => catalogLink(query, this.routes.catalog);
     const parsed = parseCatalogQuery(params), query = parsed.query;
     const model: Model = { layout: false, routes: this.routes, checkoutEnabled: localCheckoutPageEnabled(this.env, this.mode), mode: this.mode, demo: this.mode === 'demo', brand: 'Tienda', defaultCurrency: '', failed: false, invalid: !!parsed.error,
@@ -98,6 +101,35 @@ export class CatalogPage {
     } catch {
       model.failed = true; model.showFilters = false; model.cards = []; model.message = 'No pudimos cargar el catálogo y sus filtros. Intentá nuevamente.';
       return { status: 503, model };
+    }
+  }
+
+  private async readShared(params: URLSearchParams, listing?: ContentConfig['listing']): Promise<Result> {
+    const ids = params.getAll('articulo'), id = ids[0], sharePath = productSharePath(id);
+    if (ids.length !== 1 || !sharePath || this.mode !== 'api') {
+      const result = await this.read(new URLSearchParams('invalid=share'), listing);
+      result.model.message = 'Este enlace de producto no es válido.'; return result;
+    }
+    const query = new URLSearchParams(params); query.delete('articulo');
+    const result = await this.read(query, listing);
+    result.model.retry = sharePath;
+    if (result.status !== 200) return result;
+    try {
+      if (!this.catalog.selected) throw Error('Product sharing unavailable');
+      const selected = await this.catalog.selected([id]);
+      const product = publicProducts(selected).find(product => product.id === id);
+      if (!product) {
+        result.status = 404; result.model.invalid = true;
+        result.model.message = 'Este artículo ya no está disponible. Puedes explorar el catálogo.'; return result;
+      }
+      result.model.sharedProduct = product;
+      result.model.sharedCard = { ...catalogCards([product], false, this.routes.product)[0], anchorId: productAnchor(id) };
+      result.model.cards = result.model.cards.filter(card => card.productId !== id);
+      result.model.unpublished = false;
+      return result;
+    } catch {
+      result.status = 503; result.model.failed = true; result.model.showFilters = false;
+      result.model.message = 'No pudimos cargar el artículo compartido. Intenta nuevamente.'; return result;
     }
   }
 }

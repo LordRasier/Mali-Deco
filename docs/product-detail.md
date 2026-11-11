@@ -10,6 +10,21 @@ Solo un 404 del endpoint de producto produce una página no encontrada. La confi
 
 Implementación: [presentación del producto](../src/presentation/products/README.md), [estado del navegador](../src/presentation/products/client/state/README.md) y [contrato público](catalog-public-api.md).
 
+## Compartir artículos
+
+El botón de compartir de cada tarjeta ofrece WhatsApp, Instagram y copiar enlace. El enlace utiliza `/catalogo?articulo=<id>#producto-<id>`: el ID no cambia al renombrar el producto y la consulta permite resolverlo en el servidor, porque el fragmento no llega al servidor.
+
+- Al abrirlo, el catálogo destaca y enfoca la tarjeta sin abrir automáticamente su información. Si el artículo no está en la primera página, aparece en un bloque propio; si ya estaba, no se duplica.
+- El HTML incluye título, descripción y primera imagen pública del artículo en Open Graph. Requiere el dominio público HTTPS configurado en SEO o `PUBLIC_SITE_URL`; las plataformas controlan la creación y caché de sus miniaturas. Sin foto se conserva la imagen general de la tienda, sin inventar una foto del artículo.
+- WhatsApp recibe un mensaje con nombre y enlace. Instagram usa el menú de compartir del dispositivo cuando está disponible: no puede garantizarse que Instagram aparezca entre los destinos. Sin ese menú se copia el enlace para pegarlo en un mensaje; si falla el portapapeles, se ofrece un campo seleccionable. Cancelar no copia ni publica nada.
+- Sin JavaScript, el desplegable conserva un enlace navegable al artículo. En demo no se muestra el botón. El editor visual mantiene el mismo aspecto, pero su vista sin scripts y su interceptor de navegación impiden compartir o salir del borrador.
+
+Solo se consultan productos públicos activos y no archivados. Un producto ausente responde 404, un ID inválido 400 y un fallo de lectura 503. Las páginas compartidas llevan `noindex, follow`, sin reemplazar las URL canónicas de producto existentes. No se incluyen SDKs de redes, cargas de archivos, escrituras de contenido ni migraciones.
+
+Verificación local: `src/presentation/catalog/product-sharing.test.ts`, `tests/http/product-sharing.test.ts` y `tests/browser/product-sharing.test.cjs`. La prueba de navegador necesita Playwright instalado (o `PLAYWRIGHT_MODULE_PATH`) y se ejecuta con `node --import tsx --test tests/browser/product-sharing.test.cjs`; intercepta todas las solicitudes y no utiliza cuentas sociales ni una base real. La miniatura efectiva en redes requiere una comprobación después del despliegue.
+
+Referencias: [Open Graph](https://ogp.me/), [Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share) y [enlaces de WhatsApp](https://faq.whatsapp.com/5913398998672934/).
+
 Si las páginas de variantes se solapan, se informa que el catálogo cambió y se ofrece reiniciar la carga conservando la URL. La variante solicitada fuera de la primera página se mantiene aparte y no se confunde con una página duplicada.
 
 Las mutaciones del carrito vuelven a leer el estado vigente antes de aplicarse. Cuando el navegador ofrece Web Locks, las pestañas cooperantes serializan sus escrituras; eventos `storage`, cambios dentro de la misma página y `pageshow` sincronizan vistas. Un identificador de revisión impide que una resolución antigua elimine un artículo que se quitó y volvió a agregar. El arreglo guardado mantiene su formato existente, con la revisión en una clave auxiliar. Las pestañas con código antiguo no participan del bloqueo. Sin Web Locks, se copia una vez el carrito compartido a sessionStorage y las modificaciones posteriores quedan aisladas en esa pestaña, incluso al navegar o recargar; no se escriben datos compartidos sin bloqueo y no se sincronizan otras pestañas. La copia de la pestaña se prioriza durante su vida para evitar perder cambios si reaparece Web Locks. Si tampoco está disponible sessionStorage, los cambios quedan solo en memoria hasta cerrar la página. La interfaz informa el alcance.

@@ -86,7 +86,9 @@ test('shared catalog card keeps a no-JS link, escaped bootstrap and enhanced inl
     variants: [{ id: 'blue', name: 'Azul', priceMinor: 123450, currency: 'ARS' }] }], false);
   const html = await render(cards);
   const article = html.match(/<article\b[^>]*class="catalog-card"[^>]*>([\s\S]*?)<\/article>/)![1];
-  assert.equal((article.match(/<a\s/g) ?? []).length, 2);
+  assert.equal((article.match(/<a\s/g) ?? []).length, 4, 'Two product links and two progressive sharing links');
+  assert.match(article, /data-share-name="&lt;script&gt;Product&lt;\/script&gt;"/);
+  assert.match(article, /data-share-basic href="\/catalogo\?articulo&#x3D;p#producto-p"/);
   assert.match(article, /data-card-info[^>]*aria-label="Información de &lt;script&gt;Product&lt;\/script&gt;"/);
   assert.match(article, /class="catalog-price"/); assert.match(article, /1\.234,50/);
   assert.match(article, /\/productos\/pieza\?variant&#x3D;blue/);

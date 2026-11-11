@@ -5,6 +5,7 @@ import type { Product } from './shared/storefront-types';
 import { productPresentation } from './shared/editorial-art';
 import { catalogColor } from './catalog-color';
 import { cardOptions } from './shared/card-options';
+import { productSharePath } from './shared/product-sharing';
 
 export const catalogPath = '/catalogo';
 export function catalogLink(query: CatalogQuery, path = catalogPath) {
@@ -51,6 +52,7 @@ export function catalogCards(products: Product[], demo: boolean, productPath = '
     const colorOptions = unambiguous ? colors.map((item, index) => ({ id: item.variant.id, label: item.color, variantName: item.variant.name, hex: item.hex,
       href: hrefFor(item.variant.id), price: formatPrice(item.variant.priceMinor, item.variant.currency), first: index === 0 })) : [];
     return {
+      productId: product.id, sharePath: demo ? '' : productSharePath(product.id),
       bootstrap: JSON.stringify(data),
       dimensions: ([['Ancho', product.productWidthMm, 'width'], ['Alto', product.productHeightMm, 'height'], ['Largo', product.productLengthMm, 'length']] as const)
         .flatMap(([label, value, axis]) => typeof value === 'number' && Number.isSafeInteger(value) && value > 0
