@@ -1,6 +1,8 @@
 import { informationPages, type InformationPage } from './content-pages';
 import { shippingPage } from './content-shipping';
 import { contentCopy } from './content-copy';
+import { legacyLanding } from '../../shared/landing-layout';
+import { defaultAppearance } from '../../shared/store-appearance';
 
 export const pagePaths = { contacto: '/contacto', 'politica-de-privacidad': '/politica-de-privacidad', 'terminos-y-condiciones': '/terminos-y-condiciones',
   'preguntas-frecuentes': '/preguntas-frecuentes', 'sobre-mali': '/sobre-nosotros', 'envios-y-reembolsos': '/envios-y-reembolsos',
@@ -20,8 +22,9 @@ export function defaultContentConfig() {
   pages['preguntas-frecuentes'].sections = pages['preguntas-frecuentes'].sections.filter(s => s.id !== 'cuidados');
   pages['envios-y-reembolsos'].sections = structuredClone(shippingPage.sections.filter(s => !['seguimiento', 'devoluciones', 'arrepentimiento'].includes(s.id)));
   return {
-    copy: structuredClone(contentCopy), pages,
-    listing: { columns: '3', pageSize: '24', categoriesEnabled: true, countEnabled: true, cardCategoryEnabled: true, cardDescriptionEnabled: true, cardPriceEnabled: true,
+    copy: structuredClone(contentCopy), pages, appearance: defaultAppearance(),
+    landing: legacyLanding(contentCopy.home, true),
+    listing: { columns: '3', pageSize: '24', categoriesEnabled: true, filtersEnabled: false, countEnabled: true, cardCategoryEnabled: true, cardDescriptionEnabled: true, cardPriceEnabled: true,
       itemSingular: 'objeto', itemPlural: 'objetos', allCategoriesLabel: 'Todos', moreLabel: 'Ver más' },
     features: { catalog: true, cart: true, homeAbout: true },
     contact: { email: null as string | null, hours: null as string | null, legalName: null as string | null, taxId: null as string | null, legalAddress: null as string | null, dataFiscalUrl: null as string | null },

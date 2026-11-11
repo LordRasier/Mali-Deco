@@ -1,6 +1,7 @@
 import { contentAt, type ContentTree } from './content-state';
 import { contentElement as el } from './content-controls';
 import { contentParent } from './content-selection';
+import { blockDefinitions, type LandingBlock } from '../../../../../shared/landing-layout';
 
 /** Native disclosures keep the tree compact; selecting the canvas opens its containing branch. */
 export function renderContentOutline(root: HTMLElement, draft: ContentTree, target: string, selected: string) {
@@ -40,8 +41,13 @@ export function renderContentOutline(root: HTMLElement, draft: ContentTree, targ
   button(header, 'blocks.header', 'Navegación y carrito'); button(header, 'source.brand', 'Nombre y color'); button(header, 'source.logo', 'Logo');
   const page = branch(root, 'page', 'Contenido de esta página', true);
   if (target === 'home') {
-    button(page, 'blocks.home.hero', 'Banner principal'); button(page, 'source.hero', 'Imagen del banner');
-    button(page, 'blocks.home.collection', 'Productos destacados'); button(page, 'blocks.home.about', 'Presentación de la marca', contentAt(draft, 'features.homeAbout') === false); button(page, 'source.about', 'Imagen de presentación');
+    button(page, 'landing', 'Agregar y ordenar bloques');
+    const blocks = (host: HTMLElement, items: LandingBlock[], path: string) => items.forEach((block, index) => {
+      const current = `${path}.${index}`, title = String(block.props.title || blockDefinitions[block.type].label);
+      const row = button(host, current, title, !block.enabled); row.dataset.builderMove = block.id;
+      block.columns.forEach((column, n) => blocks(branch(host, column.id, `Columna ${n + 1}`, true), column.blocks, `${current}.columns.${n}.blocks`));
+    });
+    blocks(page, contentAt(draft, 'landing.blocks') as LandingBlock[] ?? [], 'landing.blocks');
   } else if (target === 'catalog') {
     button(page, 'copy.catalog', 'Título y presentación'); button(page, 'listing', 'Diseño del listado'); button(page, 'blocks.listing.cards', 'Tarjetas de producto'); button(page, 'blocks.listing.labels', 'Textos del listado'); button(page, 'features.catalog', 'Activar catálogo y rutas');
   } else {

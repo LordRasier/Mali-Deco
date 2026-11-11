@@ -34,9 +34,16 @@ export async function listPublicProducts(db: DataSource, input: Record<string, u
   return db.transaction('REPEATABLE READ', manager => listSnapshot(manager, query));
 }
 
-async function listSnapshot(db: EntityManager, query: ListingQuery) {
+export async function selectedPublicProducts(db: DataSource, ids: string[]) {
+  if (ids.length > 24 || ids.some(id => !/^[a-zA-Z0-9_-]{1,80}$/.test(id))) throw Error('Invalid product selection');
+  const result = await db.transaction('REPEATABLE READ', manager => listSnapshot(manager, parseListingQuery({ limit: '24' }), ids));
+  result.items.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id)); return result;
+}
+
+async function listSnapshot(db: EntityManager, query: ListingQuery, ids?: string[]) {
   const variant = variantPredicate(query);
   const product = productPredicate(query);
+  if (ids) { product.sql += ids.length ? ` AND p.id IN (${ids.map(() => '?').join(',')})` : ' AND 1 = 0'; product.params.push(...ids); }
   // Never even aggregate prices across currencies: an unscoped page has no price range.
   const prices = query.currency ? 'MIN(v.price_minor) AS min_price, MAX(v.price_minor) AS max_price' : 'NULL AS min_price, NULL AS max_price';
   const from = `FROM products p

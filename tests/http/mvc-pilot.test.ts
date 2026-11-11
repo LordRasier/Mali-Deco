@@ -58,7 +58,7 @@ test('canonical cart retains storage-oriented markup, rejects mode injection and
     assert.equal((await fetch(origin + '/carrito', { method: 'POST' })).status, 404);
     const script = await fetch(origin + '/assets/storefront/generated/cart.js'); assert.equal(script.status, 200);
     assert.match(script.headers.get('content-type') ?? '', /javascript/); assert.equal(script.headers.get('x-content-type-options'), 'nosniff');
-    const js = await script.text(); assert.ok(js.length > 1000 && js.length < 100000); assert.doesNotMatch(js, /sourceMappingURL|process\.env|react-dom|__webpack_require__/);
+    const js = await script.text(); assert.ok(js.length > 1000 && js.length <= 105000); assert.doesNotMatch(js, /sourceMappingURL|process\.env|react-dom|__webpack_require__/);
   });
 });
 

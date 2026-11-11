@@ -1,5 +1,6 @@
 import { contentHref, pagePaths, targetEnabled, targetPaths, type ContentConfig, type PageKey } from '../../modules/settings/content-config';
 import { storeInformation, type StoreInformation } from './store-information';
+import { previewAppearanceHref } from '../../modules/settings/content-appearance';
 
 export function configuredInformation(base: StoreInformation, config: ContentConfig): StoreInformation {
   const fields = config.contact;
@@ -17,9 +18,9 @@ export function contentPage(config: ContentConfig, key: PageKey) {
   }));
   return { ...page, sections };
 }
-export function contentModel(config: ContentConfig, info: StoreInformation) {
+export function contentModel(config: ContentConfig, info: StoreInformation, preview = false) {
   const footer = config.footer;
-  return { content: config, copy: config.copy, listing: config.listing, catalogDisabled: !config.features.catalog, cartDisabled: !targetEnabled(config, 'cart'),
+  return { content: config, copy: config.copy, listing: config.listing, appearancePreviewHref: preview ? previewAppearanceHref(config) : undefined, catalogDisabled: !config.features.catalog, cartDisabled: !targetEnabled(config, 'cart'),
     contactHref: targetEnabled(config, 'contacto') ? pagePaths.contacto : '',
     footer: { ...footer,
       brandColumn: footer.brandEnabled || footer.emailEnabled && !!info.email || footer.whatsappEnabled && !!info.whatsapp || footer.instagramEnabled && !!info.instagram || footer.orderNoteEnabled && !!footer.orderNote,

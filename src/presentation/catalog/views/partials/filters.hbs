@@ -1,5 +1,5 @@
 <form data-filter-form="{{prefix}}">
-  <fieldset data-filter-fields disabled>
+  <fieldset data-filter-fields{{#unless @root.visualPreview}} disabled{{/unless}}>
     <legend class="sr-only">Filtros del catálogo</legend>
     <div class="filter-toolbar">{{#unless mobile}}<h2 class="filter-heading">Filtros</h2>{{/unless}}<button class="filter-clear" type="button" data-filter-clear>Limpiar</button></div>
     <div class="filter-currency"><label for="{{prefix}}-currency">Moneda</label><select id="{{prefix}}-currency" data-filter-currency><option value="">Seleccionar moneda</option>{{#each currencies}}<option value="{{value}}" {{#if selected}}selected{{/if}} {{#if available}}data-available{{/if}}>{{label}}</option>{{/each}}</select></div>

@@ -1,14 +1,42 @@
-<section class="admin-main" data-admin-section="classifications" data-classification-view="{{#if editing}}edit{{else}}create{{/if}}" data-classification-kind="{{kind}}" data-classification-page="{{page}}" data-classification-id="{{item.id}}" aria-label="{{title}}">
-  <div class="section-heading"><div><span class="eyebrow">Clasificaciones</span><h1>{{title}}</h1></div></div>
+<section class="admin-main {{#if category}}category-editor{{/if}}" data-admin-section="classifications" data-classification-view="{{#if editing}}edit{{else}}create{{/if}}" data-classification-kind="{{kind}}" data-classification-page="{{page}}" data-classification-id="{{item.id}}" aria-label="{{title}}">
+  <div class="section-heading"><div><span class="eyebrow">Clasificaciones</span><h1>{{#if category}}{{#if editing}}Editar categoría{{else}}Nueva categoría{{/if}}{{else}}{{title}}{{/if}}</h1></div></div>
   <p data-classification-message class="notice error" role="alert" hidden></p><p data-classification-loading role="status" hidden>Cargando opciones…</p><button type="button" data-classification-action="retry" hidden>Reintentar lectura</button>
-  <p class="admin-hint">Guarde o cancele la edición para cambiar el tipo de clasificación.</p>
+  {{#unless category}}<p class="admin-hint">Guarde o cancele la edición para cambiar el tipo de clasificación.</p>{{/unless}}
   <form class="admin-form classification-form" data-classification-form method="post" action="/admin" novalidate>
+    {{#if category}}<h2>Datos generales</h2>{{/if}}
     <div class="admin-form-grid">
       <label>Nombre<input name="name" maxlength="100" value="{{item.name}}" required></label>
-      <label>Identificador (slug)<input name="slug" maxlength="80" value="{{item.slug}}" {{#if editing}}disabled{{else}}placeholder="Se genera a partir del nombre"{{/if}} aria-describedby="classification-slug-help"><small id="classification-slug-help">{{#if editing}}Se establece al crear y no puede cambiarse.{{else}}Se genera automáticamente. Podés ajustarlo antes de guardar.{{/if}}</small></label>
-      <label>Orden<input name="sortOrder" inputmode="numeric" value="{{item.sortOrder}}"><small>Los números menores aparecen primero.</small></label>
+      <label>Identificador (slug)<input name="slug" maxlength="80" value="{{item.slug}}" {{#if editing}}disabled{{else}}placeholder="Se genera a partir del nombre"{{/if}} aria-describedby="classification-slug-help"><small id="classification-slug-help">{{#if category}}{{#if editing}}Identificador fijo.{{else}}Se genera desde el nombre; podés ajustarlo.{{/if}}{{else}}{{#if editing}}Se establece al crear y no puede cambiarse.{{else}}Se genera automáticamente. Podés ajustarlo antes de guardar.{{/if}}{{/if}}</small></label>
+      <label>Orden<input name="sortOrder" inputmode="numeric" value="{{item.sortOrder}}"><small>{{#if category}}Menor = primero.{{else}}Los números menores aparecen primero.{{/if}}</small></label>
       {{#if color}}<label>Color hexadecimal (opcional)<input name="hex" maxlength="7" value="{{item.hex}}" placeholder="#F47B6B"></label>{{/if}}
     </div>
-    <div class="admin-actions"><button type="submit">Guardar</button><button type="button" data-classification-action="cancel">Cancelar</button></div>
+    <div class="admin-actions"><button type="submit">{{#if category}}Guardar datos{{else}}Guardar{{/if}}</button><button type="button" data-classification-action="cancel">Cancelar</button></div>
   </form>
+  {{#if category}}
+    {{#if editing}}
+    <form class="admin-form category-presentation-form" data-category-presentation method="post" action="/admin" novalidate>
+      <div class="category-design-heading"><h2>Imagen e icono</h2>
+        <p class="admin-hint">Diseño compartido por todos los bloques que muestran esta categoría.</p></div>
+      <div class="category-presentation-layout">
+        <div class="category-image-editor">
+          <label for="category-image-file">Imagen</label>
+          <div class="category-image-preview">
+            <img data-category-image {{#if item.image}}src="{{item.image}}"{{/if}} alt="Vista previa de la categoría" width="400" height="300" {{#unless item.image}}hidden{{/unless}}>
+            <span class="category-image-empty" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="m3 16 5-5 4 4 3-3 6 6 M15 7h.01" stroke-linecap="round" stroke-linejoin="round"></path></svg>Sin imagen</span>
+          </div>
+          <input id="category-image-file" type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" aria-describedby="category-image-help">
+          <small id="category-image-help">JPG, PNG o WebP · Hasta 5 MB.</small>
+          <label class="category-remove-image"><input type="checkbox" name="removeImage"> Quitar la imagen guardada</label>
+        </div>
+        <div class="category-presentation-fields">
+          <fieldset class="category-icon-picker"><legend>Icono</legend><div>{{#each item.icons}}<label title="{{label}}"><input type="radio" name="categoryIcon" value="{{id}}" {{#if selected}}checked{{/if}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{path}}"></path></svg><span>{{label}}</span></label>{{/each}}</div></fieldset>
+          <label>Descripción breve<textarea name="categoryDescription" rows="2" maxlength="300" placeholder="Una frase que invite a explorar esta categoría">{{item.description}}</textarea></label>
+          <label>Texto alternativo de la imagen<input name="categoryImageAlt" maxlength="150" value="{{item.imageAlt}}" placeholder="Qué aparece en la foto"><small>Descripción para lectores de pantalla.</small></label>
+        </div>
+      </div>
+      <p data-category-saved role="status" hidden>Diseño de la categoría guardado.</p>
+      <div class="admin-actions"><small>Se guarda por separado de los datos generales.</small><button type="submit">Guardar diseño de categoría</button></div>
+    </form>
+    {{else}}<p class="admin-hint">Guardá la nueva categoría y abrila desde la lista para agregar su imagen, descripción e icono.</p>{{/if}}
+  {{/if}}
 </section>

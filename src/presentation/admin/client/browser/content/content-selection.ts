@@ -6,7 +6,7 @@ export const contentGroups: Record<string, { label: string; fields: string[] }> 
   'blocks.home.about': { label: 'Presentación de la marca', fields: ['features.homeAbout', ...['aboutEyebrow', 'aboutTitle', 'aboutDescription', 'aboutCaption', 'aboutAlt', 'aboutSignature'].map(key => `copy.home.${key}`)] },
   'blocks.information.help': { label: 'Ayuda y contacto', fields: ['helpEyebrow', 'helpTitle', 'helpDescription', 'contactAction'].map(key => `copy.information.${key}`) },
   'blocks.information.legal': { label: 'Datos legales de la tienda', fields: ['contact.legalName', 'contact.taxId', 'contact.legalAddress', 'contact.dataFiscalUrl', 'copy.information.legalEyebrow', 'copy.information.legalTitle'] },
-  'listing': { label: 'Diseño del listado', fields: ['columns', 'pageSize', 'categoriesEnabled', 'countEnabled'].map(key => `listing.${key}`) },
+  'listing': { label: 'Diseño del listado', fields: ['columns', 'pageSize', 'categoriesEnabled', 'filtersEnabled', 'countEnabled'].map(key => `listing.${key}`) },
   'blocks.listing.cards': { label: 'Tarjetas de producto', fields: ['cardCategoryEnabled', 'cardDescriptionEnabled', 'cardPriceEnabled', 'moreLabel'].map(key => `listing.${key}`) },
   'blocks.listing.labels': { label: 'Textos del listado', fields: ['itemSingular', 'itemPlural', 'allCategoriesLabel'].map(key => `listing.${key}`) },
 };
@@ -32,6 +32,7 @@ export function isContentSelection(path: string, read: (path: string) => unknown
 }
 
 export function contentParent(path: string): string | undefined {
+  if (path.startsWith('landing.')) return path.match(/^(landing\.blocks\.\d+(?:\.columns\.\d+\.blocks\.\d+)*)(?:\.|$)/)?.[1];
   const group = Object.entries(contentGroups).find(([, value]) => value.fields.includes(path));
   if (group) return group[0];
   if (path.startsWith('copy.catalog.')) return 'copy.catalog';

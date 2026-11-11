@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/assets/storefront/cart.css">
   <link rel="stylesheet" href="/assets/storefront/shell.css">
   <link rel="stylesheet" href="/assets/storefront/information.css">
-  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+  <link rel="stylesheet" href="{{#if appearancePreviewHref}}{{appearancePreviewHref}}{{else}}/api/v1/catalog/theme.css{{/if}}">
   {{#unless visualPreview}}<script src="/assets/storefront/generated/cart.js" defer></script>{{/unless}}
 </head>
 <body>

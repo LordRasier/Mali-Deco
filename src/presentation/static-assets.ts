@@ -3,8 +3,12 @@ import { join } from 'node:path';
 
 const groups = [
   { prefix: '/assets/storefront', roots: ['cart/public', 'catalog/public', 'products/public', 'home/public', 'shell/public', 'information/public', 'seo/public'],
-    files: ['cart.css', 'catalog.css', 'product.css', 'home.css', 'shell.css', 'information.css', 'analytics.css', 'generated/cart.js', 'generated/analytics.js',
-      'fonts/figtree-variable.woff2', 'fonts/dm-mono-regular.woff2', 'fonts/dm-mono-medium.woff2', 'fonts/OFL-Figtree.txt', 'fonts/OFL-DMMono.txt'] },
+    files: ['cart.css', 'catalog.css', 'product.css', 'home.css', 'landing.css', 'shell.css', 'information.css', 'analytics.css', 'generated/cart.js', 'generated/analytics.js',
+      'fonts/figtree-variable.woff2', 'fonts/dm-mono-regular.woff2', 'fonts/dm-mono-medium.woff2', 'fonts/OFL-Figtree.txt', 'fonts/OFL-DMMono.txt',
+      ...['catalog.css', 'manrope-latin-variable.woff2', 'nunito-sans-latin-variable.woff2', 'outfit-latin-variable.woff2', 'lora-latin-variable.woff2',
+        'libre-baskerville-latin-variable.woff2', 'cormorant-garamond-latin-variable.woff2', 'bitter-latin-variable.woff2',
+        'ibm-plex-mono-latin-400.woff2', 'ibm-plex-mono-latin-500.woff2', 'ibm-plex-mono-latin-600.woff2', 'ibm-plex-mono-latin-700.woff2',
+        'OFL-Manrope.txt', 'OFL-NunitoSans.txt', 'OFL-Outfit.txt', 'OFL-Lora.txt', 'OFL-LibreBaskerville.txt', 'OFL-CormorantGaramond.txt', 'OFL-Bitter.txt', 'OFL-IBMPlexMono.txt'].map(file => `fonts/${file}`)] },
   { prefix: '/assets/admin', roots: ['admin/public'], files: ['admin.css', 'generated/admin.js', 'generated/admin.css', 'content-preview.css'] },
   { prefix: '/assets/checkout', roots: ['checkout/public'], files: ['checkout.css'] },
   { prefix: '/storefront', roots: ['home/public/generated/storefront'],

@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/assets/storefront/catalog.css">
   <link rel="stylesheet" href="/assets/storefront/shell.css">
   {{#unless visualPreview}}<script src="/assets/storefront/generated/cart.js" defer></script>{{/unless}}
-  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+  <link rel="stylesheet" href="{{#if appearancePreviewHref}}{{appearancePreviewHref}}{{else}}/api/v1/catalog/theme.css{{/if}}">
 </head>
 <body>
   <a class="skip-link" href="#main">Ir al contenido</a>
@@ -19,7 +19,7 @@
     <div class="catalog-backdrop" aria-hidden="true">
       <img {{#if visualPreview}}data-editor-path="source.hero"{{/if}} src="/api/v1/catalog/branding/hero" width="1774" height="887" alt="" fetchpriority="high" decoding="async">
     </div>
-  <main id="main" class="catalog-layout" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}" data-listing-columns="{{listing.columns}}" data-listing-categories="{{listing.categoriesEnabled}}" data-listing-count="{{listing.countEnabled}}" data-listing-price="{{listing.cardPriceEnabled}}" data-listing-description="{{listing.cardDescriptionEnabled}}" data-listing-category="{{listing.cardCategoryEnabled}}">
+  <main id="main" class="catalog-layout" tabindex="-1" data-cart-mode="{{mode}}" data-product-base="{{routes.product}}" data-listing-columns="{{listing.columns}}" data-listing-categories="{{listing.categoriesEnabled}}" data-listing-count="{{listing.countEnabled}}" data-listing-price="{{listing.cardPriceEnabled}}" data-listing-description="{{listing.cardDescriptionEnabled}}" data-listing-category="{{listing.cardCategoryEnabled}}"{{#if showFilters}} data-filter-query="{{filterQuery}}" data-filter-action="{{action}}"{{/if}}>
     <header {{#if visualPreview}}data-editor-path="copy.catalog"{{/if}} class="catalog-intro">
       <div><p {{#if visualPreview}}data-editor-path="copy.catalog.eyebrow"{{/if}} class="eyebrow">{{brand}} · {{copy.catalog.eyebrow}}</p><h1 {{#if visualPreview}}data-editor-path="copy.catalog.title"{{/if}}>{{#if categoryName}}{{categoryName}}{{else}}{{copy.catalog.title}}{{/if}}</h1></div>
       <p {{#if visualPreview}}data-editor-path="copy.catalog.description"{{/if}} class="catalog-intro-copy">{{copy.catalog.description}}</p>
@@ -33,13 +33,15 @@
         <a href="{{routes.home}}">Volver al inicio</a>
       </section>
     {{else}}
-      <div class="catalog-body">
-      <div class="catalog-results-column">
       {{#unless failed}}
       <nav {{#if visualPreview}}data-editor-path="listing"{{/if}} class="catalog-categories" aria-label="Categorías">{{#each categories}}{{#if disabled}}<span aria-disabled="true">{{label}}</span>{{else}}<a {{#if @root.visualPreview}}data-editor-path="{{#if @first}}listing.allCategoriesLabel{{else}}source.categories{{/if}}"{{/if}} href="{{href}}" {{#if selected}}aria-current="true"{{/if}}>{{label}}</a>{{/if}}{{/each}}</nav>
       {{#if activeFilters}}<nav class="active-filters" aria-label="Filtros activos">{{#each activeFilters}}<a href="{{href}}">{{label}} ×</a>{{/each}}<a href="{{clear}}">Limpiar todo</a></nav>{{/if}}
       {{#if truncated}}<p>Las opciones de clasificación están limitadas a las primeras 200 por grupo.</p>{{/if}}
       {{/unless}}
+      {{#if showFilters}}<div class="catalog-filter-mobile-bar" {{#if visualPreview}}data-editor-path="listing.filtersEnabled"{{/if}}><button type="button" data-filter-open aria-controls="catalog-mobile-filters" aria-haspopup="dialog" {{#unless visualPreview}}disabled{{/unless}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18 M3 12h18 M3 18h18 M8 3v6 M16 9v6 M9 15v6"></path></svg>Filtrar productos</button></div>{{/if}}
+      <div class="catalog-body{{#if showFilters}} catalog-with-filters{{/if}}">
+      {{#if showFilters}}<aside class="catalog-desktop-filters" aria-label="Filtros del catálogo" {{#if visualPreview}}data-editor-path="listing.filtersEnabled"{{/if}}>{{> catalog_filters filters prefix="desktop" mobile=false}}</aside>{{/if}}
+      <div class="catalog-results-column">
       {{#if failed}}<div role="alert"><p>{{message}}</p><a href="{{retry}}">Reintentar</a></div>
       {{else}}{{#if currencyUnavailable}}<div role="alert"><p>{{message}}</p><a href="{{clear}}">Limpiar filtros</a></div>
       {{else}}
@@ -57,6 +59,7 @@
         </section>
       {{/if}}{{/if}}
       </div></div>
+      {{#if showFilters}}<dialog id="catalog-mobile-filters" class="catalog-filter-dialog" data-filter-dialog aria-labelledby="catalog-filter-title"><header><h2 id="catalog-filter-title">Filtrar productos</h2><button type="button" class="catalog-filter-close" data-filter-close aria-label="Cerrar filtros">×</button></header>{{> catalog_filters filters prefix="mobile" mobile=true}}</dialog>{{/if}}
     {{/if}}
     <noscript>El carrito necesita JavaScript. Puedes explorar la tienda sin activarlo.</noscript>
   </main>

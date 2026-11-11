@@ -4,6 +4,8 @@ import '../product-editor.css';
 import '../variant-drawer.css';
 import '../product-list.css';
 import '../content-studio.css';
+import '../category-presentation.css';
+import '../classification-list.css';
 import { sessionStore } from '../session-store';
 import { mountAdmin } from './admin-dom';
 import { installAdminLifecycle } from './admin-lifecycle';

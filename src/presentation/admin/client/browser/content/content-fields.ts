@@ -1,6 +1,6 @@
 /** Labels and empty blocks for the independent store editor. */
 export const fieldLabels: Record<string, string> = {
-  listing: 'Listado de productos', pageSize: 'Productos por página', categoriesEnabled: 'Mostrar categorías', countEnabled: 'Mostrar cantidad de resultados',
+  listing: 'Listado de productos', pageSize: 'Productos por página', categoriesEnabled: 'Mostrar categorías', filtersEnabled: 'Mostrar filtros laterales', countEnabled: 'Mostrar cantidad de resultados',
   cardCategoryEnabled: 'Mostrar categoría en cada producto', cardDescriptionEnabled: 'Mostrar descripción', cardPriceEnabled: 'Mostrar precio', moreLabel: 'Texto del enlace al producto',
   itemSingular: 'Nombre de un resultado', itemPlural: 'Nombre de varios resultados', allCategoriesLabel: 'Etiqueta de todas las categorías',
   legalEyebrow: 'Texto superior de datos legales', legalTitle: 'Título de datos legales', indexTitle: 'Título del índice', contactTitle: 'Título de canales de atención', hoursLabel: 'Etiqueta de horarios',

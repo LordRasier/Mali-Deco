@@ -1,15 +1,17 @@
 import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { assertMinorUnits } from '../models/price';
+import type { CategoryPresentations } from './category-presentation';
+import type { CategoryPresentation } from '../../../shared/category-presentation';
 
 const MAX_CHOICES = 200;
-interface LookupRow { id: string; slug: string; name: string; sortOrder: number }
+interface LookupRow { id: string; slug: string; name: string; sortOrder: number; presentation?: CategoryPresentation }
 interface ColorRow extends LookupRow { hex: string | null }
 interface PriceRow { minMinor: string | number | null; maxMinor: string | number | null }
 
 /** Public metadata is global, not narrowed by current search or selected taxonomy filters. */
 export class PublicFacets {
-  constructor(private readonly db?: DataSource) {}
+  constructor(private readonly db?: DataSource, private readonly presentations?: Pick<CategoryPresentations, 'decorate'>) {}
 
   async get(query: Record<string, unknown> = {}) {
     if (Object.keys(query).some((key) => key !== 'currency') ||
@@ -56,7 +58,7 @@ export class PublicFacets {
       }
     }
     return {
-      categories: categories.slice(0, MAX_CHOICES), materials: materials.slice(0, MAX_CHOICES), colors: colors.slice(0, MAX_CHOICES),
+      categories: this.presentations ? await this.presentations.decorate(categories.slice(0, MAX_CHOICES)) : categories.slice(0, MAX_CHOICES), materials: materials.slice(0, MAX_CHOICES), colors: colors.slice(0, MAX_CHOICES),
       currencies: currencies.map((row) => row.currency), priceRange,
       truncated: { categories: categories.length > MAX_CHOICES, materials: materials.length > MAX_CHOICES, colors: colors.length > MAX_CHOICES },
     };

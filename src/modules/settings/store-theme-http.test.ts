@@ -4,10 +4,12 @@ import { test } from 'node:test';
 import { Test } from '@nestjs/testing';
 import { StoreSettings } from './store-settings';
 import { StoreThemeController } from './store-theme.controller';
+import { ContentSettings } from './content-settings';
 
 test('public theme is a noncached stylesheet without exposing private settings', async () => {
   const module = await Test.createTestingModule({ controllers: [StoreThemeController], providers: [
     { provide: StoreSettings, useValue: { get: async () => ({ name: 'Private fixture', primaryColor: '#bb1122' }) } },
+    { provide: ContentSettings, useValue: new ContentSettings() },
   ] }).compile();
   const app = module.createNestApplication({ logger: false });
   try {

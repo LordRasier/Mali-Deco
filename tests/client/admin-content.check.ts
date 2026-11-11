@@ -9,7 +9,7 @@ import { normalizeSections } from '../../src/modules/settings/content-validation
 class Node extends EventTarget {
   children: Node[] = []; parent?: Node; dataset: Record<string, string> = {}; attributes = new Map<string, string>();
   disabled = false; value = ''; checked = false; open = false; hidden = false; textContent = ''; type = ''; className = ''; srcdoc = '';
-  classList = { add: () => {}, toggle: () => {} }; contentDocument: Node | null = null; contentWindow = null;
+  classList = { add: () => {}, toggle: () => {}, remove: () => {} }; contentDocument: Node | null = null; contentWindow = null;
   constructor(readonly tagName = 'DIV') { super(); }
   get options() { return this.children; }
   get parentElement() { return this.parent; }
@@ -34,21 +34,23 @@ class Node extends EventTarget {
 }
 
 test('visual editor saves drafts separately, publishes deliberately and preserves local changes on conflicts', async () => {
-  const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch };
+  const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch, cancelAnimationFrame: globalThis.cancelAnimationFrame };
   const form = new Node('FORM'), fields = new Node('FIELDSET'), editor = new Node(), message = new Node(), reload = new Node('BUTTON');
-  const nodes: Record<string, Node> = { fields, editor, message, reload, outline: new Node(), pages: new Node(), state: new Node(), scope: new Node('SELECT'), preview: new Node(), 'preview-status': new Node(), selection: new Node(), viewport: new Node('SELECT') };
+  const nodes: Record<string, Node> = { fields, editor, message, reload, library: new Node(), outline: new Node(), pages: new Node(), state: new Node(), scope: new Node('SELECT'), preview: new Node(), 'preview-status': new Node(), selection: new Node(), viewport: new Node('SELECT') };
   for (const [key, node] of Object.entries(nodes)) node.dataset['content' + key.replace(/(^|-)([a-z])/g, (_, _dash: string, letter: string) => letter.toUpperCase())] = '';
   const buttons = Object.fromEntries(['draft', 'publish', 'restore', 'undo', 'redo'].map(key => { const button = new Node('BUTTON'); button.dataset.contentCommand = key; return [key, button]; }));
   form.append(fields, message, reload); fields.append(editor, ...Object.entries(nodes).filter(([key]) => !['fields', 'editor', 'message', 'reload'].includes(key)).map(([, node]) => node), ...Object.values(buttons));
   const root = { querySelector: () => form } as unknown as HTMLElement;
+  const properties = new Node(); properties.dataset.contentPanel = 'properties'; fields.append(properties);
   let confirmReload = false, writes = 0, reads = 0, conflict = false;
   const previewTargets: string[] = [];
   let published = normalizeSections(defaultContentConfig());
   let stored = { settings: structuredClone(published), revision: 0, publishedRevision: 0, available: true, hasDraft: false, stale: false };
   const session = createSessionStore(async () => ({ user: { id: 'qa', email: 'qa@example.test', role: 'owner' }, csrf: 'qa-csrf' }) as never);
   await session.login('qa', 'qa');
-  globalThis.document = { createElement: (name: string) => new Node(name.toUpperCase()), activeElement: null } as unknown as Document;
-  globalThis.window = Object.assign(new EventTarget(), { confirm: () => confirmReload }) as unknown as Window & typeof globalThis;
+  globalThis.document = Object.assign(new EventTarget(), { createElement: (name: string) => new Node(name.toUpperCase()), activeElement: null }) as unknown as Document;
+  globalThis.window = Object.assign(new EventTarget(), { confirm: () => confirmReload, matchMedia: () => Object.assign(new EventTarget(), { matches: false }) }) as unknown as Window & typeof globalThis;
+  globalThis.cancelAnimationFrame = () => {};
   globalThis.fetch = async (url, options) => {
     const path = String(url);
     if (path.endsWith('/preview')) { previewTargets.push(JSON.parse(String(options?.body)).target); return new Response(JSON.stringify({ html: '<!doctype html><p>Preview</p>' })); }
@@ -70,6 +72,27 @@ test('visual editor saves drafts separately, publishes deliberately and preserve
   const dispose = mountContentEditor(root, session);
   try {
     await settle(); assert.equal(reads, 1); assert.equal(fields.disabled, false);
+    select('appearance');
+    for (const path of ['appearance.headingFont', 'appearance.bodyFont']) {
+      assert.equal(control(path).options.length, 13, 'Original plus twelve platform-approved fonts');
+      assert.ok(control(path).options.some(option => option.value === 'lora'));
+      assert.ok(control(path).options.some(option => option.value === 'manrope'));
+    }
+    assert.equal(editor.querySelectorAll('input').some(input => input.type === 'file'), false, 'Appearance never offers a font upload');
+    change('appearance.bodyFont', 'manrope');
+    assert.equal(editor.querySelectorAll('p').find(node => node.className === 'content-font-sample')?.dataset.font, 'manrope', 'Default heading sample follows the selected body font');
+    change('appearance.bodyFont', '');
+    assert.equal(control('appearance.backgroundColor')?.type, 'color');
+    change('appearance.backgroundColor', '#f0e8d8'); change('appearance.headingFont', 'georgia');
+    assert.equal(control('appearance.headingFont').value, 'georgia');
+    dispatch(form, buttons.undo, 'click'); assert.equal(control('appearance.headingFont').value, '');
+    dispatch(form, buttons.redo, 'click'); assert.equal(control('appearance.headingFont').value, 'georgia');
+    const reset = editor.querySelectorAll('[data-content-reset]').find(n => n.dataset.contentReset === 'appearance.backgroundColor')!;
+    assert.ok(reset); dispatch(form, reset, 'click'); assert.equal(control('appearance.backgroundColor').value, '#ffffff');
+    assert.equal(writes, 0, 'Appearance edits and reset are local until Save or Publish');
+    change('appearance.backgroundColor', '#abcdef');
+    dispatch(form, editor.querySelectorAll('[data-content-reset]').find(n => n.dataset.contentReset === 'appearance.backgroundColor')!, 'click');
+    dispatch(form, buttons.undo, 'click'); assert.equal(control('appearance.backgroundColor').value, '#abcdef', 'Reset is a separate undo step even immediately after editing');
     assert.equal(nodes.pages.children.length, 3, 'Page groups separate shop, information and legal topics');
     assert.equal(nodes.pages.querySelectorAll('[data-content-page]').length, 12);
     const branches = () => nodes.outline.querySelectorAll('[data-content-branch]');

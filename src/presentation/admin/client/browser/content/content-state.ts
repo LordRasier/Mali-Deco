@@ -30,12 +30,12 @@ export class ContentHistory {
     if (!key || this.lastEdit !== key || now - this.lastTime > 750) { this.past.push(this.value); if (this.past.length > 50) this.past.shift(); }
     this.value = next; this.future = []; this.lastEdit = key; this.lastTime = now;
   }
-  set(path: string, value: unknown) {
+  set(path: string, value: unknown, coalesce = true) {
     this.edit(draft => {
       const parts = path.split('.'), key = parts.pop()!, parent = parts.length ? contentAt(draft, parts.join('.')) : draft;
       if (contentAt(draft, path) === undefined || !parent || typeof parent !== 'object') throw Error('El campo ya no existe.');
       (parent as ContentTree)[key] = value;
-    }, path);
+    }, coalesce ? path : '');
   }
   undo() { const value = this.past.pop(); if (value) { this.future.push(this.value); this.value = value; this.lastEdit = ''; } }
   redo() { const value = this.future.pop(); if (value) { this.past.push(this.value); this.value = value; this.lastEdit = ''; } }

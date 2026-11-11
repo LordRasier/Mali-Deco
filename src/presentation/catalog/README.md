@@ -9,7 +9,7 @@ El controlador conserva parámetros repetidos hasta validar la URL. El orquestad
 ## Estados y límites
 
 - URL inválida: HTML 400, sin leer servicios; limpiar requiere una acción explícita.
-- Moneda ausente: redirect local a la primera moneda publicada en metadatos, preservando filtros y reiniciando página. Nunca asumir ARS en datos reales.
+- Moneda ausente: se utiliza ARS si está publicada; si no, la primera moneda disponible. Se conservan filtros y página sin redirección. Los controles reciben esa moneda desde el estado renderizado en el servidor.
 - Moneda solicitada no disponible: aviso explícito; no sustituirla ni mostrar otros productos.
 - Error de servicio: HTML 503 sin datos demo ni formularios que puedan descartar filtros. Reintentar conserva la consulta.
 - Demo: solo modo explícito de desarrollo; no llama a servicios de base y conserva `noindex`.
@@ -24,11 +24,13 @@ El icono de información mide 30 × 30 px. Su ventana muestra solo la descripci�
 
 Si el producto tiene descripción, la tarjeta la muestra debajo de la compra, tras un separador: misma tipografía discreta del aviso de selección, máximo dos líneas con puntos suspensivos y «Ver más» para abrir la información completa. Sin JavaScript, ese enlace conserva la ficha individual; las descripciones vacías no generan un bloque de relleno.
 
-La grilla muestra tres columnas desde 1024 px, dos desde 600 px y una en pantallas menores. Los parámetros GET de búsqueda, ordenación, filtros y paginación siguen admitidos, aunque sus controles de edición no se presentan.
+La grilla muestra tres columnas por defecto desde 1024 px (configurables en 2, 3 o 4), dos desde 600 px y una en pantallas menores. Los parámetros GET de búsqueda, ordenación, filtros y paginación siguen admitidos.
 
 El encabezado del catálogo está centrado, con las categorías reales debajo en cápsulas outline de igual ancho (156 px; dos columnas iguales en móvil). La selección mantiene el azul de la marca y conserva los parámetros de los filtros. El fondo general es blanco; las tarjetas compartidas se distinguen con un borde negro de 1 px al 20 % de opacidad, sin sombra.
 
-La navegación visible del catálogo utiliza las categorías, sin barra de búsqueda/ordenación ni panel de filtros. El título principal aparece una sola vez; sobre las tarjetas queda únicamente el contador de resultados. La búsqueda de la cabecera global está retirada temporalmente; los parámetros de enlaces existentes, sus acciones de limpieza y la paginación siguen funcionando.
+La navegación visible utiliza las categorías y, opcionalmente, un panel de filtros. `listing.filtersEnabled` se edita en Catálogo → Diseño del listado, se previsualiza en el borrador y llega a la tienda al publicar. Su valor inicial es `false`, incluido el contenido guardado antes de existir la opción. Activarlo muestra categoría, material, color, moneda y precio junto a la grilla desde 1024 px; en pantallas menores, un botón abre un diálogo con Aplicar/Cancelar. Las categorías superiores se controlan por separado. No requiere cambios de esquema de base de datos.
+
+Los filtros navegan a `/catalogo` mediante GET, conservan los demás parámetros y reinician la página. El estado inicial proviene del servidor: incluye la moneda predeterminada y la categoría implícita en `/categorias/:slug`. En móvil los cambios son un borrador hasta elegir Ver resultados; cerrar, cancelar o Escape los descarta. El título principal aparece una sola vez; sobre las tarjetas queda el contador de resultados. La búsqueda de la cabecera global está retirada temporalmente; los parámetros de enlaces existentes, sus acciones de limpieza y la paginación siguen funcionando.
 
 La cabecera del catálogo reutiliza el banner local del inicio como fondo decorativo de ancho completo. Tiene desenfoque suave y un degradado hacia blanco; no intercepta interacciones ni se anuncia como imagen de producto. Las tarjetas conservan el ancho máximo de 1280 px y su fondo blanco, sin modificar la imagen ni el banner del inicio.
 

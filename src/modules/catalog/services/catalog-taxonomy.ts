@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { DataSource, EntityManager, EntitySchema, IsNull } from 'typeorm';
 import { CategorySchema, ColorSchema, MaterialSchema, TaxonomyRow } from '../models/catalog.entities';
 import { parseCatalogQuery } from '../validation/catalog-validation';
+import type { CategoryPresentations } from './category-presentation';
+import type { CategoryPresentation } from '../../../shared/category-presentation';
 
 export type TaxonomyGroup = 'categories' | 'materials' | 'colors';
 export interface TaxonomyInput { slug?: string; name: string; sortOrder?: number; hex?: string | null }
@@ -46,7 +48,7 @@ function fields(group: TaxonomyGroup, input: TaxonomyInput, create: boolean) {
     ...(group === 'colors' && (create || input.hex !== undefined) ? { hex: input.hex?.toUpperCase() ?? null } : {}) };
 }
 export class CatalogTaxonomy {
-  constructor(private readonly db?: DataSource) {}
+  constructor(private readonly db?: DataSource, private readonly presentations?: Pick<CategoryPresentations, 'decorate'>) {}
   private database(): DataSource {
     if (!this.db?.isInitialized) throw new ServiceUnavailableException('Catalog database unavailable');
     return this.db;
@@ -57,7 +59,8 @@ export class CatalogTaxonomy {
     const [items, total] = await this.database().getRepository(groups[group].schema).findAndCount({
       where: { archivedAt: IsNull() }, order: { sortOrder: 'ASC', name: 'ASC', id: 'ASC' }, skip: (page - 1) * limit, take: limit,
     });
-    return { items, page, limit, total };
+    const decorated: Array<TaxonomyRow & { presentation?: CategoryPresentation }> = group === 'categories' && this.presentations ? await this.presentations.decorate(items) : items;
+    return { items: decorated, page, limit, total };
   }
   async create(group: TaxonomyGroup, input: TaxonomyInput) {
     const values = fields(group, input, true);

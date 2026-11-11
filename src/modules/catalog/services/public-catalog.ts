@@ -3,7 +3,7 @@ import { DataSource, IsNull } from 'typeorm';
 import { ProductSchema, SettingsSchema, VariantSchema } from '../models/catalog.entities';
 import { parseCatalogQuery } from '../validation/catalog-validation';
 import { assertMinorUnits } from '../models/price';
-import { listPublicProducts } from '../queries/public-listing';
+import { listPublicProducts, selectedPublicProducts } from '../queries/public-listing';
 import { readPublicImages } from '../queries/public-images';
 import { publicVariantOptions } from '../queries/public-variant-options';
 
@@ -35,6 +35,7 @@ export class PublicCatalog {
   async list(query: Record<string, unknown>): Promise<CompatibleListing> {
     return listPublicProducts(this.database(), query);
   }
+  async selected(ids: string[]): Promise<CompatibleListing> { return selectedPublicProducts(this.database(), ids); }
 
   async detail(slug: string, query: Record<string, unknown> = {}) {
     const { page, limit } = parseCatalogQuery(query);

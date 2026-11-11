@@ -15,11 +15,13 @@
       <aside class="content-sidebar" id="content-sidebar" aria-label="Controles del editor">
         <div class="content-sidebar-heading"><strong>Controles</strong><button type="button" data-content-close>Cerrar panel</button></div>
         <div class="content-panel-tabs" role="tablist" aria-label="Panel del editor">
+          <button type="button" role="tab" id="content-tab-library" data-content-tab="library" aria-controls="content-panel-library" aria-selected="false" tabindex="-1">Bloques</button>
           <button type="button" role="tab" id="content-tab-pages" data-content-tab="pages" aria-controls="content-panel-pages" aria-selected="true">Páginas</button>
           <button type="button" role="tab" id="content-tab-structure" data-content-tab="structure" aria-controls="content-panel-structure" aria-selected="false" tabindex="-1">Estructura</button>
           <button type="button" role="tab" id="content-tab-properties" data-content-tab="properties" aria-controls="content-panel-properties" aria-selected="false" tabindex="-1">Propiedades</button>
         </div>
         <div class="content-sidebar-scroll">
+          <section id="content-panel-library" role="tabpanel" aria-labelledby="content-tab-library" data-content-panel="library" hidden><p class="content-panel-hint">Arrastrá hasta la página. El espacio azul anticipa dónde se acoplará. Un clic agrega el bloque al final.</p><div class="block-library" data-content-library></div></section>
           <section id="content-panel-pages" role="tabpanel" aria-labelledby="content-tab-pages" data-content-panel="pages">
             <p class="content-panel-hint">Elegí la página que querés editar. Los cambios se guardan como borrador.</p>
             <nav data-content-pages aria-label="Páginas de la tienda"></nav>
@@ -36,6 +38,7 @@
       </aside>
       <div class="content-stage">
         <div class="content-stage-controls">
+          <button type="button" data-content-select="appearance">Apariencia general</button>
           <button type="button" data-content-toggle aria-controls="content-sidebar" aria-expanded="true">Ocultar panel</button>
           <label><span class="sr-only">Tamaño de vista previa</span><select data-content-viewport aria-label="Tamaño de vista previa"><option value="desktop">Escritorio</option><option value="tablet">Tablet · 768 px</option><option value="mobile">Móvil · 390 px</option></select></label>
           <a class="content-open-store" href="/" target="_blank" rel="noopener noreferrer">Ver tienda</a>

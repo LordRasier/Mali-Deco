@@ -29,10 +29,11 @@ import { PublicCartResolver } from '../modules/catalog/cart/cart-resolver';
 import { IdentityModule } from '../modules/identity/identity.module';
 import { ContentPreviewController } from './admin/content/content-preview.controller';
 import { ContentSettings } from '../modules/settings/content-settings';
+import { ContentChoicesController } from './admin/content/content-choices.controller';
 
 @Module({
   imports: [IdentityModule, CatalogModule, AdminPresentationModule, SettingsModule],
-  controllers: [MvcHomeController, MvcCatalogController, MvcProductController, MvcCartController, ShippingReturnsController, InformationController, DiscoveryController, CategoryController, ContentPreviewController],
+  controllers: [MvcHomeController, MvcCatalogController, MvcProductController, MvcCartController, ShippingReturnsController, InformationController, DiscoveryController, CategoryController, ContentPreviewController, ContentChoicesController],
 })
 export class PresentationModule {
   /** One immutable rendering configuration per application; request/Host data never selects routes or mode. */
@@ -50,7 +51,7 @@ export class PresentationModule {
       { provide: INFORMATION_CHECKOUT_ENABLED, useValue: checkout },
       { provide: STORE_INFORMATION, useFactory: (settings: StoreSettings) => new StoreInformationReader(initialInformation, settings), inject: [StoreSettings] },
       { provide: CartPage, useFactory: (catalog: PublicCatalog, routes: StorefrontRoutes) => new CartPage(catalog, mode, routes, config), inject: [PublicCatalog, STOREFRONT_ROUTES] },
-      { provide: HomePage, useFactory: (catalog: PublicCatalog, routes: StorefrontRoutes) => new HomePage(catalog, mode, routes, config), inject: [PublicCatalog, STOREFRONT_ROUTES] },
+      { provide: HomePage, useFactory: (catalog: PublicCatalog, routes: StorefrontRoutes, content: ContentSettings, facets: PublicFacets) => new HomePage(catalog, mode, routes, config, content, facets), inject: [PublicCatalog, STOREFRONT_ROUTES, ContentSettings, PublicFacets] },
       { provide: CatalogPage, useFactory: (catalog: PublicCatalog, facets: PublicFacets, routes: StorefrontRoutes, content: ContentSettings) => new CatalogPage(catalog, facets, mode, routes, config, content), inject: [PublicCatalog, PublicFacets, STOREFRONT_ROUTES, ContentSettings] },
       { provide: ProductPage, useFactory: (catalog: PublicCatalog, routes: StorefrontRoutes, resolver: PublicCartResolver) => new ProductPage(catalog, mode, config, routes, resolver), inject: [PublicCatalog, STOREFRONT_ROUTES, PublicCartResolver] },
     ] };

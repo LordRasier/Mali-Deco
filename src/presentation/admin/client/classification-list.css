@@ -1,0 +1,63 @@
+.admin-root .classification-list{max-width:1120px;padding-block:20px 32px}
+.classification-list button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.admin-root .classification-list .classification-back{min-height:30px;padding:4px 0;margin-bottom:10px;font-size:12px;line-height:20px}
+.admin-root .classification-list .section-heading{align-items:center;gap:12px;margin-bottom:16px}
+.classification-list .section-heading h1{font-size:28px}
+.classification-list .section-heading p{font-size:12px;margin-top:6px}
+.admin-root .classification-list .classification-create{min-height:34px;padding:6px 12px;font-size:12px;white-space:nowrap}
+.classification-list .classification-panel{padding:0;margin-bottom:12px;overflow:hidden}
+.classification-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--admin-line)}
+.classification-list .taxonomy-tabs{gap:4px;margin:0}
+.classification-list .taxonomy-tabs button{min-height:32px;padding:5px 12px;border:1px solid transparent;background:transparent;color:var(--admin-muted);font-size:12px;border-radius:5px}
+.classification-list .taxonomy-tabs [aria-current="page"]{background:#eaf4fa;color:#09517e;border-color:#c6e0ed;font-weight:600}
+.classification-total{font-size:12px;color:var(--admin-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.admin-root .classification-table{table-layout:fixed;font-size:13px}
+.admin-root .classification-table th,.admin-root .classification-table td{padding:10px 16px;vertical-align:middle;min-width:0;line-height:20px}
+.classification-table thead{background:#f8fafc}
+.classification-table thead th{font-size:11px;font-weight:600}
+.classification-table .classification-slug{width:25%;color:var(--admin-muted);font-size:12px}
+.classification-slug>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.classification-table .classification-order{width:80px;text-align:center;font-variant-numeric:tabular-nums}
+.classification-table .classification-color{width:100px;font-size:12px}
+.classification-table .classification-actions-cell{width:200px;text-align:right}
+.classification-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.classification-identity strong{font-weight:600;overflow-wrap:anywhere}
+.classification-thumbnail{display:grid;place-items:center;flex:0 0 36px;height:36px;background:#f0f5f9;color:#47738c;border:1px solid #e1e8ee;border-radius:6px;overflow:hidden}
+.classification-thumbnail img{display:block;width:36px;height:36px;object-fit:cover}
+.classification-thumbnail svg{width:20px;height:20px}
+.classification-row-actions,.classification-page-actions{display:flex;justify-content:flex-end;align-items:center;gap:6px}
+.admin-root .classification-row-actions .classification-action{width:80px;min-height:32px;padding:5px 8px;border:1px solid var(--admin-line);border-radius:5px;background:#fff;color:#42536a;font-size:12px;line-height:20px;font-weight:500}
+.classification-action svg{width:14px;height:14px;flex-shrink:0}
+.admin-root .classification-row-actions .classification-edit{color:#09618b;background:#f3f9fc;border-color:#cfe0ea}
+.admin-root .classification-row-actions .classification-edit:hover:not(:disabled){background:#e5f2fa;border-color:#a8cbdf}
+.admin-root .classification-row-actions .classification-archive:hover:not(:disabled){color:#a03930;background:#fff4f2;border-color:#e6beb8}
+.classification-table tbody tr:hover{background:#fafcfd}
+.classification-list .pagination{justify-content:space-between;margin:0;padding:12px 16px;border-top:1px solid var(--admin-line);font-size:12px}
+.classification-list .pagination button{min-height:32px;padding:5px 10px;font-size:12px;border:1px solid var(--admin-line);border-radius:5px}
+.classification-list .pagination button:disabled{opacity:.45}
+.admin-root .classification-list .classification-footnote{margin:0;color:var(--admin-muted);font-size:11px;line-height:18px}
+.classification-empty{padding:32px 16px;text-align:center;color:var(--admin-muted);font-size:13px}
+.classification-mobile-label{display:none}
+@media(max-width:700px){
+  .classification-list .section-heading h1{font-size:25px}
+  .classification-toolbar{flex-wrap:wrap;gap:8px;padding:10px 12px}
+  .classification-list .taxonomy-tabs{flex-wrap:nowrap}
+  .classification-list .taxonomy-tabs button{padding-inline:10px}
+  .admin-root .classification-table{display:table;overflow:visible}
+  .classification-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .classification-table tbody{display:block}
+  .classification-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:12px;border-bottom:1px solid #edf0f3}
+  .classification-table tbody tr:last-child{border-bottom:0}
+  .admin-root .classification-table td{width:auto;padding:0;border:0;min-width:0}
+  .classification-table .classification-name{grid-area:1/1}
+  .classification-table .classification-order{grid-area:1/2;font-size:11px;text-align:right;color:var(--admin-muted)}
+  .classification-table .classification-slug{grid-area:2/1;font-size:11px}
+  .admin-root .classification-table-categories .classification-slug{padding-left:46px}
+  .classification-table .classification-actions-cell{grid-area:2/2}
+  .classification-table .classification-color{grid-area:3/1}
+  .classification-mobile-label{display:inline}
+  .admin-root .classification-row-actions .classification-action{width:32px;min-width:32px;padding:6px}
+  .classification-row-actions .classification-action span{display:none}
+  .classification-list .pagination{padding:10px 12px;gap:8px;font-size:11px}
+}
+@media(pointer:coarse){.admin-root .classification-row-actions .classification-action,.classification-list .pagination button,.classification-list .taxonomy-tabs button{min-height:44px;min-width:44px}}

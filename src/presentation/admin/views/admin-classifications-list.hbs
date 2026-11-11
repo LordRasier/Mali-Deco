@@ -1,15 +1,24 @@
-<section class="admin-main" data-admin-section="classifications" data-classification-view="list" data-classification-kind="{{kind}}" data-classification-page="{{page}}" aria-label="Clasificaciones">
-  <button type="button" class="link-button" data-classification-action="products">Volver al catálogo</button>
-  <div class="section-heading"><div><span class="eyebrow">Catálogo</span><h1>Clasificaciones</h1><p>Opciones que se pueden asignar a artículos y variantes.</p></div><button type="button" class="primary" data-classification-action="create">Agregar opción</button></div>
-  <nav class="taxonomy-tabs" aria-label="Tipo de clasificación">{{#each tabs}}<button type="button" data-classification-action="kind" data-classification-kind="{{id}}" {{#if selected}}aria-current="page"{{/if}}>{{label}}</button>{{/each}}</nav>
+<section class="admin-main classification-list" data-admin-section="classifications" data-classification-view="list" data-classification-kind="{{kind}}" data-classification-page="{{page}}" aria-label="Clasificaciones">
+  <button type="button" class="link-button classification-back" data-classification-action="products"><span aria-hidden="true">←</span> Volver al catálogo</button>
+  <div class="section-heading"><div><h1>Clasificaciones</h1><p>Categorías, materiales y colores del catálogo.</p></div><button type="button" class="primary classification-create" data-classification-action="create"><span aria-hidden="true">＋</span> {{#if category}}Nueva categoría{{else}}Agregar opción{{/if}}</button></div>
   <p data-classification-message class="notice error" role="alert" hidden></p><p data-classification-loading role="status" hidden>Cargando opciones…</p><button type="button" data-classification-action="retry" hidden>Reintentar lectura</button>
-  <div class="panel"><h2>{{title}}</h2>
-    {{#if items}}<div class="table-scroll"><table class="data-table"><thead><tr><th scope="col">Nombre</th><th scope="col">Identificador</th><th scope="col">Orden</th>{{#if color}}<th scope="col">Color</th>{{/if}}<th scope="col">Acciones</th></tr></thead><tbody>
-      {{#each items}}<tr><td>{{name}}</td><td>{{slug}}</td><td>{{sortOrder}}</td>{{#if ../color}}<td>{{hex}}</td>{{/if}}<td><button type="button" data-classification-action="edit" data-classification-id="{{id}}">Editar</button><button type="button" class="danger" data-classification-action="archive" data-classification-id="{{id}}">Archivar</button></td></tr>{{/each}}
-    </tbody></table></div>{{else}}<p class="empty-state">No hay opciones en esta página.</p>{{/if}}
-    <nav class="pagination" aria-label="Paginación de clasificaciones"><span>Página {{page}} de {{pages}} · {{total}} en total</span><div>
+  <div class="panel classification-panel">
+    <div class="classification-toolbar"><nav class="taxonomy-tabs" aria-label="Tipo de clasificación">{{#each tabs}}<button type="button" data-classification-action="kind" data-classification-kind="{{id}}" {{#if selected}}aria-current="page"{{/if}}>{{label}}</button>{{/each}}</nav><span class="classification-total">Total: {{total}}</span></div>
+    {{#if items}}<div class="table-scroll"><table class="data-table classification-table {{#if category}}classification-table-categories{{/if}}"><caption class="sr-only">{{title}}</caption><thead><tr><th scope="col">Nombre</th><th scope="col" class="classification-slug">Identificador</th><th scope="col" class="classification-order">Orden</th>{{#if color}}<th scope="col" class="classification-color">Color</th>{{/if}}<th scope="col" class="classification-actions-cell">Acciones</th></tr></thead><tbody>
+      {{#each items}}<tr>
+        <td class="classification-name"><div class="classification-identity">{{#if ../category}}<span class="classification-thumbnail">{{#if image}}<img src="{{image}}" alt="" width="36" height="36" loading="lazy">{{else}}{{#each icons}}{{#if selected}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{path}}"></path></svg>{{/if}}{{/each}}{{/if}}</span>{{/if}}<strong>{{name}}</strong></div></td>
+        <td class="classification-slug"><span title="{{slug}}">{{slug}}</span></td>
+        <td class="classification-order"><span class="classification-mobile-label">Orden </span>{{sortOrder}}</td>
+        {{#if ../color}}<td class="classification-color"><span class="classification-mobile-label">Color </span>{{hex}}</td>{{/if}}
+        <td class="classification-actions-cell"><div class="classification-row-actions">
+          <button type="button" class="classification-action classification-edit" data-classification-action="edit" data-classification-id="{{id}}" aria-label="Editar {{name}}" title="Editar {{name}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4 M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"></path></svg><span>Editar</span></button>
+          <button type="button" class="classification-action classification-archive" data-classification-action="archive" data-classification-id="{{id}}" aria-label="Archivar {{name}}" title="Archivar {{name}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v4H3z M5 8v12h14V8 M10 12h4"></path></svg><span>Archivar</span></button>
+        </div></td>
+      </tr>{{/each}}
+    </tbody></table></div>{{else}}<p class="classification-empty">{{#if category}}No hay categorías en esta página.{{else}}No hay opciones en esta página.{{/if}}</p>{{/if}}
+    <nav class="pagination" aria-label="Paginación de clasificaciones"><span>Página {{page}} de {{pages}}</span><div class="classification-page-actions">
       <button type="button" data-classification-action="page" data-classification-page="{{previousPage}}" {{#unless hasPrevious}}disabled{{/unless}}>Anterior</button>
       <button type="button" data-classification-action="page" data-classification-page="{{nextPage}}" {{#unless hasNext}}disabled{{/unless}}>Siguiente</button>
     </div></nav>
-  </div><p class="muted">Las opciones en uso no se pueden archivar. Las asignaciones se cambian desde cada artículo o variante.</p>
+  </div><p class="classification-footnote">Las opciones en uso no se pueden archivar. Cambiá sus asignaciones desde el catálogo.</p>
 </section>

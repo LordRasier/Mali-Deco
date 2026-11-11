@@ -1,0 +1,39 @@
+<section id="{{anchor}}" class="landing-block {{frameClasses}}" data-landing-id="{{id}}" {{#if preview}}data-editor-path="{{editorPath}}" data-block-hidden="{{disabled}}"{{/if}}>
+  {{#if preview}}<button type="button" class="landing-handle" data-builder-move="{{id}}" aria-label="Mover {{label}}">⠿ {{label}}{{#if disabled}} · Oculto{{/if}}</button>{{/if}}
+  <div class="landing-block-content {{classes}} {{#if hero}}home-hero{{/if}} {{#if products}}home-catalog{{/if}} {{#if textImage}}home-about{{/if}} {{#if promotion}}landing-promotion{{/if}}">
+  {{#if hero}}
+    {{#if image}}<picture class="home-hero-picture">{{#if mobileImage}}<source media="(max-width:700px)" srcset="{{mobileImage}}">{{/if}}<img src="{{image}}" alt="{{alt}}" width="1774" height="887" decoding="async" {{#if primaryHeading}}fetchpriority="high"{{else}}loading="lazy"{{/if}}></picture>{{/if}}
+    <div class="home-hero-copy"><p class="home-hero-eyebrow">{{eyebrow}}</p>
+      {{#if primaryHeading}}<h1>{{title}} <span>{{accent}}</span></h1>{{else}}<h2>{{title}} <span>{{accent}}</span></h2>{{/if}}
+      <p class="home-hero-description">{{description}}</p>{{#if href}}{{#if action}}<a class="home-button" href="{{href}}">{{action}} <span aria-hidden="true">→</span></a>{{/if}}{{/if}}<p class="home-hero-note">{{note}}</p>
+    </div>
+  {{/if}}
+  {{#if products}}
+    <div class="home-heading"><div><p class="eyebrow">{{eyebrow}}</p><h2>{{title}}<span aria-hidden="true">.</span></h2></div>{{#if href}}{{#if action}}<a href="{{href}}">{{action}} →</a>{{/if}}{{/if}}</div>
+    <div class="catalog-grid landing-grid" data-columns="{{propsColumns}}" data-mobile-columns="{{mobileColumns}}">{{#each cards}}{{> catalog_card}}{{else}}<p class="home-empty">{{empty}}</p>{{/each}}</div>
+  {{/if}}
+  {{#if categories}}
+    <div class="home-heading"><div><h2>{{title}}</h2><p>{{description}}</p></div></div>
+    <div class="landing-grid landing-categories" data-card-style="{{cardStyle}}" data-text-position="{{textPosition}}" data-columns="{{propsColumns}}" data-mobile-columns="{{mobileColumns}}">
+      {{#each items}}<a class="category-card" href="{{href}}">
+        <span class="category-card-media">{{#if image}}<img src="{{image}}" alt="{{imageAlt}}" width="800" height="800" loading="lazy" decoding="async">{{else}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{iconPath}}"></path></svg>{{/if}}</span>
+        <span class="category-card-body"><span class="category-card-title">{{name}}</span>{{#if description}}<span class="category-card-description">{{description}}</span>{{/if}}</span>
+        <span class="category-card-arrow" aria-hidden="true">↗</span>
+      </a>{{else}}<p>No hay categorías con productos publicados.</p>{{/each}}
+    </div>
+  {{/if}}
+  {{#if textImage}}
+    {{#if image}}<figure class="home-about-art"><picture>{{#if mobileImage}}<source media="(max-width:700px)" srcset="{{mobileImage}}">{{/if}}<img src="{{image}}" alt="{{alt}}" width="1024" height="683" loading="lazy" decoding="async"></picture>{{#if caption}}<figcaption>{{caption}}</figcaption>{{/if}}</figure>{{/if}}
+    <div class="home-about-copy"><p class="eyebrow">{{eyebrow}}</p><h2>{{title}}</h2><p>{{description}}</p>{{#if note}}<div class="home-about-signature"><span></span>{{note}}</div>{{/if}}{{#if href}}{{#if action}}<a class="home-button" href="{{href}}">{{action}}</a>{{/if}}{{/if}}</div>
+  {{/if}}
+  {{#if promotion}}
+    {{#if href}}<a href="{{href}}" class="landing-promotion-link" aria-label="{{alt}}">{{/if}}
+    {{#if image}}<picture>{{#if mobileImage}}<source media="(max-width:700px)" srcset="{{mobileImage}}">{{/if}}<img src="{{image}}" alt="{{alt}}" loading="lazy" decoding="async"></picture>{{/if}}
+    {{#if title}}<h2>{{title}}</h2>{{/if}}{{#if description}}<p>{{description}}</p>{{/if}}{{#if action}}<span class="home-button">{{action}}</span>{{/if}}{{#if href}}</a>{{/if}}
+  {{/if}}
+  {{#if container}}
+    {{#if title}}<h2>{{title}}</h2>{{/if}}
+    <div class="landing-columns" data-columns="{{columnCount}}">{{#each columns}}<div class="landing-column" {{#if ../preview}}data-landing-zone="{{id}}"{{/if}}>{{#each blocks}}{{> landing_block}}{{/each}}</div>{{/each}}</div>
+  {{/if}}
+  </div>
+</section>

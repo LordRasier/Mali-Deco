@@ -6,7 +6,7 @@ import { join } from 'node:path';
 const read = (path: string) => readFileSync(join(__dirname, path), 'utf8');
 test('every public page loads safe external theme CSS and home uses configurable art', () => {
   for (const path of ['home/views/home.hbs', 'catalog/views/catalog.hbs', 'products/views/product.hbs', 'cart/views/cart.hbs', 'checkout/views/checkout.hbs']) {
-    assert.match(read(path), /href="\/api\/v1\/catalog\/theme.css"/);
+    assert.ok(read(path).includes('href="{{#if appearancePreviewHref}}{{appearancePreviewHref}}{{else}}/api/v1/catalog/theme.css{{/if}}"'), 'Public CSS remains the default, preview selects escaped owner-only CSS');
   }
   const home = read('home/views/home.hbs');
   assert.match(home, /src="\/api\/v1\/catalog\/branding\/hero"/);

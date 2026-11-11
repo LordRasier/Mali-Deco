@@ -27,6 +27,17 @@ test('older saved content gains listing controls without replacing text or react
   const invalid = defaults(); invalid.listing.columns = '100'; assert.throws(() => parseContentConfig(invalid));
   invalid.listing.columns = '2'; invalid.listing.pageSize = '-1'; assert.throws(() => parseContentConfig(invalid));
 });
+test('saved listing settings gain opt-in filters while preserving the existing store design', () => {
+  const config = defaults(); config.listing.columns = '4'; config.listing.categoriesEnabled = false; config.listing.itemPlural = 'mazos';
+  const listing: Record<string, unknown> = { ...config.listing }; delete listing.filtersEnabled;
+  const legacy = { ...config, listing }, upgraded = parseStoredContentConfig(legacy);
+  assert.deepEqual(upgraded.listing, { ...listing, filtersEnabled: false });
+  assert.throws(() => parseContentConfig(legacy));
+  assert.equal(parseContentConfig({ ...config, listing: { ...listing, filtersEnabled: true } }).listing.filtersEnabled, true);
+  assert.throws(() => parseStoredContentConfig({ ...config, listing: { ...listing, filtersEnabled: 'true' } }));
+  assert.throws(() => parseStoredContentConfig({ ...config, listing: { ...listing, unknown: true } }));
+});
+
 test('content validation bounds and validates editable blocks and rejects scripts and unknown fields', () => {
   assert.deepEqual(parseContentConfig(defaults()), defaults());
   for (const mutate of [

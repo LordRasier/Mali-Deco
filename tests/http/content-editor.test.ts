@@ -7,6 +7,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { configureHttp } from '../../src/presentation/configure-http';
 import { ContentSettings } from '../../src/modules/settings/content-settings';
 import { ContentDrafts } from '../../src/modules/settings/content-drafts';
+import { StoreSettings } from '../../src/modules/settings/store-settings';
 import { PublicCatalog } from '../../src/modules/catalog/services/public-catalog';
 import { PublicFacets } from '../../src/modules/catalog/services/public-facets';
 import { IdentityService } from '../../src/modules/identity/services/identity-service';
@@ -25,7 +26,8 @@ test('authenticated preview and draft publication use real templates without exp
     const { applicationModule } = await import('../../src/app.module');
     const module = await Test.createTestingModule({ imports: [applicationModule({ NODE_ENV: 'development' })] })
       .overrideProvider(ContentSettings).useValue(published).overrideProvider(ContentDrafts).useValue(drafts)
-      .overrideProvider(PublicCatalog).useValue({ ...publicCatalogFixture, list: async (query: Record<string, unknown>) => ({ ...await publicCatalogFixture.list(), limit: Number(query.limit ?? 24), total: 53 }) }).overrideProvider(PublicFacets).useValue(publicFacetsFixture)
+      .overrideProvider(StoreSettings).useValue({ get: async () => ({ name: 'Mali', primaryColor: '#073dcc' }) })
+      .overrideProvider(PublicCatalog).useValue({ ...publicCatalogFixture, selected: publicCatalogFixture.list, list: async (query: Record<string, unknown>) => ({ ...await publicCatalogFixture.list(), limit: Number(query.limit ?? 24), total: 53 }) }).overrideProvider(PublicFacets).useValue(publicFacetsFixture)
       .overrideProvider(IdentityService).useValue({ me: async (token: string) => {
         if (!token) throw new UnauthorizedException();
         return { user: { id: token, email: 'admin@example.test', role: token === 'owner' ? 'owner' : 'catalog' } };
@@ -39,6 +41,7 @@ test('authenticated preview and draft publication use real templates without exp
     const headers = { cookie: 'store_admin=owner', origin: 'https://shop.example', 'x-csrf-token': 'token' };
     assert.equal((await request(endpoint)).status, 401);
     const settings = (await drafts.get()).settings;
+    const originalCss = (await request('/api/v1/catalog/theme.css')).text;
     assert.equal((await request('/admin/sections/editor')).status, 401);
     assert.equal((await request('/admin/sections/editor', { headers: { cookie: 'store_admin=catalog' } })).status, 403);
     const editor = await request('/admin/sections/editor', { headers });
@@ -46,7 +49,7 @@ test('authenticated preview and draft publication use real templates without exp
     assert.match(editor.headers['content-security-policy'], /font-src 'self'/);
     const settingsSection = await request('/admin/sections/settings', { headers });
     assert.doesNotMatch(settingsSection.text, /data-content-form|settings-tab-content/);
-    const visibleBody = (html: string) => html.match(/<body>([\s\S]*)<\/body>/)![1].replace(/data-editor-path="[^"]*"/g, '');
+    const visibleBody = (html: string) => html.match(/<body>([\s\S]*)<\/body>/)![1].replace(/data-(?:editor-path|landing-zone|block-hidden)="[^"]*"/g, '').replace(/<button[^>]*class="landing-handle"[^>]*>[\s\S]*?<\/button>/g, '').replace(/\s+/g, ' ');
     for (const [target, path] of [['home', '/'], ['catalog', '/catalogo'], ...Object.entries(pagePaths)]) {
       const live = await request(path);
       const result = await request(`${endpoint}/preview`, { method: 'POST', headers, body: { settings, target } });
@@ -54,24 +57,32 @@ test('authenticated preview and draft publication use real templates without exp
       const rendered = JSON.parse(result.text).html;
       assert.equal(visibleBody(rendered), visibleBody(live.text), `Complete page parity: ${target}`);
       assert.match(rendered, /class="site-header"/); assert.match(rendered, /class="site-footer"/);
-      assert.match(rendered, /branding\/logo/); assert.match(rendered, /theme.css/);
+      assert.match(rendered, /branding\/logo/); assert.match(rendered, /appearance.css/);
       assert.doesNotMatch(rendered, /<script|data-site-analytics|preview-placeholder/);
       if (target === 'catalog') assert.match(rendered, /Página 1 de 3/);
       for (const [, selection] of rendered.matchAll(/data-editor-path="([^"]*)"/g)) {
         assert.ok(isContentSelection(selection, key => contentAt(settings, key)), `Selectable field exists: ${target} / ${selection}`);
       }
       if (target === 'home') {
-        for (const field of ['title', 'titleAccent', 'description', 'action', 'note', 'aboutDescription', 'aboutCaption']) assert.ok(rendered.includes(`data-editor-path="copy.home.${field}"`), field);
-        assert.match(rendered, /data-editor-path="source.hero"/);
+        for (const index of [0, 1, 2]) assert.ok(rendered.includes(`data-editor-path="landing.blocks.${index}"`));
+        assert.match(rendered, /data-landing-zone="root"/); assert.match(rendered, /data-builder-move="home-hero"/);
+        assert.match(rendered, /id="coleccion"/); assert.match(rendered, /id="historia"/);
       }
       if (target === 'preguntas-frecuentes') assert.match(rendered, /data-editor-path="pages.preguntas-frecuentes.sections.\d+.questions.\d+.answer"/);
     }
     settings.pages.cuidados.enabled = false; settings.pages.cuidados.title = 'Cuidados de tus deckboxes'; settings.footer.description = 'Solo en borrador';
+    settings.appearance = { backgroundColor: '#f0e8d8', headingFont: 'georgia', bodyFont: 'arial' };
+    settings.landing.blocks[0].style.backgroundColor = '#102030'; settings.landing.blocks[0].style.textColor = '#ffffff';
     settings.listing.columns = '2'; settings.listing.pageSize = '12'; settings.listing.cardPriceEnabled = false; settings.listing.itemPlural = 'productos';
+    settings.listing.filtersEnabled = true;
     settings.copy.information.legalTitle = 'Responsable de Runica';
     const listingPreview = await request(`${endpoint}/preview`, { method: 'POST', headers, body: { settings, target: 'catalog' } });
     assert.equal(listingPreview.status, 201); assert.match(JSON.parse(listingPreview.text).html, /data-listing-columns="2"/);
     assert.match(JSON.parse(listingPreview.text).html, /data-listing-price="false"/);
+    assert.match(JSON.parse(listingPreview.text).html, /data-filter-form="desktop"/);
+    assert.match(JSON.parse(listingPreview.text).html, /data-editor-path="listing.filtersEnabled"/);
+    assert.match(JSON.parse(listingPreview.text).html, /data-filter-form="mobile"/);
+    assert.doesNotMatch((await request('/catalogo')).text, /data-filter-form|data-filter-open/);
     assert.match(JSON.parse(listingPreview.text).html, /Página 1 de 5/);
     assert.match((await request('/catalogo')).text, /data-listing-columns="3"/);
     const legalPreview = await request(`${endpoint}/preview`, { method: 'POST', headers, body: { settings, target: 'politica-de-privacidad' } });
@@ -80,6 +91,17 @@ test('authenticated preview and draft publication use real templates without exp
     assert.equal((await request(`${endpoint}/draft`, { method: 'PUT', body, headers: { cookie: 'store_admin=owner' } })).status, 403);
     assert.equal((await request(`${endpoint}/preview`, { method: 'POST', body: { settings, target: 'footer' } })).status, 401);
     assert.equal((await request(`${endpoint}/draft`, { method: 'PUT', body, headers })).status, 200);
+    assert.equal((await request('/api/v1/catalog/theme.css')).text, originalCss, 'Saving a design must not change public CSS');
+    const designPreview = JSON.parse((await request(`${endpoint}/preview`, { method: 'POST', headers, body: { settings, target: 'home' } })).text).html;
+    const designHref = designPreview.match(/href="([^"]*appearance\.css\?[^"]+)"/)?.[1].replaceAll('&#x3D;', '='); assert.ok(designHref, 'Preview uses a snapshot stylesheet');
+    assert.equal((await request(designHref)).status, 401);
+    assert.equal((await request(designHref, { headers: { cookie: 'store_admin=catalog' } })).status, 403);
+    const designResponse = await request(designHref, { headers }); assert.equal(designResponse.status, 200);
+    assert.match(designResponse.headers['content-type'], /text\/css/); assert.match(designResponse.headers['cache-control'], /private, no-store/);
+    assert.match(designResponse.text, /background:#f0e8d8/); assert.match(designResponse.text, /Georgia,Times New Roman,serif/);
+    assert.match(designResponse.text, /background:#102030/); assert.doesNotMatch(designResponse.text, /Solo en borrador/);
+    assert.equal((await request(`${endpoint}/appearance.css?design=%7B%7D`, { headers })).status, 400);
+    assert.doesNotMatch(designPreview, /<style|style="|unsafe-inline|<script/);
     assert.equal((await request('/cuidados')).status, 200);
     assert.doesNotMatch((await request('/')).text, /Solo en borrador|data-editor-path/);
     const preview = await request(`${endpoint}/preview`, { method: 'POST', headers, body: { settings, target: 'cuidados' } });
@@ -93,9 +115,18 @@ test('authenticated preview and draft publication use real templates without exp
     assert.equal((await request(`${endpoint}/preview`, { method: 'POST', headers, body: { settings: unsafe, target: 'cuidados' } })).status, 400);
     assert.equal((await request(`${endpoint}/publish`, { method: 'POST', headers, body })).status, 409);
     assert.equal((await request(`${endpoint}/publish`, { method: 'POST', headers, body: { ...body, revision: 1 } })).status, 201);
+    assert.match((await request('/api/v1/catalog/theme.css')).text, /background:#f0e8d8/);
     assert.equal((await request('/cuidados')).status, 404);
     assert.match((await request('/catalogo')).text, /data-listing-columns="2"/);
     assert.match((await request('/catalogo')).text, /data-listing-price="false"/);
+    assert.match((await request('/catalogo')).text, /data-filter-form="desktop"/);
+    assert.match((await request('/catalogo')).text, /data-filter-form="mobile"/);
+    settings.listing.filtersEnabled = false;
+    const disabled = await request(`${endpoint}/preview`, { method: 'POST', headers, body: { settings, target: 'catalog' } });
+    assert.equal(disabled.status, 201); assert.doesNotMatch(JSON.parse(disabled.text).html, /data-filter-form|data-filter-open/);
+    const current = await drafts.get();
+    assert.equal((await request(`${endpoint}/publish`, { method: 'POST', headers, body: { settings, revision: current.revision, publishedRevision: current.publishedRevision } })).status, 201);
+    assert.doesNotMatch((await request('/catalogo')).text, /data-filter-form|data-filter-open/);
     assert.match((await request('/')).text, /Solo en borrador/);
     assert.doesNotMatch((await request('/')).text, /data-editor-path/);
   } finally { await app?.close(); process.env = previous; }

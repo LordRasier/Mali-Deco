@@ -1,16 +1,20 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { CatalogTaxonomy, TaxonomyGroup } from '../../../modules/catalog/services/catalog-taxonomy';
 import { parseCatalogQuery } from '../../../modules/catalog/validation/catalog-validation';
+import { categoryIcons, defaultCategoryPresentation, type CategoryPresentation } from '../../../shared/category-presentation';
 
 const labels = { categories: 'Categorías', materials: 'Materiales', colors: 'Colores' };
-type Item = { id: string; name: string; slug: string; sortOrder: number; archivedAt: Date | null; hex?: unknown };
+type Item = { id: string; name: string; slug: string; sortOrder: number; archivedAt: Date | null; hex?: unknown; presentation?: CategoryPresentation };
 function projection(item: Item, kind: TaxonomyGroup) {
   if (kind === 'colors' && item.hex !== null && typeof item.hex !== 'string') throw new Error('Invalid color response');
-  return { id: item.id, name: item.name, slug: item.slug, sortOrder: String(item.sortOrder), hex: kind === 'colors' ? item.hex as string | null ?? '' : '' };
+  const presentation = item.presentation ?? defaultCategoryPresentation();
+  return { id: item.id, name: item.name, slug: item.slug, sortOrder: String(item.sortOrder), hex: kind === 'colors' ? item.hex as string | null ?? '' : '',
+    ...presentation, image: presentation.image.replace(/\/catalog\/category-images\/([^/]+)\//, '/admin/catalog/categories/$1/image/'),
+    icons: Object.entries(categoryIcons).map(([id, icon]) => ({ id, ...icon, selected: id === presentation.icon })) };
 }
 function base(kind: TaxonomyGroup) {
   return { layout: false as const, section: 'classifications' as const, available: true, message: '', title: labels[kind], kind,
-    color: kind === 'colors', editing: false, page: 1, pages: 1, total: 0, previousPage: 1, nextPage: 2, hasPrevious: false, hasNext: false,
+    color: kind === 'colors', category: kind === 'categories', editing: false, page: 1, pages: 1, total: 0, previousPage: 1, nextPage: 2, hasPrevious: false, hasNext: false,
     tabs: (Object.keys(labels) as TaxonomyGroup[]).map(id => ({ id, label: labels[id], selected: id === kind })),
     item: { id: '', name: '', slug: '', sortOrder: '0', hex: '' }, items: [] as ReturnType<typeof projection>[] };
 }

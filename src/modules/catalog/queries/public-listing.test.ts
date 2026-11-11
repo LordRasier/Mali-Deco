@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { DataSource } from 'typeorm';
 import { parseListingQuery } from './listing-query';
 import { productOrder, productPredicate, variantPredicate } from './listing-sql';
-import { listPublicProducts } from './public-listing';
+import { listPublicProducts, selectedPublicProducts } from './public-listing';
 
 test('validates bounded filters, currency-safe prices, and exact query types', () => {
   const q = parseListingQuery({ category: 'jarrones,lamparas', material: 'pla,pla', color: 'rojo,azul', currency: 'ARS', minPriceMinor: '0', maxPriceMinor: '9007199254740991', sort: 'price_desc', page: '2', limit: '100' });
@@ -87,4 +87,21 @@ test('unscoped requests never compare mixed-currency amounts', async () => {
   const fake = { transaction: async (_isolation: string, work: (value: typeof connection) => unknown) => work(connection) } as unknown as DataSource;
   await listPublicProducts(fake, {});
   assert.ok(calls.every(sql => !/MIN\(v\.price_minor\)|MAX\(v\.price_minor\)/.test(sql)));
+});
+
+test('manual landing selection keeps public visibility predicates, bounded IDs and requested order', async () => {
+  const calls: { sql: string; params: unknown[] }[] = [];
+  const connection = { query: async (sql: string, params: unknown[]) => {
+    calls.push({ sql, params });
+    if (calls.length === 1) return [{ total: 2 }];
+    if (calls.length === 2) return ['a', 'b'].map(id => ({ id, slug: id, name: id, description: '', categoryId: null, minPrice: null, maxPrice: null }));
+    return [];
+  } };
+  const db = { transaction: async (_: string, run: (m: typeof connection) => unknown) => run(connection) } as unknown as DataSource;
+  const page = await selectedPublicProducts(db, ['b', 'a']);
+  assert.deepEqual(page.items.map(p => p.id), ['b', 'a']);
+  assert.match(calls[0].sql, /p.status = 'active' AND p.archived_at IS NULL AND p.id IN \(\?,\?\)/);
+  assert.deepEqual(calls[1].params, ['b', 'a', 24, 0]);
+  await assert.rejects(selectedPublicProducts(db, ["' OR 1=1"]));
+  await assert.rejects(selectedPublicProducts(db, Array(25).fill('a')));
 });

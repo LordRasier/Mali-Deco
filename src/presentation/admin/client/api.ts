@@ -83,7 +83,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     if (path.startsWith('/admin/settings/content') && response.status === 409) throw new ApiError(409, 'El contenido cambió en otra pestaña. Se conserva tu borrador; recargá antes de volver a guardar.');
     if (path.startsWith('/admin/settings/content') && response.status === 400) {
       const body = await response.json().catch(() => null);
-      if (typeof body?.message === 'string' && body.message.length < 250 && (/^Revisá el campo «[a-zA-Z0-9.-]+»\.$/.test(body.message) || body.message === 'El contenido supera el límite de 80.000 caracteres.')) throw new ApiError(400, body.message);
+      if (typeof body?.message === 'string' && body.message.length < 250 && (/^Revisá el campo «[a-zA-Z0-9.-]+»\.$/.test(body.message) || /^Constructor: [^<>]+\.$/.test(body.message) || body.message === 'El contenido supera el límite de 80.000 caracteres.')) throw new ApiError(400, body.message);
     }
     throw new ApiError(response.status, method !== 'GET' && response.status >= 500 ? `${message} ${writeOutcomeUnknown}` : message, code);
   }

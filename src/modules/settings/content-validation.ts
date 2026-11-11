@@ -1,4 +1,6 @@
 import { defaultContentConfig, targetPaths, type ContentConfig } from './content-config';
+import { legacyLanding, parseLanding } from '../../shared/landing-layout';
+import { parseAppearance } from '../../shared/store-appearance';
 
 export const contentArrayItems: Record<string, unknown> = {
   sections: { id: 'seccion', title: 'Nueva sección', paragraphs: [], questions: [], links: [] },
@@ -21,6 +23,8 @@ export function parseContentConfig(value: unknown): ContentConfig {
   if (JSON.stringify(value)?.length > 80000) throw Error('El contenido supera el límite de 80.000 caracteres.');
   const defaults = normalizeSections(defaultContentConfig());
   function visit(input: unknown, example: unknown, path: string): unknown {
+    if (path === 'landing') return parseLanding(input);
+    if (path === 'appearance') return parseAppearance(input);
     if (typeof example === 'boolean') return typeof input === 'boolean' ? input : fail(path);
     if (typeof example === 'string' || example === null) {
       if (example === null && input === null) return null;
@@ -62,12 +66,29 @@ export function parseContentConfig(value: unknown): ContentConfig {
 }
 
 /** Add only fields introduced after the original schema when reading persisted JSON. Writes remain exact. */
+function upgradeLandingBlocks(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const landing = structuredClone(value) as Record<string, unknown>;
+  function visit(blocks: unknown, depth: number) {
+    if (!Array.isArray(blocks) || blocks.length > 40 || depth > 3) return;
+    for (const b of blocks) {
+      if (!b || typeof b !== 'object') continue;
+      if (b.style && typeof b.style === 'object' && !Array.isArray(b.style)) b.style = { backgroundColor: null, textColor: null, ...b.style };
+      if (b.type === 'categories' && b.props && typeof b.props === 'object' && !Array.isArray(b.props)) b.props = { cardStyle: 'icons', textPosition: 'below', ...b.props };
+      if (Array.isArray(b.columns)) for (const c of b.columns.slice(0, 3)) if (c && typeof c === 'object') visit(c.blocks, depth + 1);
+    }
+  }
+  visit(landing.blocks, 0); return landing;
+}
 export function parseStoredContentConfig(value: unknown): ContentConfig {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return parseContentConfig(value);
   const raw = value as Record<string, unknown>, defaults = defaultContentConfig();
+  const listing = raw.listing && typeof raw.listing === 'object' && !Array.isArray(raw.listing)
+    ? { filtersEnabled: defaults.listing.filtersEnabled, ...raw.listing as Record<string, unknown> } : raw.listing;
   const copy = raw.copy && typeof raw.copy === 'object' && !Array.isArray(raw.copy) ? raw.copy as Record<string, unknown> : undefined;
   const information = copy?.information && typeof copy.information === 'object' && !Array.isArray(copy.information) ? copy.information as Record<string, unknown> : undefined;
   const labels = Object.fromEntries(['indexTitle', 'contactTitle', 'hoursLabel', 'legalEyebrow', 'legalTitle'].map(key => [key, defaults.copy.information[key as keyof typeof defaults.copy.information]]));
-  return parseContentConfig({ ...raw, ...(!Object.hasOwn(raw, 'listing') ? { listing: defaults.listing } : {}),
+  return parseContentConfig({ ...raw, appearance: Object.hasOwn(raw, 'appearance') ? raw.appearance : defaults.appearance, listing: Object.hasOwn(raw, 'listing') ? listing : defaults.listing,
+    landing: !Object.hasOwn(raw, 'landing') ? legacyLanding({ ...defaults.copy.home, ...(copy?.home as Record<string, string> ?? {}) }, (raw.features as { homeAbout?: boolean } | undefined)?.homeAbout !== false) : upgradeLandingBlocks(raw.landing),
     ...(information ? { copy: { ...copy, information: { ...labels, ...information } } } : {}) });
 }

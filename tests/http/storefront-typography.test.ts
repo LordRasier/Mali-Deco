@@ -29,5 +29,9 @@ test('storefront pairs locally hosted Figtree and DM Mono without external font 
   assert.match(css, /--font-mono:\s*'DM Mono'/);
   assert.match(css, /--store-font:\s*var\(--font-primary\)/);
   assert.match(css, /\.catalog-price[^}]+font-family: var\(--font-mono\)/);
-  assert.doesNotMatch(css, /@import|https?:\/\//);
+  assert.ok(css.startsWith("@import url('/assets/storefront/fonts/catalog.css');"));
+  assert.equal((css.match(/@import/g) ?? []).length, 1);
+  assert.doesNotMatch(css, /https?:\/\//);
+  const admin = readFileSync(resolve(__dirname, '../../src/presentation/admin/public/admin.css'), 'utf8');
+  assert.ok(admin.includes("@import url('/assets/storefront/fonts/catalog.css');"), 'Editor samples share the public local font definitions');
 });

@@ -50,6 +50,7 @@ export function configureHttp(app: NestExpressApplication): void {
     cart_panel: partial('cart/views/partials/cart-panel.hbs'),
     catalog_filters: partial('catalog/views/partials/filters.hbs'),
     catalog_card: partial('catalog/views/partials/card.hbs'),
+    landing_block: partial('home/views/landing-block.hbs'),
     catalog_info: partial('catalog/views/partials/info.hbs'),
     site_header: partial('shell/views/header.hbs'), site_footer: partial('shell/views/footer.hbs'),
     information_body: partial('information/views/partials/body.hbs'),

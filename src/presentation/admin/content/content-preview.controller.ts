@@ -40,10 +40,10 @@ export class ContentPreviewController {
     const info = configuredInformation(base, config), target = input.target === 'footer' ? 'home' : input.target;
     // The authenticated preview intentionally renders disabled pages, without changing public route state.
     const page = target === 'home' || target === 'catalog' ? undefined : contentPage(config, target as PageKey);
-    const model = target === 'home' ? (await this.home.read()).model : target === 'catalog' ? (await this.listing.read(new URLSearchParams(), config.listing)).model : {};
+    const model = target === 'home' ? (await this.home.read(config)).model : target === 'catalog' ? (await this.listing.read(new URLSearchParams(), config.listing)).model : {};
     const view = target === 'home' ? 'home' : target === 'catalog' ? 'catalog' : 'information-page';
     const html = await new Promise<string>((resolve, reject) => response.render(view, {
-      ...model, ...contentModel(config, info), ...(page ? { page } : {}), visualPreview: true, layout: false,
+      ...model, ...contentModel(config, info, true), ...(page ? { page } : {}), visualPreview: true, layout: false,
       pageEditorPath: page ? `pages.${target}` : '', brand: store.name, mode: 'api', checkoutEnabled: this.checkoutEnabled,
       routes: canonicalRoutes, storeInfo: { ...info, channels: info.channels.map(channel => ({ ...channel, editorPath: channel === info.email ? 'contact.email' : 'source.social' })) }, storeYear: new Date().getFullYear(),
       seo: { title: `${page?.title ?? (target === 'home' ? 'Inicio' : 'Catálogo')} · Vista previa`, robots: 'noindex, nofollow' },

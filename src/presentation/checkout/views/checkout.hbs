@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/assets/storefront/shell.css">
   <link rel="stylesheet" href="/assets/checkout/checkout.css">
   <script src="/assets/storefront/generated/cart.js" defer></script>
-  <link rel="stylesheet" href="/api/v1/catalog/theme.css">
+  <link rel="stylesheet" href="{{#if appearancePreviewHref}}{{appearancePreviewHref}}{{else}}/api/v1/catalog/theme.css{{/if}}">
 </head>
 <body>
   <a class="skip-link" href="#main">Ir al contenido</a>

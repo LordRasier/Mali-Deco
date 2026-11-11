@@ -11,9 +11,12 @@ function required<T extends Element>(root: ParentNode, selector: string): T {
 export function mountCatalogFilters() {
   const forms = Array.from(document.querySelectorAll<HTMLFormElement>('[data-filter-form]'));
   if (!forms.length) return () => {};
-  const parsed = parseCatalogQuery(new URLSearchParams(window.location.search));
-  if (parsed.error || !['/catalogo'].includes(window.location.pathname)) throw new Error('Invalid catalog filter context');
-  const applied = parsed.query, path = window.location.pathname;
+  const context = required<HTMLElement>(document, '[data-filter-query][data-filter-action]');
+  // SSR includes the category from a pretty URL and the store's default currency.
+  const parsed = parseCatalogQuery(new URLSearchParams(context.dataset.filterQuery));
+  const path = context.dataset.filterAction;
+  if (parsed.error || path !== '/catalogo' || !/^\/(?:catalogo|categorias\/[a-z0-9]+(?:-[a-z0-9]+)*)\/?$/.test(window.location.pathname)) throw new Error('Invalid catalog filter context');
+  const applied = parsed.query;
   const dialog = required<HTMLDialogElement>(document, '[data-filter-dialog]');
   const open = required<HTMLButtonElement>(document, '[data-filter-open]');
   const close = required<HTMLButtonElement>(dialog, '[data-filter-close]');
@@ -62,11 +65,9 @@ export function mountCatalogFilters() {
       event.preventDefault(); attempt(() => navigate(applyCatalogPrices(draft, min.value, max.value)));
     });
     listen(required(form, '[data-filter-clear]'), 'click', () => attempt(() => {
-      draft = clearCatalogFilters(draft); min.value = max.value = ''; render();
-      if (!mobile) {
-        if (!Array.from(currency.options).some(option => option.value === draft.currency && option.hasAttribute('data-available'))) draft.currency = '';
-        navigate(draft);
-      }
+      draft = clearCatalogFilters(draft); min.value = max.value = '';
+      if (!Array.from(currency.options).some(option => option.value === draft.currency && option.hasAttribute('data-available'))) draft.currency = '';
+      render(); if (!mobile) navigate(draft);
     }));
     if (mobile) listen(required(form, '[data-filter-cancel]'), 'click', () => dialog.close());
     reset(); fields.disabled = false;

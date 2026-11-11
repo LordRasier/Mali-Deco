@@ -1,12 +1,33 @@
 # Storefront typefaces
 
-Figtree is the primary sans-serif; DM Mono is reserved for prices, controls and small labels. Both use SIL OFL 1.1. The commercial Ginto and Moderat files are not used.
+Figtree is the default primary sans-serif; DM Mono is reserved for prices, controls and small labels. Both use SIL OFL 1.1. The commercial Ginto and Moderat files are not used.
+
+## Platform-managed editor catalog
+
+The editor also offers eight locally hosted Google Fonts families, added on 2026-11-11:
+
+| Family | Normal weights | Style |
+| --- | --- | --- |
+| Manrope | 200–800 variable | Sans serif |
+| Nunito Sans | 200–1000 variable | Sans serif |
+| Outfit | 100–900 variable | Sans serif |
+| Lora | 400–700 variable | Serif |
+| Libre Baskerville | 400–700 variable | Serif |
+| Cormorant Garamond | 300–700 variable | Serif |
+| Bitter | 100–900 variable | Slab serif |
+| IBM Plex Mono | 400, 500, 600, 700 | Monospace |
+
+These are unchanged Latin WOFF2 subsets from the [official Google Fonts CSS API](https://developers.google.com/fonts/docs/css2), including precomposed Spanish accents, ñ and euro symbols. Unsupported scripts and italic styles use browser fallback behavior. `catalog-sources.json` records every original URL, SHA-256 and the pinned Google Fonts repository revision for licenses. Each family includes its original copyright and SIL OFL 1.1 license. The eleven new binaries total 291,396 bytes; browsers request only the faces used by the selected design, not the entire catalog.
+
+`catalog.css` declares local faces and is shared by storefront and editor samples. No external CSS/font requests or downloads occur during builds or at runtime. Georgia and Arial remain system-font choices for compatibility, for twelve selector options in total. Null choices retain the original storefront design. Selections stay in content drafts until publication.
+
+This is a closed platform catalog. Store users cannot upload font files, provide font URLs, or enter CSS. Adding a family requires a reviewed code change, license/provenance checks, an explicit static/build allowlist entry, sample styles and tests. Do not replace these lists with directory scanning or public uploads. The source manifest and this README ship with build artifacts but are not exposed by HTTP.
 
 Files are vendored unchanged from the sources below, loaded from the same origin with font-display: swap, and included with their copyright and licenses in build output. No third-party font request is made by visitors.
 
 Figtree is a normal variable face (300-900). DM Mono includes the normal Latin 400 and 500 subsets delivered by the official Google Fonts CSS API; Spanish accents and euro/dollar symbols are included. Unsupported scripts fall back to the configured local fonts.
 
-## Sources and SHA-256
+## Original default pairing: sources and SHA-256
 
 Retrieved: 2026-11-06.
 

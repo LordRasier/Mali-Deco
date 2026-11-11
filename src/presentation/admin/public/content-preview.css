@@ -1,5 +1,7 @@
 html { scroll-behavior: auto; }
+noscript { display: none; }
 [data-editor-path] { cursor: pointer; outline-offset: -2px; }
 [data-editor-path]:hover:not(.editor-selected):not(:has([data-editor-path]:hover)) { outline: 2px dashed #1683ba; }
 [data-editor-path].editor-selected { outline: 3px solid #1683ba; }
 [data-editor-path]:focus-visible { outline: 3px solid #1683ba; }
+.landing-block{min-height:64px}.landing-handle{position:absolute;top:0;left:0;z-index:5;min-height:36px;padding:6px 12px;border:0;border-radius:0 0 6px 0;background:#12699a;color:white;font:500 13px sans-serif;cursor:grab;touch-action:none;opacity:0}.landing-block:hover>.landing-handle,.landing-block.editor-selected>.landing-handle,.landing-handle:focus-visible{opacity:1}.landing-block[data-block-hidden="true"]{opacity:.5;border:2px dashed #7b8793}.landing-column{min-height:100px}.landing-column:empty::after,.landing-root:empty::after{content:'Arrastrá un bloque aquí';display:grid;place-items:center;min-height:180px;border:2px dashed #9ab9ca;color:#376480;background:#eef7fc;font:14px sans-serif}.landing-column{outline:1px dashed #c7d9e4;outline-offset:-1px}.landing-drop-slot{box-sizing:border-box;min-height:100px;margin:8px 0;border:2px solid #0087cb;background:#e2f4ff;color:#095c89;display:grid;place-items:center;font:600 16px sans-serif;pointer-events:auto}.landing-root{padding-bottom:20px}

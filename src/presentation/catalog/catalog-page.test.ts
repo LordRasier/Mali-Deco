@@ -26,11 +26,13 @@ test('listing drafts preview page size and labels while public reads use publish
   const f = fixture(), config = defaultContentConfig(), limits: string[] = [];
   f.catalog.list = async query => { limits.push(String(query.limit)); return { items: [], page: Number(query.page), limit: Number(query.limit), total: 30 }; };
   const page = new CatalogPage(f.catalog, f.facets, 'api', undefined, {}, { get: async () => ({ settings: config, revision: 1, available: true }) });
-  const draft = { ...config.listing, pageSize: '12', itemPlural: 'productos', allCategoriesLabel: 'Ver todo' };
+  const draft = { ...config.listing, pageSize: '12', itemPlural: 'productos', allCategoriesLabel: 'Ver todo', filtersEnabled: true };
   const preview = await page.read(new URLSearchParams('page=2'), draft);
   assert.equal(preview.model.pages, 3); assert.equal(preview.model.resultLabel, '30 productos'); assert.equal(preview.model.categories[0].label, 'Ver todo');
   assert.match(preview.model.next, /page=3/);
+  assert.equal(preview.model.showFilters, true);
   const live = await page.read(new URLSearchParams()); assert.equal(live.model.pages, 2); assert.equal(live.model.resultLabel, '30 objetos');
+  assert.equal(live.model.showFilters, false);
   assert.deepEqual(limits, ['12', '24']);
 });
 test('default currency prefers ARS from facets and keeps requested pagination without a redirect', async () => {
@@ -39,6 +41,8 @@ test('default currency prefers ARS from facets and keeps requested pagination wi
   const result = await page.read(new URLSearchParams('search=light&category=deco&page=3'));
   assert.equal(result.status, 200); assert.equal(result.redirect, undefined);
   assert.equal(result.model.defaultCurrency, 'ARS'); assert.equal(f.calls.includes('list'), true);
+  const filterState = new URLSearchParams(result.model.filterQuery);
+  assert.equal(filterState.get('currency'), 'ARS'); assert.equal(filterState.get('category'), 'deco'); assert.equal(filterState.get('page'), '3');
 });
 test('projects matched variants explicitly, preserves zero prices and fixed local links', async () => {
   const f = fixture(), result = await new CatalogPage(f.catalog, f.facets, 'api').read(new URLSearchParams('currency=USD'));

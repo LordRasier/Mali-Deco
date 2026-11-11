@@ -39,7 +39,7 @@ test('SSR login/shell are private, escaped and never rotate CSRF or change cooki
       assert.doesNotMatch(html, /<script>private|csrf|passwordHash|sessionToken/);
       if (role) assert.match(html, /&lt;script&gt;private@example.invalid&lt;\/script&gt;/);
       const links = [...html.matchAll(/data-admin-nav-link[^>]*href="([^"]+)"/g)].map(match => match[1]);
-      assert.deepEqual(links, role === 'owner' ? ['#products', '#classifications', '#orders', '#settings']
+      assert.deepEqual(links, role === 'owner' ? ['#products', '#classifications', '#orders', '#editor', '#settings']
         : role === 'catalog' ? ['#products', '#classifications'] : role === 'operations' ? ['#orders'] : []);
     }
     assert.deepEqual(reads, [undefined, 'owner', 'catalog', 'operations']);

@@ -181,7 +181,7 @@ test('base modal and landing actions retain their outline beneath the filled car
   const catalog = readFileSync(join(__dirname, 'public/catalog.css'), 'utf8');
   const home = readFileSync(join(__dirname, '../home/public/home.css'), 'utf8');
   assert.match(catalog, /\.catalog-add\s*\{[^}]*background: transparent;[^}]*color: var\(--primary-ink\)/);
-  assert.match(home, /\.home-button\s*\{[^}]*background: transparent;[^}]*color: var\(--primary-ink\);[^}]*border: 1px solid var\(--primary-ink\)/);
+  assert.match(home, /\.home-button\s*\{[^}]*background: transparent;[^}]*color: var\(--section-text, var\(--primary-ink\)\);[^}]*border: 1px solid var\(--section-text, var\(--primary-ink\)\)/);
   assert.match(catalog, /\.catalog-add:focus-visible:not\(:disabled\)/);
   assert.match(home, /\.home-button:focus-visible/);
   assert.match(catalog, /@media\s*\(prefers-reduced-motion:reduce\)[\s\S]*\.catalog-add\s*\{\s*transition: none/);

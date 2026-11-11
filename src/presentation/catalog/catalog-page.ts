@@ -22,6 +22,7 @@ type Model = {
   activeFilters: { label: string; href: string }[]; truncated: boolean; resultLabel: string;
   categories: { label: string; href: string; selected: boolean; disabled: boolean }[];
   filters: ReturnType<typeof catalogFilters> | null;
+  showFilters: boolean; filterQuery: string;
 };
 type Result = { status: number; redirect?: string; model: Model };
 
@@ -38,7 +39,7 @@ export class CatalogPage {
     const model: Model = { layout: false, routes: this.routes, checkoutEnabled: localCheckoutPageEnabled(this.env, this.mode), mode: this.mode, demo: this.mode === 'demo', brand: 'Tienda', defaultCurrency: '', failed: false, invalid: !!parsed.error,
       message: parsed.error ?? '', currencyUnavailable: false, unpublished: false, showPagination: false, cards: [], empty: false, total: 0, page: query.page, pages: 0,
       previous: '', next: '', clear: this.routes.catalog, retry: link(query), action: this.routes.catalog, search: query.search,
-      searchFields: [], sortFields: [], sortOptions: [], activeFilters: [], categories: [], truncated: false, resultLabel: '', filters: null };
+      searchFields: [], sortFields: [], sortOptions: [], activeFilters: [], categories: [], truncated: false, resultLabel: '', filters: null, showFilters: false, filterQuery: '' };
     if (parsed.error) return { status: 400, model };
     try {
       const listing = previewListing ?? (this.content ? (await this.content.get()).settings.listing : defaultContentConfig().listing);
@@ -54,6 +55,7 @@ export class CatalogPage {
       const clear: CatalogQuery = { ...emptyCatalogQuery(), currency: facets.currencies.includes(query.currency) ? query.currency : '' };
       model.clear = link(clear);
       model.filters = catalogFilters(query, facets);
+      model.showFilters = listing.filtersEnabled; model.filterQuery = catalogQueryParams(query).toString();
       const fields = [...catalogQueryParams(query)].map(([name, value]) => ({ name, value }));
       model.searchFields = fields.filter(field => !['search', 'page'].includes(field.name));
       model.sortFields = fields.filter(field => !['sort', 'page'].includes(field.name));
@@ -94,7 +96,7 @@ export class CatalogPage {
       model.showPagination = Boolean(model.previous || model.next);
       return { status: 200, model };
     } catch {
-      model.failed = true; model.cards = []; model.message = 'No pudimos cargar el catálogo y sus filtros. Intentá nuevamente.';
+      model.failed = true; model.showFilters = false; model.cards = []; model.message = 'No pudimos cargar el catálogo y sus filtros. Intentá nuevamente.';
       return { status: 503, model };
     }
   }

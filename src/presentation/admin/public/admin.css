@@ -1,4 +1,17 @@
 @import url('/assets/admin/generated/admin.css');
+@import url('/assets/storefront/fonts/catalog.css');
+
+@font-face { font-family: 'Figtree'; font-style: normal; font-weight: 300 900; font-display: swap; src: url('/assets/storefront/fonts/figtree-variable.woff2') format('woff2'); }
+@font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/storefront/fonts/dm-mono-regular.woff2') format('woff2'); }
+
+.admin-root .content-font-sample[data-font="manrope"] { font-family: Manrope, Arial, sans-serif; }
+.admin-root .content-font-sample[data-font="nunito-sans"] { font-family: 'Nunito Sans', Arial, sans-serif; }
+.admin-root .content-font-sample[data-font="outfit"] { font-family: Outfit, Arial, sans-serif; }
+.admin-root .content-font-sample[data-font="lora"] { font-family: Lora, Georgia, serif; }
+.admin-root .content-font-sample[data-font="libre-baskerville"] { font-family: 'Libre Baskerville', Georgia, serif; }
+.admin-root .content-font-sample[data-font="cormorant-garamond"] { font-family: 'Cormorant Garamond', Georgia, serif; }
+.admin-root .content-font-sample[data-font="bitter"] { font-family: Bitter, Georgia, serif; }
+.admin-root .content-font-sample[data-font="ibm-plex-mono"] { font-family: 'IBM Plex Mono', Consolas, monospace; }
 
 html, body { margin: 0; }
 *, *::before, *::after { box-sizing: border-box; }

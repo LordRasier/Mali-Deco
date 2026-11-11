@@ -112,8 +112,8 @@ test('home reuses catalog cards and drops repeated decorative sections', () => {
 test('home restores a named editorial banner and visual brand section without changing shopping cards', async () => {
   await application(true, async origin => {
     const html = await (await fetch(origin + '/')).text();
-    assert.match(html, /<section class="home-hero" aria-labelledby="home-title">/);
-    assert.match(html, /<h1 id="home-title">/);
+    assert.match(html, /<section\s+class="home-hero" aria-labelledby="home-title">/);
+    assert.match(html, /<h1\s+id="home-title">/);
     assert.match(html, /class="home-hero-eyebrow"/);
     assert.match(html, /href="\/catalogo"[^>]*>Explorar objetos/);
     assert.match(html, /class="home-about" id="historia" aria-labelledby="home-about-title"/);
@@ -157,7 +157,8 @@ test('public pages allow only self-hosted fonts and fixed licensed font assets a
       assert.match(response.headers.get('content-security-policy') ?? '', /(?:^|; )font-src 'self';/);
       assert.match(response.headers.get('content-security-policy') ?? '', /default-src 'none'/);
     }
-    for (const file of ['figtree-variable.woff2', 'dm-mono-regular.woff2', 'dm-mono-medium.woff2']) {
+    const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../src/presentation/shell/public/fonts/catalog-sources.json'), 'utf8')) as { fonts: { files: { file: string }[]; license: { file: string } }[] };
+    for (const file of ['figtree-variable.woff2', 'dm-mono-regular.woff2', 'dm-mono-medium.woff2', ...catalog.fonts.flatMap(font => font.files.map(asset => asset.file))]) {
       const response = await fetch(origin + '/assets/storefront/fonts/' + file);
       assert.equal(response.status, 200, file);
       assert.match(response.headers.get('content-type') ?? '', /font\/woff2/);
@@ -166,12 +167,16 @@ test('public pages allow only self-hosted fonts and fixed licensed font assets a
       assert.equal(bytes.toString('ascii', 0, 4), 'wOF2');
       assert.deepEqual(bytes, readFileSync(resolve(__dirname, '../../src/presentation/shell/public/fonts', file)));
     }
-    for (const file of ['OFL-Figtree.txt', 'OFL-DMMono.txt']) {
+    for (const file of ['OFL-Figtree.txt', 'OFL-DMMono.txt', ...catalog.fonts.map(font => font.license.file)]) {
       const response = await fetch(origin + '/assets/storefront/fonts/' + file);
       assert.equal(response.status, 200, file);
       assert.match(await response.text(), /SIL OPEN FONT LICENSE Version 1\.1/);
     }
-    for (const file of ['README.md', '.env', 'unknown.woff2']) assert.equal((await fetch(origin + '/assets/storefront/fonts/' + file)).status, 404);
+    const catalogCss = await fetch(origin + '/assets/storefront/fonts/catalog.css');
+    assert.equal(catalogCss.status, 200); assert.match(catalogCss.headers.get('content-type') ?? '', /text\/css/);
+    assert.doesNotMatch(await catalogCss.text(), /https?:\/\//);
+    for (const file of ['README.md', 'catalog-sources.json', '.env', 'unknown.woff2']) assert.equal((await fetch(origin + '/assets/storefront/fonts/' + file)).status, 404);
+    for (const method of ['POST', 'PUT']) assert.equal((await fetch(origin + '/assets/storefront/fonts/lora-latin-variable.woff2', { method })).status, 404);
     assert.equal((await fetch(origin + '/assets/storefront/fonts/figtree-variable.woff2', { method: 'POST' })).status, 404);
     assert.equal((await fetch(origin + '/checkout')).status, 404);
   });

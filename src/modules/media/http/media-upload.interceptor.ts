@@ -4,7 +4,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Observable, defer, finalize, from, fromEvent, merge, switchMap, takeUntil } from 'rxjs';
 
 const Multipart = FileInterceptor('file', {
-  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 1, parts: 2, fieldSize: 1200 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 1, parts: 2, fieldSize: 4096 },
 });
 
 interface Lease { claimed: boolean; release(): void }

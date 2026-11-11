@@ -1,11 +1,18 @@
 import { editorTargets, fieldLabels } from './content-fields';
 import type { ContentTree } from './content-state';
 import { contentGroups, contentParent, contentSource } from './content-selection';
+import { landingControls } from './landing-controls';
+import { blockDefinitions, type LandingBlock } from '../../../../../shared/landing-layout';
+import { appearanceControls } from './appearance-controls';
+import type { StoreAppearance } from '../../../../../shared/store-appearance';
 
 export const contentElement = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string) => {
   const node = document.createElement(tag); if (text !== undefined) node.textContent = text; return node;
 };
 export function selectionLabel(path: string, value: unknown): string {
+  if (path === 'appearance') return 'Apariencia general';
+  if (path === 'landing') return 'Constructor de inicio';
+  if (path.startsWith('landing.') && value && typeof value === 'object' && 'type' in value) return blockDefinitions[(value as LandingBlock).type]?.label ?? 'Bloque';
   if (Object.hasOwn(contentGroups, path)) return contentGroups[path].label;
   const source = contentSource(path); if (source) return source.label;
   if (/\.paragraphs\.\d+$/.test(path)) return `Párrafo ${Number(path.split('.').at(-1)) + 1}`;
@@ -13,6 +20,10 @@ export function selectionLabel(path: string, value: unknown): string {
   const key = path.split('.').at(-1)!; return fieldLabels[key] ?? 'Propiedades';
 }
 export function selectedContentControls(path: string, read: (path: string) => unknown) {
+  if (path === 'appearance') return appearanceControls(read(path) as StoreAppearance);
+  if (path === 'landing') return contentElement('p', 'Arrastrá un bloque desde la biblioteca hasta la página. La línea azul indica dónde se colocará. También podés hacer clic para agregarlo al final.');
+  const blockPath = path.match(/^(landing\.blocks\.\d+(?:\.columns\.\d+\.blocks\.\d+)*)(?:\.|$)/)?.[1];
+  if (blockPath) return landingControls(read(blockPath) as LandingBlock, blockPath);
   const node = contentElement('div'); node.className = 'content-properties';
   const parent = contentParent(path);
   if (parent) {
@@ -34,6 +45,7 @@ export function selectedContentControls(path: string, read: (path: string) => un
   const group = Object.hasOwn(contentGroups, path) ? contentGroups[path] : undefined;
   if (!group) node.append(contentControls(read(path), path, selectionLabel(path, read(path)), read));
   else for (const key of group.fields) node.append(contentControls(read(key), key, fieldLabels[key.split('.').at(-1)!], read));
+  if (path === 'listing' || path === 'listing.filtersEnabled') node.append(contentElement('p', 'Activá los filtros para mostrar categoría, material, color, moneda y precio. En móvil se abren con un botón. Desactivados, se conserva el catálogo simple. Las categorías superiores se controlan por separado.'));
   return node;
 }
 export function contentControls(value: unknown, path: string, name: string, read: (path: string) => unknown, level = 0): HTMLElement {
