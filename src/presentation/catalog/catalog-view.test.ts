@@ -40,7 +40,24 @@ test('larger cards request only existing same-origin image widths and encode the
   assert.equal(catalogCards([{ ...product, primaryImage: undefined }], false)[0].imageSrcset, '');
 });
 
-test('card carousel requires multiple variants and images; real colors map to real variants', () => {
+test('card carousel uses multiple photos independently of variant count and keeps the initial zoom aligned', () => {
+  const images = [{ id: 'front', alt: 'Front', width: 800, height: 800 }, { id: 'back', alt: 'Back', width: 800, height: 800 }];
+  const variant = { id: 'v1', name: 'Standard', priceMinor: 100, currency: 'ARS' };
+  for (const variantCount of [0, 1, undefined]) {
+    const product = { id: 'p', slug: 'p', name: 'P', description: '', images, primaryImage: images[1],
+      variants: variantCount === 0 ? [] : [variant], variantCount };
+    const card = catalogCards([product], false)[0];
+    assert.equal(card.carousel, true, `Multiple photos with variantCount=${variantCount}`);
+    assert.equal(card.gallery.length, 2);
+    assert.equal(card.zoomImage, '/api/v1/catalog/images/front?w=1600');
+    assert.equal(card.colorOptions.length, 0);
+    for (const photos of [undefined, [], images.slice(0, 1)]) {
+      assert.equal(catalogCards([{ ...product, images: photos }], false)[0].carousel, false);
+    }
+  }
+});
+
+test('multiple-variant cards retain their gallery and real colors map to real variants', () => {
   const product = { id: 'p', slug: 'p', name: 'P', description: '', variantCount: 2,
     images: [{ id: 'i1', alt: 'Front', width: 800, height: 800 }, { id: 'i2', alt: 'Back', width: 800, height: 800 }],
     primaryImage: { id: 'i1', alt: 'Front', width: 800, height: 800 }, variants: [
@@ -51,7 +68,6 @@ test('card carousel requires multiple variants and images; real colors map to re
   assert.equal(card.carousel, true); assert.equal(card.gallery.length, 2);
   assert.deepEqual(card.colorOptions.map(option => option.href), ['/productos/p?variant=v1', '/productos/p?variant=v2']);
   assert.match(card.colorOptions[1].price, /2,00/);
-  assert.equal(catalogCards([{ ...product, variantCount: 1 }], false)[0].carousel, false);
   assert.equal(catalogCards([{ ...product, images: product.images.slice(0, 1) }], false)[0].carousel, false);
   const ambiguous = { ...product, variants: [product.variants[0], { ...product.variants[1], colorInfo: product.variants[0].colorInfo }] };
   assert.equal(catalogCards([ambiguous], false)[0].colorOptions.length, 0);

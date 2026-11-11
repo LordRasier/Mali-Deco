@@ -44,6 +44,7 @@ export function catalogCards(products: Product[], demo: boolean, productPath = '
     const gallery = (product.images ?? []).map((item, index) => ({ url: `/api/v1/catalog/images/${encodeURIComponent(item.id)}?w=320`,
       zoom: `/api/v1/catalog/images/${encodeURIComponent(item.id)}?w=1600`,
       srcset: `/api/v1/catalog/images/${encodeURIComponent(item.id)}?w=320 320w, /api/v1/catalog/images/${encodeURIComponent(item.id)}?w=800 800w`, first: index === 0 }));
+    const carousel = gallery.length > 1;
     const colors = product.variants.map(item => ({ variant: item, hex: catalogColor(item.colorInfo?.hex), color: item.colorInfo?.name ?? '' }));
     const unambiguous = colors.length > 1 && (product.variantCount ?? colors.length) === colors.length && colors.every(item => item.hex && item.color && item.variant.currency === variant?.currency)
       && new Set(colors.map(item => item.hex.toLowerCase())).size === colors.length;
@@ -54,8 +55,8 @@ export function catalogCards(products: Product[], demo: boolean, productPath = '
       dimensions: ([['Ancho', product.productWidthMm, 'width'], ['Alto', product.productHeightMm, 'height'], ['Largo', product.productLengthMm, 'length']] as const)
         .flatMap(([label, value, axis]) => typeof value === 'number' && Number.isSafeInteger(value) && value > 0
           ? [{ label, axis, value: `${(value / 10).toLocaleString('es-AR', { useGrouping: false, maximumFractionDigits: 1 })} cm` }] : []),
-      name: product.name, description: product.description.trim(), categoryName: product.category?.name, image, zoomImage: (product.variantCount ?? product.variants.length) > 1 && gallery.length > 1 ? gallery[0].zoom : zoomImage, illustration: presentation.illustration && !!image,
-      gallery, carousel: (product.variantCount ?? product.variants.length) > 1 && gallery.length > 1, colorOptions,
+      name: product.name, description: product.description.trim(), categoryName: product.category?.name, image, zoomImage: carousel ? gallery[0].zoom : zoomImage, illustration: presentation.illustration && !!image,
+      gallery, carousel, colorOptions,
       imageSrcset: product.primaryImage ? `${image} 320w, /api/v1/catalog/images/${encodeURIComponent(product.primaryImage.id)}?w=800 800w` : '',
       href: `${productPath}/${encodeURIComponent(product.slug)}${variant ? `?variant=${encodeURIComponent(variant.id)}` : ''}`,
       variant: variant?.name ?? '',

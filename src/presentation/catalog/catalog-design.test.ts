@@ -173,7 +173,9 @@ test('carousel and color controls appear only for eligible real product data', a
   assert.match(html, /data-card-next/); assert.match(html, /data-card-previous/); assert.match(html, /data-card-bootstrap/);
   assert.match(html, /data-card-options/);
   assert.doesNotMatch(html, /<a\b[^>]*>(?:(?!<\/a>)[\s\S])*<button/);
-  assert.doesNotMatch(await render(catalogCards([{ ...base, variantCount: 1 }], false)), /data-card-next/);
+  const singleVariant = await render(catalogCards([{ ...base, variants: colors.slice(0, 1), variantCount: 1 }], false));
+  assert.match(singleVariant, /data-card-next/); assert.match(singleVariant, /data-card-previous/);
+  assert.equal([...singleVariant.matchAll(/<img data-card-image\b/g)].length, 2);
   assert.doesNotMatch(await render(catalogCards([{ ...base, images: images.slice(0, 1) }], false)), /data-card-next/);
 });
 
