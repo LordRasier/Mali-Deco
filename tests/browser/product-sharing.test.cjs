@@ -58,6 +58,16 @@ test('sharing focuses the product, offers WhatsApp and handles Instagram, copyin
         assert.equal(bubble.width, 30, `${selector} uses the standard bubble width`);
         assert.equal(bubble.height, 30, `${selector} uses the standard bubble height`);
       }
+      const iconMetrics = await card.evaluate(card => ['[data-product-share] > summary', '[data-card-info]'].map(selector => {
+        const bubble = card.querySelector(selector), svg = bubble.querySelector('svg');
+        const parent = bubble.getBoundingClientRect(), box = svg.getBoundingClientRect();
+        return { inkHeight: svg.getBBox().height * box.height / svg.viewBox.baseVal.height,
+          centerX: box.x + box.width / 2 - parent.x - parent.width / 2,
+          centerY: box.y + box.height / 2 - parent.y - parent.height / 2 };
+      }));
+      assert.ok(Math.abs(iconMetrics[0].inkHeight - iconMetrics[1].inkHeight) < .1, 'Share artwork matches the information icon visual height');
+      assert.equal(iconMetrics[0].centerX, -1, 'A one-pixel optical offset balances the two right-hand nodes');
+      assert.equal(iconMetrics[0].centerY, 0, 'The share artwork stays vertically centered');
       assert.equal(await card.evaluate(card => document.activeElement === card), true);
       assert.equal(await page.locator('dialog[open]').count(), 0);
       const box = await card.boundingBox(); assert.ok(box.y >= 0 && box.y < 150, 'The product is in focus below the header');

@@ -2,6 +2,8 @@
 .catalog-share > summary,.catalog-card-info,.catalog-photo-zoom > span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #fffffff2; color: #54544e; }
 .catalog-share { position: absolute; inset: .5rem; z-index: 4; pointer-events: none; }
 .catalog-share > summary { cursor: pointer; list-style: none; pointer-events: auto; }
+/* Balance the two right-hand nodes optically without moving the shared 30px bubble. */
+.catalog-share > summary > svg { display: block; transform: translateX(-1px); }
 .catalog-share > summary:hover { color: var(--primary-ink); background: var(--card-surface); }
 .catalog-share > summary::-webkit-details-marker { display: none; }
 .catalog-share > summary:focus-visible,.catalog-share-panel :is(a,button,input):focus-visible { outline: 2px solid var(--primary-ink); outline-offset: -3px; }

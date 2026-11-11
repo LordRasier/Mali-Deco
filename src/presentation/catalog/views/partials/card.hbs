@@ -1,7 +1,7 @@
 <article {{#if anchorId}}id="{{anchorId}}" tabindex="-1" data-shared-product{{/if}} {{#if @root.visualPreview}}data-editor-path="source.products.{{@index}}"{{/if}} class="catalog-card" data-catalog-card data-card-bootstrap="{{bootstrap}}">
   <div class="catalog-image{{#if illustration}} is-illustration{{/if}}">
     {{#if sharePath}}<details class="catalog-share" data-product-share data-share-path="{{sharePath}}" data-share-name="{{name}}" data-share-origin="{{@root.seo.origin}}">
-      <summary aria-label="Compartir {{name}}" title="Compartir artículo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="5" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg></summary>
+      <summary aria-label="Compartir {{name}}" title="Compartir artículo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="5" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg></summary>
       <div class="catalog-share-panel">
         <strong>Compartir artículo</strong>
         <div data-share-actions hidden>
