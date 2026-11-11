@@ -124,7 +124,7 @@ test('reference card uses a unified white surface, photo fade, accessible inform
   const css = readFileSync(join(__dirname, 'public/catalog.css'), 'utf8');
   assert.match(css, /\.catalog-card\s*\{[^}]*background: var\(--card-surface\);[^}]*border-radius: 20px/);
   assert.match(css, /\.catalog-image::after\s*\{[^}]*pointer-events: none;[^}]*linear-gradient/);
-  assert.match(css, /\.catalog-card-info\s*\{[^}]*width: 30px;[^}]*height: 30px/);
+  assert.match(css, /\.catalog-share > summary,\.catalog-card-info,\.catalog-photo-zoom > span\s*\{[^}]*width: 30px;[^}]*height: 30px/);
   assert.match(css, /\.catalog-card \.catalog-add\s*\{[^}]*border-radius: 999px;[^}]*background: var\(--blue\)/);
   assert.match(css, /\.catalog-options button\[aria-pressed="true"\]\s*\{[^}]*background: var\(--blue\);[^}]*color: var\(--on-primary\)/);
   assert.match(css, /\.catalog-price\[data-price-state="prompt"\]/);

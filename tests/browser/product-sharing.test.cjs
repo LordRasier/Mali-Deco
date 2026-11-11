@@ -53,12 +53,23 @@ test('sharing focuses the product, offers WhatsApp and handles Instagram, copyin
       await page.goto('about:blank');
       await page.setViewportSize({ width, height: 900 }); await page.goto(expected);
       const card = page.locator('[data-shared-product]'), menu = card.locator('[data-product-share]');
+      for (const selector of ['[data-product-share] > summary', '[data-card-info]', '[data-card-zoom] > span']) {
+        const bubble = await card.locator(selector).boundingBox();
+        assert.equal(bubble.width, 30, `${selector} uses the standard bubble width`);
+        assert.equal(bubble.height, 30, `${selector} uses the standard bubble height`);
+      }
       assert.equal(await card.evaluate(card => document.activeElement === card), true);
       assert.equal(await page.locator('dialog[open]').count(), 0);
       const box = await card.boundingBox(); assert.ok(box.y >= 0 && box.y < 150, 'The product is in focus below the header');
       assert.equal(await menu.evaluate(menu => menu.open), false);
       await menu.locator('summary').click();
       assert.equal(await menu.evaluate(menu => menu.open), true);
+      for (const action of ['whatsapp', 'instagram', 'copy']) {
+        assert.equal(await menu.locator(`[data-share-${action}] svg[aria-hidden="true"]`).count(), 1);
+        assert.equal(await menu.locator(`[data-share-${action}]`).isVisible(), true);
+      }
+      assert.equal(await menu.locator('.catalog-share-help').count(), 0);
+      assert.ok((await menu.locator('.catalog-share-panel').boundingBox()).height < 210, 'The initial popup fits its actions without an empty lower area');
       await page.screenshot({ path: path.join(output, `menu-${width}.png`), fullPage: true });
       assert.equal(await page.locator('[data-zoom-dialog]').evaluate(dialog => dialog.open), false, 'Sharing never opens the photo zoom');
       const href = new URL(await menu.locator('[data-share-whatsapp]').getAttribute('href'));
