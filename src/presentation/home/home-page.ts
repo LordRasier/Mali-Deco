@@ -27,7 +27,7 @@ export class HomePage {
           const composition = await landingView(config, { list: q => this.catalog.list(q), selected: ids => this.catalog.selected!(ids) }, this.facets, this.routes.product, !!draft);
           return { status: 200, model: { ...model, ...composition } };
         }
-        const result = await this.catalog.list({ sort: 'name_asc', page: '1', limit: '24' });
+        const result = await this.catalog.list({ sort: 'featured_first', page: '1', limit: '24' });
         model.cards = catalogCards(publicProducts(result).slice(0, 3), false, this.routes.product, fixtureImageId(this.env));
       }
       return { status: 200, model };

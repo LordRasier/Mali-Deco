@@ -30,6 +30,7 @@ export function productPredicate(query: ListingQuery): { sql: string; params: (s
 
 export function productOrder(sort: ListingQuery['sort']): string {
   switch (sort) {
+    case 'featured_first': return 'p.featured DESC, p.name ASC, p.id ASC';
     case 'name_desc': return 'p.name DESC, p.id ASC';
     case 'price_asc': return 'matched.min_price ASC, p.name ASC, p.id ASC';
     case 'price_desc': return 'matched.min_price DESC, p.name ASC, p.id ASC';

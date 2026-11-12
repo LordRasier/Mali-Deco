@@ -139,6 +139,7 @@ test('admin discount drafts save exact amounts, clear explicitly and preserve st
       await page.goto('about:blank'); await page.setViewportSize({ width, height: 1000 }); await page.goto('https://promotions.test/');
       assert.equal(await page.locator('[name="featured"]').isChecked(), true);
       assert.equal(await page.getByRole('combobox', { name: 'Origen de los productos' }).inputValue(), 'featured');
+      assert.match(await page.locator('#landing-controls').innerText(), /Primero los destacados; los lugares restantes se completan/);
       const form = page.locator('[data-pricing-form]').first(), discount = form.locator('[data-pricing-discount]'), save = form.locator('[data-pricing-save]');
       assert.equal(await discount.inputValue(), '75,00'); await discount.fill('65,50'); assert.equal(await save.isVisible(), true); await save.click();
       await page.waitForFunction(() => window.saved.length === 1 && document.querySelector('[data-pricing-note]').textContent === 'Cambios guardados.');

@@ -24,7 +24,7 @@ export async function landingView(config: ContentConfig, catalog: Pick<PublicCat
       if (block.type === 'hero') { view.primaryHeading = !heading && block.enabled; if (block.enabled) heading = true; }
       if (block.type === 'products' && config.features.catalog) {
         const key = JSON.stringify([p.mode, p.productIds, p.category]);
-        if (!products.has(key)) products.set(key, p.mode === 'manual' ? catalog.selected(p.productIds as string[]) : catalog.list({ limit: '24', ...(p.mode === 'featured' ? { featured: 'true' } : p.category ? { category: p.category } : {}) }));
+        if (!products.has(key)) products.set(key, p.mode === 'manual' ? catalog.selected(p.productIds as string[]) : catalog.list({ limit: '24', sort: 'featured_first', ...(p.mode !== 'featured' && p.category ? { category: p.category } : {}) }));
         view.cards = catalogCards(publicProducts(await products.get(key)!).slice(0, Number(p.limit)), false, productRoute);
       }
       if (block.type === 'categories' && config.features.catalog) {

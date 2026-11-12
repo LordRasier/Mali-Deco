@@ -2,8 +2,9 @@
 
 ## Store administration
 
-- In a product, **Organización → Destacado** marks it as eligible for featured landing blocks. Save the product normally. Draft or archived products never become public because of this flag.
-- In the home editor, select a product block and choose **Origen de los productos → Productos destacados**. Save the draft and publish when ready. Existing category/manual sources are not replaced automatically. Featured results use alphabetical order and the block's existing limit; use manual selection for a custom order.
+- In a product, **Organización → Destacado** gives it priority in automatic landing product blocks. Save the product normally. Draft or archived products never become public because of this flag.
+- Automatic landing blocks show featured products first and fill the remaining slots with other published products, without duplicates. With one featured product and a three-product limit, the result is that product plus two others. With none, ordinary products fill the block; with enough featured products, they fill every slot. Each group uses alphabetical order with a stable ID tie-breaker, applied before pagination.
+- Existing **Automáticos por categoría** blocks use this priority immediately and respect the selected category; an empty category includes the whole catalog. **Destacados primero** uses the whole catalog. Manual selections keep their explicit order and do not auto-fill. Changing a block's source remains a draft until publication; no saved layout is rewritten to enable the priority.
 - **Precio en descuento** is a separate optional amount alongside the regular selling price, including each variant. Empty clears it. A nonnegative amount below the regular price activates the discount; equal/higher amounts are stored but inactive.
 - Saving catalog fields follows existing catalog behavior: changes to a published product are immediate. Selecting/changing the landing block source remains subject to the editor's separate draft/publish workflow.
 

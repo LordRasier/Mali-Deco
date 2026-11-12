@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { parseCatalogQuery } from '../validation/catalog-validation';
 
-export type ListingSort = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc';
+export type ListingSort = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc' | 'featured_first';
 export interface ListingQuery {
   page: number; limit: number; search?: string;
   featured?: boolean;
@@ -32,7 +32,7 @@ export function parseListingQuery(query: Record<string, unknown>): ListingQuery 
   const currency = query.currency;
   if (currency !== undefined && (typeof currency !== 'string' || !/^[A-Z]{3}$/.test(currency))) throw new BadRequestException('Invalid currency');
   const sort = query.sort === undefined ? 'name_asc' : query.sort;
-  if (typeof sort !== 'string' || !['name_asc', 'name_desc', 'price_asc', 'price_desc'].includes(sort)) throw new BadRequestException('Invalid sort');
+  if (typeof sort !== 'string' || !['name_asc', 'name_desc', 'price_asc', 'price_desc', 'featured_first'].includes(sort)) throw new BadRequestException('Invalid sort');
   const minPriceMinor = minor(query.minPriceMinor);
   const maxPriceMinor = minor(query.maxPriceMinor);
   if (minPriceMinor !== undefined && maxPriceMinor !== undefined && minPriceMinor > maxPriceMinor) throw new BadRequestException('Invalid price range');

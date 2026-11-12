@@ -3,7 +3,7 @@ import { colorControl } from './appearance-controls';
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string) => { const node = document.createElement(tag); if (text) node.textContent = text; return node; };
 export function blockButton(text: string, action: string, id: string) { const button = el('button', text); button.type = 'button'; button.dataset.blockAction = action; button.dataset.blockId = id; return button; }
 const labels: Record<string, string> = { title: 'Título', eyebrow: 'Texto superior', accent: 'Texto destacado del título', description: 'Descripción', action: 'Texto del botón', href: 'Destino del enlace', alt: 'Descripción accesible de la imagen', note: 'Nota inferior', caption: 'Epígrafe', empty: 'Mensaje sin productos', columns: 'Columnas en escritorio', mobileColumns: 'Columnas en móvil', limit: 'Máximo de productos', width: 'Ancho', spacing: 'Espaciado', theme: 'Fondo', align: 'Alineación', radius: 'Esquinas' };
-const values: Record<string, string> = { contained: 'Centrado', full: 'Ancho completo', none: 'Ninguno', small: 'Pequeño', medium: 'Mediano', large: 'Grande', inherit: 'Original del bloque', light: 'Blanco', muted: 'Suave', brand: 'Color de marca', dark: 'Oscuro', left: 'Izquierda', center: 'Centro', right: 'Derecha', soft: 'Suaves', round: 'Redondeadas', category: 'Automáticos por categoría', manual: 'Selección manual', featured: 'Productos destacados' };
+const values: Record<string, string> = { contained: 'Centrado', full: 'Ancho completo', none: 'Ninguno', small: 'Pequeño', medium: 'Mediano', large: 'Grande', inherit: 'Original del bloque', light: 'Blanco', muted: 'Suave', brand: 'Color de marca', dark: 'Oscuro', left: 'Izquierda', center: 'Centro', right: 'Derecha', soft: 'Suaves', round: 'Redondeadas', category: 'Automáticos por categoría', manual: 'Selección manual', featured: 'Destacados primero' };
 export function landingControls(block: LandingBlock, path: string) {
   const root = el('div'); root.className = 'content-properties'; root.dataset.blockInspector = block.id;
   const actions = el('div'); actions.className = 'content-actions';
@@ -35,7 +35,13 @@ export function landingControls(block: LandingBlock, path: string) {
       const input = el('input'); input.type = 'file'; input.accept = 'image/jpeg,image/png,image/webp'; input.dataset.blockUpload = key; input.dataset.blockId = block.id; label.append(input, el('small', 'JPG, PNG o WebP · hasta 5 MB')); root.append(label);
       if (value) { const remove = blockButton('Quitar imagen', 'clear-image', block.id); remove.dataset.key = key; root.append(remove); } continue;
     }
-    if (key === 'mode') { select(key, String(value), ['category', 'manual', 'featured'], fieldPath, 'Origen de los productos'); if (value === 'featured') root.append(el('small', 'Solo productos publicados marcados como Destacado en Productos, en orden alfabético. Para elegir un orden propio, use Selección manual.')); continue; }
+    if (key === 'mode') {
+      select(key, String(value), ['category', 'manual', 'featured'], fieldPath, 'Origen de los productos');
+      if (value !== 'manual') root.append(el('small', value === 'featured'
+        ? 'Primero los destacados; los lugares restantes se completan con otros productos publicados, sin repetir.'
+        : 'Primero los destacados; los lugares restantes se completan con otros productos publicados de la categoría elegida. Sin categoría, se usa todo el catálogo.'));
+      continue;
+    }
     if (key === 'category') { if (block.props.mode === 'category') { const input = select(key, String(value), [''], fieldPath, 'Categoría'); input.dataset.categorySelect = ''; input.firstElementChild!.textContent = 'Todas las categorías'; } continue; }
     if (Array.isArray(value)) {
       if (key === 'productIds' && block.props.mode !== 'manual') continue;

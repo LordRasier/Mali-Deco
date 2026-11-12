@@ -10,11 +10,21 @@ function fixture() {
   };
   return { catalog, calls };
 }
-test('home keeps the first three API products and a bounded default listing', async () => {
+test('home requests featured priority with a bounded listing and keeps three products', async () => {
   const { catalog, calls } = fixture(); const result = await new HomePage(catalog, 'api').read();
   assert.equal(result.status, 200); assert.equal(result.model.brand, 'Synthetic brand');
   assert.deepEqual(result.model.cards.map(card => card.name), ['a', 'b', 'c']);
-  assert.deepEqual(calls, ['settings', { sort: 'name_asc', page: '1', limit: '24' }]);
+  assert.deepEqual(calls, ['settings', { sort: 'featured_first', page: '1', limit: '24' }]);
+});
+
+test('home without saved layout leads with a highlighted product and fills the other slots', async () => {
+  const { catalog } = fixture(), list = catalog.list;
+  catalog.list = async query => {
+    const page = await list(query), featured = { ...page.items[0], id: 'z', slug: 'z', name: 'z' };
+    return { ...page, items: (query as { sort: string }).sort === 'featured_first' ? [featured, ...page.items] : [...page.items, featured] };
+  };
+  const result = await new HomePage(catalog, 'api').read();
+  assert.equal(result.status, 200); assert.deepEqual(result.model.cards.map(card => card.productId), ['z', 'a', 'b']);
 });
 test('home demo preserves editorial ordering without any API calls', async () => {
   const { catalog, calls } = fixture(); const result = await new HomePage(catalog, 'demo').read();

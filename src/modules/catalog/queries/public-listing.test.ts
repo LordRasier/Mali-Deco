@@ -6,6 +6,30 @@ import { parseListingQuery } from './listing-query';
 import { productOrder, productPredicate, variantPredicate } from './listing-sql';
 import { listPublicProducts, selectedPublicProducts, publicVariant } from './public-listing';
 
+test('featured-first sorting includes ordinary products and preserves the catalog default', () => {
+  const query = parseListingQuery({ sort: 'featured_first' });
+  assert.equal(productOrder(query.sort), 'p.featured DESC, p.name ASC, p.id ASC');
+  assert.doesNotMatch(productPredicate(query).sql, /p.featured =/);
+  assert.equal(productOrder(parseListingQuery({}).sort), 'p.name ASC, p.id ASC');
+  for (const sort of [['featured_first'], 'featured_first; DROP TABLE products', true]) {
+    assert.throws(() => parseListingQuery({ sort }), { status: 400 });
+  }
+});
+
+test('featured priority is applied before pagination without broadening public or category eligibility', async () => {
+  const calls: { sql: string; params: unknown[] }[] = [];
+  const connection = { query: async (sql: string, params: unknown[]) => {
+    calls.push({ sql, params }); return calls.length === 1 ? [{ total: 31 }] : [];
+  } };
+  const db = { transaction: async (_: string, run: (m: typeof connection) => unknown) => run(connection) } as unknown as DataSource;
+  await listPublicProducts(db, { sort: 'featured_first', category: 'vases', page: '2', limit: '3' });
+  assert.equal(calls.length, 2);
+  assert.match(calls[1].sql, /ORDER BY p.featured DESC, p.name ASC, p.id ASC LIMIT \? OFFSET \?/);
+  assert.match(calls[1].sql, /p.status = 'active' AND p.archived_at IS NULL AND c.slug IN \(\?\)/);
+  assert.doesNotMatch(calls[1].sql, /p.featured = 1/);
+  assert.deepEqual(calls[1].params, ['vases', 3, 3]);
+});
+
 test('public variant prices and SQL price filters use active discounts consistently', () => {
   const variant = publicVariant({ id: 'v', name: 'Vase', productId: 'p', priceMinor: '10000', salePriceMinor: '7500', currency: 'ARS', supplyMode: null,
     materialId: null, materialSlug: null, materialName: null, colorId: null, colorSlug: null, colorName: null, colorHex: null });
