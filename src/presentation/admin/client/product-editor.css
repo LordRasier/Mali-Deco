@@ -93,7 +93,10 @@
 .editor-stock-form input { width: 100%; min-height: 36px; }
 .editor-stock-form button { min-height: 36px; white-space: nowrap; }
 .editor-bulk-warning input { min-height: 36px; }
-.admin-root .pricing-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; align-items: start; }
+.admin-root .product-pricing { container: product-pricing / inline-size; --variant-image-height: 58px; }
+.admin-root .pricing-grid { display: grid; grid-template-columns: minmax(0,150px) minmax(0,100px) repeat(2,minmax(0,150px)) minmax(0,112px); gap: 12px; align-items: start; }
+.admin-root .product-pricing:not(.has-variants) .pricing-stock { order: 1; }
+.admin-root .pricing-grid input:not([type=checkbox]) { text-align: right; font-variant-numeric: tabular-nums; }
 .admin-root .pricing-variant { display: grid; gap: 12px; min-width: 0; padding-block: 14px; border-top: 1px solid var(--admin-line); }
 .admin-root .pricing-variant-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .admin-root .pricing-variant-heading strong { font-size: 13px; }
@@ -115,30 +118,29 @@
 .admin-root .variant-properties strong { display: block; margin-bottom: 6px; font-size: 12px; }
 .admin-root .variant-property-values { display: flex; flex-wrap: wrap; gap: 5px; }
 .admin-root .variant-property-values .badge { font-size: 11px; font-weight: 400; background: #f1f4f8; color: var(--admin-ink); }
-.admin-root .variant-table-head,.admin-root .has-variants .pricing-variant { display: grid; grid-template-columns: minmax(150px,1fr) minmax(145px,.8fr) minmax(110px,.65fr) 104px; gap: 12px; align-items: center; }
-.admin-root .variant-table-head { padding: 10px 0; border-block: 1px solid var(--admin-line); background: #f7f9fc; font-size: 12px; font-weight: 600; }
-.admin-root .has-variants .pricing-variant { margin: 0; padding: 12px 0; border-top: 0; border-bottom: 1px solid var(--admin-line); }
+.admin-root .has-variants .pricing-variant { display: grid; grid-template-columns: minmax(180px,1fr) 112px 130px 130px 164px; gap: 10px; align-items: center; margin: 0; padding: 10px 0; border-top: 0; border-bottom: 1px solid var(--admin-line); }
 .admin-root .has-variants .pricing-grid { display: contents; }
-.admin-root .has-variants .pricing-variant-heading { grid-column: 1; grid-row: 1; justify-content: start; gap: 10px; min-width: 0; }
-.admin-root .has-variants .pricing-variant-heading > div { min-width: 0; }
-.admin-root .has-variants .pricing-variant-heading strong { color: var(--admin-blue); overflow-wrap: anywhere; }
-.admin-root .variant-row-actions { display: flex; flex-wrap: wrap; gap: 2px; }
-.admin-root .has-variants .variant-row-actions { grid-column: 4; grid-row: 1; justify-content: end; }
-.admin-root .variant-row-actions button { padding: 2px 5px; min-height: 26px; }
-.admin-root .product-editor .variant-image { width: 52px; height: 58px; min-width: 52px; padding: 0; overflow: hidden; position: relative; border: 1px solid var(--admin-line); background: #f4f6f8; color: var(--admin-muted); font-size: 10px; }
+.admin-root .has-variants .pricing-variant-heading { grid-column: 1; grid-row: 1; justify-content: start; flex-wrap: nowrap; gap: 10px; min-width: 0; }
+.admin-root .has-variants .pricing-variant-heading > div { display: grid; gap: 1px; min-width: 0; }
+.admin-root .has-variants .pricing-variant-heading :is(strong,small) { display: block; margin: 0; line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-root .has-variants .pricing-variant-heading strong { color: var(--admin-blue); }
+.admin-root .variant-row-actions { display: grid; gap: 4px; min-width: 0; }
+.admin-root .variant-action-buttons { display: flex; flex-wrap: nowrap; gap: 2px; }
+.admin-root .has-variants .variant-row-actions { grid-column: 5; grid-row: 1; }
+.admin-root .product-editor .variant-row-actions button { padding: 4px 6px; height: 32px; min-height: 32px; white-space: nowrap; }
+.admin-root .variant-actions-label { color: var(--admin-muted); font-size: 11px; line-height: 16px; }
+.admin-root .product-editor .variant-image { width: 52px; height: var(--variant-image-height); min-width: 52px; flex-shrink: 0; padding: 0; overflow: hidden; position: relative; border: 1px solid var(--admin-line); background: #f4f6f8; color: var(--admin-muted); font-size: 10px; }
 .admin-root .variant-image img { width: 100%; height: 100%; object-fit: contain; }
 .admin-root .variant-image-edit { position: absolute; bottom: 0; right: 0; width: 18px; height: 18px; display: grid; place-items: center; background: white; color: var(--admin-blue); border-radius: 4px 0 0; }
-.admin-root .has-variants .variant-sale-field { grid-column: 3; grid-row: 1; font-size: 0; gap: 0; }
+.admin-root .has-variants .pricing-grid > label,.admin-root .has-variants .pricing-stock { gap: 4px; font-size: 11px; line-height: 16px; }
+.admin-root .has-variants .variant-sale-field { grid-column: 3; grid-row: 1; }
+.admin-root .has-variants .variant-discount-field { grid-column: 4; grid-row: 1; }
 .admin-root .has-variants .pricing-stock { grid-column: 2; grid-row: 1; }
-.admin-root .has-variants .pricing-stock-heading > label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.admin-root .has-variants .pricing-stock-heading > .pricing-unlimited { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
-.admin-root .has-variants .pricing-stock-heading { min-height: 0; justify-content: start; }
-.admin-root .has-variants .pricing-stock { position: relative; }
-.admin-root .has-variants .pricing-stock-heading { position: absolute; top: -17px; right: 0; }
-.admin-root .has-variants .pricing-variant { min-height: 85px; }
+.admin-root .has-variants .pricing-stock-heading { min-height: 16px; gap: 4px; flex-wrap: nowrap; }
+.admin-root .has-variants .pricing-stock-heading label { font-size: 11px; line-height: 16px; }
 .admin-root .has-variants :is(.variant-cost-field,.variant-markup-field) { display: none; }
-.admin-root .has-variants .show-variant-costs .variant-cost-field { display: grid; grid-column: 2; grid-row: 2; }
-.admin-root .has-variants .show-variant-costs .variant-markup-field { display: grid; grid-column: 3; grid-row: 2; }
+.admin-root .has-variants .show-variant-costs .variant-cost-field { display: grid; grid-column: 3; grid-row: 2; }
+.admin-root .has-variants .show-variant-costs .variant-markup-field { display: grid; grid-column: 4; grid-row: 2; max-width: 100px; }
 .admin-root .has-variants :is(.pricing-feedback,.variant-image-picker) { grid-column: 1 / -1; }
 .admin-root .variant-image-picker { padding: 12px; background: #f7f9fc; border: 1px solid var(--admin-line); border-radius: 5px; display: grid; gap: 10px; }
 .admin-root .variant-image-picker p { font-size: 12px; color: var(--admin-muted); }
@@ -150,29 +152,44 @@
 .admin-root [data-variations] { display: grid; gap: 10px; }
 .admin-root .variation-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; gap: 10px; align-items: end; }
 .admin-root [data-variation-add] { justify-self: start; }
-@media(max-width:1200px) { .admin-root .pricing-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@container product-pricing (max-width:779px) {
+  .admin-root .pricing-grid { grid-template-columns: repeat(3,minmax(0,160px)); }
+  .admin-root .has-variants .pricing-variant { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .admin-root .has-variants .pricing-variant-heading { grid-column: 1 / 3; }
+  .admin-root .has-variants .variant-row-actions { grid-column: 3; }
+  .admin-root .has-variants .pricing-stock { grid-column: 1; grid-row: 2; max-width: 112px; }
+  .admin-root .has-variants .variant-sale-field { grid-column: 2; grid-row: 2; max-width: 160px; }
+  .admin-root .has-variants .variant-discount-field { grid-column: 3; grid-row: 2; max-width: 160px; }
+  .admin-root .has-variants .show-variant-costs .variant-cost-field { grid-column: 2; grid-row: 3; max-width: 160px; }
+  .admin-root .has-variants .show-variant-costs .variant-markup-field { grid-column: 3; grid-row: 3; }
+}
+@container product-pricing (max-width:560px) {
+  .admin-root .pricing-grid { grid-template-columns: repeat(2,minmax(0,160px)); }
+  .admin-root .has-variants .pricing-variant { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .admin-root .has-variants .pricing-variant-heading { grid-column: 1 / -1; }
+  .admin-root .has-variants .pricing-stock { grid-column: 1 / -1; grid-row: 2; }
+  .admin-root .has-variants .variant-sale-field { grid-column: 1; grid-row: 3; }
+  .admin-root .has-variants .variant-discount-field { grid-column: 2; grid-row: 3; }
+  .admin-root .has-variants .variant-row-actions { grid-column: 1 / -1; grid-row: 4; }
+  .admin-root .has-variants .variant-actions-label { display: none; }
+  .admin-root .has-variants .show-variant-costs .variant-cost-field { grid-column: 1; grid-row: 5; }
+  .admin-root .has-variants .show-variant-costs .variant-markup-field { grid-column: 2; grid-row: 5; }
+}
+@container product-pricing (max-width:260px) {
+  .admin-root .pricing-grid { grid-template-columns: minmax(0,160px); }
+  .admin-root .has-variants .pricing-variant { grid-template-columns: minmax(0,1fr); }
+  .admin-root .has-variants .variant-discount-field { grid-column: 1; grid-row: 4; }
+  .admin-root .has-variants .variant-row-actions { grid-row: 5; }
+  .admin-root .has-variants .show-variant-costs .variant-cost-field { grid-row: 6; }
+  .admin-root .has-variants .show-variant-costs .variant-markup-field { grid-column: 1; grid-row: 7; }
+}
 @media(max-width:700px) {
   .admin-root .pricing-grid { gap: 12px 10px; }
   .admin-root .pricing-stock-heading { flex-wrap: wrap; }
   .admin-root .pricing-variant-heading,.admin-root .pricing-feedback { flex-wrap: wrap; }
   .admin-root .pricing-variant-heading .actions { gap: 6px; }
-  .admin-root .variant-table-head { display: none; }
-  .admin-root .has-variants .pricing-variant { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
-  .admin-root .has-variants .pricing-variant-heading { grid-column: 1 / -1; grid-row: 1; }
-  .admin-root .has-variants .variant-row-actions { grid-column: 1 / -1; grid-row: 2; justify-content: start; }
-  .admin-root .has-variants .pricing-stock { grid-column: 1; grid-row: 3; }
-  .admin-root .has-variants .pricing-stock-heading { position: static; justify-content: end; min-height: 18px; }
-  .admin-root .has-variants .variant-sale-field { grid-column: 2; grid-row: 3; font-size: 12px; gap: 5px; }
-  .admin-root .has-variants .show-variant-costs .variant-cost-field { grid-column: 1; grid-row: 4; }
-  .admin-root .has-variants .show-variant-costs .variant-markup-field { grid-column: 2; grid-row: 4; }
   .admin-root .variation-row { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
   .admin-root .variation-row button { grid-column: 1 / -1; justify-self: end; }
 }
 .admin-root .editor-featured { display: flex; align-items: center; gap: .5rem; }
 .admin-root .editor-featured input { width: 18px; height: 18px; accent-color: var(--admin-primary); }
-.admin-root .has-variants .variant-discount-field { grid-column: 3; grid-row: 2; font-size: 11px; }
-.admin-root .has-variants .show-variant-costs :is(.variant-cost-field,.variant-markup-field) { grid-row: 3; }
-@media(max-width:700px) {
-  .admin-root .has-variants .variant-discount-field { grid-column: 2; grid-row: 4; font-size: 12px; }
-  .admin-root .has-variants .show-variant-costs :is(.variant-cost-field,.variant-markup-field) { grid-row: 5; }
-}
