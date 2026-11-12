@@ -25,7 +25,8 @@
       </section>
       <section class="product-details" aria-labelledby="product-title">
         <p class="eyebrow">{{copy.product.eyebrow}}</p><h1 id="product-title">{{name}}</h1>
-        <p data-product-price>{{priceLabel}}{{#if demo}} · precio de ejemplo{{/if}}</p>
+        <p data-product-price>{{#if regularPriceLabel}}<del class="product-regular-price" aria-label="Precio habitual: {{regularPriceLabel}}">{{regularPriceLabel}}</del> {{/if}}{{priceLabel}}{{#if demo}} · precio de ejemplo{{/if}}</p>
+        <p class="product-discount-label" data-product-discount {{#unless discountPercent}}hidden{{/unless}}>{{#if discountPercent}}{{discountPercent}}% OFF{{/if}}</p>
         <p class="product-description">{{description}}</p>
         <p>Variante: <strong data-product-selected>{{selectedName}}</strong></p>
         <p data-product-availability>{{availability}}</p>

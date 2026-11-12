@@ -16,13 +16,14 @@ test('empty persisted data does not invent choices or range', async () => {
   const calls: Array<{ sql: string; params: unknown[] | undefined }> = [];
   const db = { isInitialized: true, query: async (sql: string, params?: unknown[]) => {
     calls.push({ sql, params });
-    return sql.includes('MIN(v.price_minor)') ? [{ minMinor: null, maxMinor: null }] : [];
+    return sql.includes(' AS minMinor') ? [{ minMinor: null, maxMinor: null }] : [];
   } } as unknown as DataSource;
   assert.deepEqual(await new PublicFacets(db).get({ currency: 'ARS' }), {
     categories: [], materials: [], colors: [], currencies: [], priceRange: null,
     truncated: { categories: false, materials: false, colors: false },
   });
   assert.equal(calls.length, 5);
+  assert.match(calls[4].sql, /MIN\(\(CASE WHEN v.sale_price_minor IS NOT NULL AND v.sale_price_minor < v.price_minor THEN v.sale_price_minor ELSE v.price_minor END\)\) AS minMinor/);
   assert.deepEqual(calls.map((call) => call.params), [['ARS'], ['ARS'], ['ARS'], undefined, ['ARS']]);
   assert.ok(calls.every((call) => !call.sql.includes("'ARS'")), 'currency is parameterized');
   assert.ok(calls.slice(0, 3).every((call) => call.sql.includes('LIMIT 201')));
@@ -51,14 +52,14 @@ test('unscoped facets never compare mixed-currency prices', async () => {
   const result = await new PublicFacets(db).get();
   assert.equal(result.priceRange, null);
   assert.equal(calls.length, 4);
-  assert.equal(calls.some((sql) => sql.includes('MIN(v.price_minor)')), false);
+  assert.equal(calls.some((sql) => sql.includes(' AS minMinor')), false);
 });
 
 test('public eligibility and selected currency are applied without filtering global currency choices', async () => {
   const calls: Array<{ sql: string; params?: unknown[] }> = [];
   const db = { isInitialized: true, query: async (sql: string, params?: unknown[]) => {
     calls.push({ sql, params });
-    return sql.includes('MIN(v.price_minor)') ? [{ minMinor: null, maxMinor: null }] : [];
+    return sql.includes(' AS minMinor') ? [{ minMinor: null, maxMinor: null }] : [];
   } } as unknown as DataSource;
   await new PublicFacets(db).get({ currency: 'USD' });
   for (const call of calls) {
@@ -72,7 +73,7 @@ test('public eligibility and selected currency are applied without filtering glo
 });
 
 test('an out-of-range persisted price is never exposed as a rounded amount', async () => {
-  const db = { isInitialized: true, query: async (sql: string) => sql.includes('MIN(v.price_minor)')
+  const db = { isInitialized: true, query: async (sql: string) => sql.includes(' AS minMinor')
     ? [{ minMinor: '0', maxMinor: '9007199254740992' }] : [] } as unknown as DataSource;
   await assert.rejects(new PublicFacets(db).get({ currency: 'ARS' }), RangeError);
 });

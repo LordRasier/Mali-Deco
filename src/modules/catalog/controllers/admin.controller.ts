@@ -2,8 +2,8 @@ import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Inject, P
 import { CatalogGuard } from '../../identity/http/catalog.guard';
 import { CatalogAdmin, CatalogProductInput, VariantInput, type VariantPriceInput } from '../services/catalog-admin';
 
-const productKeys = ['name', 'slug', 'description', 'status', 'productWeightG', 'productWidthMm', 'productHeightMm', 'productLengthMm', 'packageWeightG', 'packageWidthMm', 'packageHeightMm', 'packageLengthMm', 'categoryId', 'bulkWarningThreshold', 'bulkWarningMessage'];
-const variantKeys = ['sku', 'name', 'priceMinor', 'currency', 'supplyMode', 'materialId', 'colorId', 'options'];
+const productKeys = ['name', 'slug', 'description', 'status', 'productWeightG', 'productWidthMm', 'productHeightMm', 'productLengthMm', 'packageWeightG', 'packageWidthMm', 'packageHeightMm', 'packageLengthMm', 'categoryId', 'bulkWarningThreshold', 'bulkWarningMessage', 'featured'];
+const variantKeys = ['sku', 'name', 'priceMinor', 'salePriceMinor', 'currency', 'supplyMode', 'materialId', 'colorId', 'options'];
 function bodyOf<T>(body: unknown, allowed: string[]): T {
   if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some((key) => !allowed.includes(key))) throw new BadRequestException('Invalid request body');
   return body as T;
@@ -18,7 +18,7 @@ export class AdminCatalogController {
   @Post() create(@Body() body: unknown) { return this.catalog.createProduct(bodyOf<CatalogProductInput>(body, productKeys)); }
   @Post('with-price') createWithPrice(@Body() body: unknown) {
     const input = bodyOf<{ product: unknown; price: unknown }>(body, ['product', 'price']);
-    return this.catalog.createProductWithPrice(bodyOf<CatalogProductInput>(input.product, productKeys), bodyOf<VariantPriceInput>(input.price, ['priceMinor', 'currency', 'supplyMode', 'costMinor', 'stockQuantity']));
+    return this.catalog.createProductWithPrice(bodyOf<CatalogProductInput>(input.product, productKeys), bodyOf<VariantPriceInput>(input.price, ['priceMinor', 'salePriceMinor', 'currency', 'supplyMode', 'costMinor', 'stockQuantity']));
   }
   @Post(':id/publish') @HttpCode(200) publish(@Param('id') id: string) { return this.catalog.publishProduct(id); }
   @Post(':id/unpublish') @HttpCode(200) unpublish(@Param('id') id: string) { return this.catalog.unpublishProduct(id); }
@@ -33,7 +33,7 @@ export class AdminCatalogController {
   }
   @Put(':id/variants/:variantId') updateVariant(@Param('id') id: string, @Param('variantId') variantId: string, @Body() body: unknown) { return this.catalog.updateVariant(id, variantId, bodyOf<VariantInput>(body, variantKeys)); }
   @Put(':id/variants/:variantId/price') updateVariantPrice(@Param('id') id: string, @Param('variantId') variantId: string, @Body() body: unknown) {
-    return this.catalog.updateVariantPrice(id, variantId, bodyOf<VariantPriceInput>(body, ['priceMinor', 'currency', 'supplyMode']));
+    return this.catalog.updateVariantPrice(id, variantId, bodyOf<VariantPriceInput>(body, ['priceMinor', 'salePriceMinor', 'currency', 'supplyMode']));
   }
   @Delete(':id/variants/:variantId') archiveVariant(@Param('id') id: string, @Param('variantId') variantId: string) { return this.catalog.archiveVariant(id, variantId); }
   @Put(':id/variants/:variantId/stock') updateVariantStock(@Param('id') id: string, @Param('variantId') variantId: string, @Body() body: unknown) {

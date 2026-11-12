@@ -1,3 +1,4 @@
+import { effectiveVariantPriceSql } from '../queries/effective-price-sql';
 import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { assertMinorUnits } from '../models/price';
@@ -46,7 +47,7 @@ export class PublicFacets {
       ORDER BY v.currency ASC`);
     let priceRange: { currency: string; minMinor: number; maxMinor: number } | null = null;
     if (currency) {
-      const [range]: PriceRow[] = await db.query(`SELECT MIN(v.price_minor) AS minMinor, MAX(v.price_minor) AS maxMinor
+      const [range]: PriceRow[] = await db.query(`SELECT MIN(${effectiveVariantPriceSql}) AS minMinor, MAX(${effectiveVariantPriceSql}) AS maxMinor
         FROM product_variants v JOIN products p ON p.id = v.product_id
         WHERE v.archived_at IS NULL AND p.status = 'active' AND p.archived_at IS NULL AND v.currency = ?`, [currency]);
       if (range && range.minMinor !== null && range.maxMinor !== null) {

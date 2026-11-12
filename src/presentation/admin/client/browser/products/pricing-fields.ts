@@ -4,9 +4,10 @@ import { calculatePricing, markupBasis, type PricingField } from '../../../share
 export function pricingControls(root: HTMLElement) {
   const cost = root.querySelector<HTMLInputElement>('[data-pricing-cost]'), markup = root.querySelector<HTMLInputElement>('[data-pricing-markup]');
   const sale = root.querySelector<HTMLInputElement>('[data-pricing-sale]'), stock = root.querySelector<HTMLInputElement>('[data-pricing-stock]');
+  const discount = root.querySelector<HTMLInputElement>('[data-pricing-discount]');
   const unlimited = root.querySelector<HTMLInputElement>('[data-pricing-unlimited]'), supply = root.querySelector<HTMLInputElement>('[data-pricing-supply]');
   if (!cost || !markup || !sale || !stock || !unlimited || !supply) return;
-  return { cost, markup, sale, stock, unlimited, supply };
+  return { cost, markup, sale, discount, stock, unlimited, supply };
 }
 export function readPricing(root: HTMLElement, currency: string) {
   const c = pricingControls(root); if (!c) throw Error('No se pudo leer el precio.');
@@ -15,7 +16,7 @@ export function readPricing(root: HTMLElement, currency: string) {
   const costMinor = c.cost.value.trim() ? decimalToMinor(c.cost.value.trim(), currency) : null;
   const quantity = c.stock.value.trim();
   if (!c.unlimited.checked && (!/^\d+$/.test(quantity) || Number(quantity) > 1000000)) throw Error('Indicá un stock entero entre 0 y 1000000, o marcá Ilimitado.');
-  return { priceMinor, costMinor, currency, supplyMode: c.unlimited.checked ? 'made_to_order' as const : 'stock' as const,
+  return { priceMinor, costMinor, ...(c.discount ? { salePriceMinor: c.discount.value.trim() ? decimalToMinor(c.discount.value.trim(), currency) : null } : {}), currency, supplyMode: c.unlimited.checked ? 'made_to_order' as const : 'stock' as const,
     stockQuantity: c.unlimited.checked ? undefined : Number(quantity) };
 }
 export function mountPricingFields(root: HTMLElement, currency: string) {

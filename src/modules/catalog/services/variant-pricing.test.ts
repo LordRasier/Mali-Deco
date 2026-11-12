@@ -5,6 +5,23 @@ import { saveVariantPricing, validateInitialPricing } from './variant-pricing';
 
 const initial = { priceMinor: '13000', costMinor: '10000' as string | null, currency: 'ARS', supplyMode: 'stock', stockQuantity: 4 };
 const input = { priceMinor: 15000, costMinor: 11000, supplyMode: 'stock', expectedPriceMinor: '13000', expectedCostMinor: '10000', expectedCurrency: 'ARS', expectedSupplyMode: 'stock' };
+
+test('sale price is independently nullable, guarded against stale edits, and omitted fields preserve it', async () => {
+  const row = { ...initial, salePriceMinor: '11000' };
+  const f = fixture(row);
+  const saved = await saveVariantPricing(f.db, 'p', 'v', { ...input, salePriceMinor: 9000, expectedSalePriceMinor: '11000' });
+  assert.equal(saved.salePriceMinor, '9000');
+  assert.match(f.calls[2].sql, /sale_price_minor = \?/);
+  assert.equal((await saveVariantPricing(fixture(row).db, 'p', 'v', input)).salePriceMinor, '11000');
+  assert.equal((await saveVariantPricing(fixture(row).db, 'p', 'v', { ...input, salePriceMinor: null, expectedSalePriceMinor: '11000' })).salePriceMinor, null);
+  await assert.rejects(saveVariantPricing(fixture(row).db, 'p', 'v', { ...input, salePriceMinor: 9000, expectedSalePriceMinor: null }), { status: 409 });
+  for (const salePriceMinor of [-1, 1.5, '', '9000', Number.MAX_SAFE_INTEGER + 1]) {
+    const f = fixture(row);
+    await assert.rejects(saveVariantPricing(f.db, 'p', 'v', { ...input, salePriceMinor, expectedSalePriceMinor: '11000' }), { status: 400 });
+    assert.equal(f.calls.length, 0);
+  }
+  await assert.rejects(saveVariantPricing(fixture(row).db, 'p', 'v', { ...input, salePriceMinor: 9000 }), { status: 400 });
+});
 function fixture(row = initial, parent = true, variant = true) {
   const calls: { sql: string; values: unknown[] }[] = [];
   const tx = { query: async (sql: string, values: unknown[]) => {

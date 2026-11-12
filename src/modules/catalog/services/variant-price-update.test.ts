@@ -7,11 +7,13 @@ import { CatalogAdmin } from './catalog-admin';
 
 function fixture() {
   const row = { id: 'v', productId: 'p', archivedAt: null as Date | null, priceMinor: '199', currency: 'USD', supplyMode: 'stock',
+    salePriceMinor: '150' as string | null,
     name: 'Old name', sku: 'OLD', colorId: 'old-color', materialId: 'old-material' };
   const parent = { id: 'p', archivedAt: null as Date | null };
   type Criteria = { id: string; productId: string; archivedAt: { type: string } };
   const matches = (q: Criteria) => q.id === row.id && q.productId === row.productId && q.archivedAt.type === 'isNull' && !row.archivedAt;
   const repo = {
+    findOne: async ({ where, lock }: { where: Criteria; lock: { mode: string } }) => { assert.equal(lock.mode, 'pessimistic_write'); return matches(where) ? { ...row } : null; },
     update: async (q: Criteria, fields: Partial<typeof row>) => {
       if (!matches(q)) return { affected: 0 };
       Object.assign(row, fields); return { affected: 1 };
@@ -33,11 +35,18 @@ test('a previously opened price form cannot overwrite later SKU, name, material 
   const concurrent = { name: 'Concurrent name', sku: 'NEW', materialId: 'new-material', colorId: 'new-color' };
   Object.assign(row, concurrent);
   const result = await controller.updateVariantPrice('p', 'v', price);
-  const expected = { ...concurrent, ...price, priceMinor: '0', id: 'v', productId: 'p', archivedAt: null };
+  const expected = { ...concurrent, ...price, priceMinor: '0', salePriceMinor: null, id: 'v', productId: 'p', archivedAt: null };
   assert.deepEqual(result, expected); assert.deepEqual(row, expected);
   for (const key of ['sku', 'name', 'colorId', 'materialId', 'archivedAt']) {
     assert.throws(() => controller.updateVariantPrice('p', 'v', { ...price, [key]: 'stale' }), { status: 400 });
   }
+});
+
+test('omitted discounts survive same-currency edits, clear on currency changes and accept explicit replacements', async () => {
+  const f = fixture();
+  assert.equal((await f.controller.updateVariantPrice('p', 'v', { ...price, currency: 'USD' })).salePriceMinor, '150');
+  assert.equal((await f.controller.updateVariantPrice('p', 'v', price)).salePriceMinor, null);
+  assert.equal((await f.controller.updateVariantPrice('p', 'v', { ...price, currency: 'USD', priceMinor: 300, salePriceMinor: 200 })).salePriceMinor, '200');
 });
 test('price updates require valid money, currency and supply and apply only to an unarchived target and parent', async () => {
   const { controller, row, parent } = fixture();

@@ -1,5 +1,13 @@
 # Plan de reorganización y migración a NestJS MVC
 
+## Featured products and discounted prices (2026-11-11)
+
+1. Add an opt-in featured product flag and a featured source for landing blocks. Preserve existing published category/manual selections and the draft/publish boundary.
+2. Add nullable variant discount prices with an additive migration. A discount is active only below the regular price; empty removes it, equal/higher retains the regular charge. Use integer minor units throughout.
+3. Apply the effective price consistently to listing/filter/sort, cart, shipping, quote and locked order validation. Preserve immutable existing orders and payment amounts.
+4. Add admin fields and diagonal discount ribbons with regular/effective prices. Multi-option cards show the discount of the selected option only, never an invented product-wide percentage.
+5. Prove behavior with failing-first tests, browser fixtures, full checks and an independent monetary review. Local activation and subsequent GitHub publication were separately authorized on 2026-11-12; production access and migration execution remain out of scope.
+
 ## Contacto alineado y Mercado Pago de prueba (2026-11-07)
 
 1. Corregir la grilla de contacto con columnas iguales; comprobar escritorio, tablet y móvil.

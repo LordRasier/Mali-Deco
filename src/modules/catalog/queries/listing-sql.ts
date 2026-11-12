@@ -1,4 +1,5 @@
 import { ListingQuery } from './listing-query';
+import { effectiveVariantPriceSql } from './effective-price-sql';
 
 /** Every condition on the variant is applied to one row, never to separate EXISTS clauses. */
 export function variantPredicate(query: ListingQuery): { sql: string; params: (string | number)[] } {
@@ -10,13 +11,14 @@ export function variantPredicate(query: ListingQuery): { sql: string; params: (s
   inSlugs('m.slug', query.material);
   inSlugs('co.slug', query.color);
   if (query.currency) { clauses.push('v.currency = ?'); params.push(query.currency); }
-  if (query.minPriceMinor !== undefined) { clauses.push('v.price_minor >= ?'); params.push(query.minPriceMinor); }
-  if (query.maxPriceMinor !== undefined) { clauses.push('v.price_minor <= ?'); params.push(query.maxPriceMinor); }
+  if (query.minPriceMinor !== undefined) { clauses.push(`${effectiveVariantPriceSql} >= ?`); params.push(query.minPriceMinor); }
+  if (query.maxPriceMinor !== undefined) { clauses.push(`${effectiveVariantPriceSql} <= ?`); params.push(query.maxPriceMinor); }
   return { sql: clauses.join(' AND '), params };
 }
 
 export function productPredicate(query: ListingQuery): { sql: string; params: (string | number)[] } {
   const clauses = ["p.status = 'active'", 'p.archived_at IS NULL'];
+  if (query.featured) clauses.push('p.featured = 1');
   const params: (string | number)[] = [];
   if (query.search) { clauses.push('LOCATE(?, p.name) > 0'); params.push(query.search); }
   if (query.category.length) { clauses.push(`c.slug IN (${query.category.map(() => '?').join(', ')})`); params.push(...query.category); }

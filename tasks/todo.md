@@ -1,5 +1,15 @@
 # Estado del rework MVC
 
+## Featured products and discounted prices (2026-11-11)
+
+- [x] Featured product validation, persistence and opt-in landing source.
+- [x] Nullable discount price and additive migration with safe defaults.
+- [x] Effective pricing in catalog, cart, shipping, quote and order revalidation.
+- [x] Admin controls, variant-aware diagonal ribbons and accessible prices.
+- [x] Failing-first regressions, 640 full-suite tests, 5 browser fixtures, typecheck, lint, build and independent backend review. Evidence: `artifacts/featured-discounts`.
+- [x] Authorized local migration, verified SQL backup, unchanged preexisting data and real list/editor rendering (2026-11-12). Production remains untouched.
+- [x] Top-right discount ribbons and aligned purchase rows verified in six responsive sizes; sharing, information and zoom controls remain unobstructed.
+
 ## Contacto y pago de prueba (2026-11-07)
 
 - [x] Reproducción y corrección de columnas desalineadas; prueba de regresión y compilación correctas.

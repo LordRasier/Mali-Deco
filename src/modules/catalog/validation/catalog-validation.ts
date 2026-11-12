@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 
 export interface ProductInput {
   name: string; slug: string; description: string; status: 'draft' | 'active';
+  featured?: boolean;
   bulkWarningThreshold?: number | null; bulkWarningMessage?: string | null;
   productWeightG?: number | null; productWidthMm?: number | null; productHeightMm?: number | null; productLengthMm?: number | null;
   packageWeightG?: number | null; packageWidthMm?: number | null; packageHeightMm?: number | null; packageLengthMm?: number | null;
@@ -15,6 +16,7 @@ export function validateProduct(product: ProductInput): void {
   if (typeof product.description !== 'string' || Buffer.byteLength(product.description, 'utf8') > 65535) throw new BadRequestException('Invalid description');
   if (typeof product.slug !== 'string' || product.slug.length > 255 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(product.slug)) throw new BadRequestException('Invalid slug');
   if (!['draft', 'active'].includes(product.status)) throw new BadRequestException('Invalid status');
+  if (product.featured !== undefined && typeof product.featured !== 'boolean') throw new BadRequestException('Invalid featured flag');
   if (product.bulkWarningThreshold !== undefined || product.bulkWarningMessage !== undefined) {
     const threshold = product.bulkWarningThreshold, message = product.bulkWarningMessage;
     if (!(threshold === null && message === null) && (!Number.isSafeInteger(threshold) || Number(threshold) < 1 || Number(threshold) > 1000

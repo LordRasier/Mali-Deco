@@ -15,7 +15,8 @@ if (result.outputFiles.length !== 2) throw Error('Expected self-contained admin 
 for (const file of result.outputFiles) {
   const name = basename(file.path);
   // Landing composition and the compact category grid stay self-contained; no editor framework.
-  const budget = name === 'admin.js' ? 180000 : 90000;
+  // Includes the featured control and responsive discount-price row (~0.7 KB CSS).
+  const budget = name === 'admin.js' ? 180000 : 92000;
   if (!['admin.js', 'admin.css'].includes(name) || file.contents.length > budget || /process\.env|sourceMappingURL|__webpack_require__/.test(file.text)) throw Error(`Unexpected admin browser output: ${name} (${file.contents.length} bytes)`);
   const destination = resolve(root, 'src/presentation/admin/public/generated', name);
   mkdirSync(dirname(destination), { recursive: true }); writeFileSync(destination, file.contents);

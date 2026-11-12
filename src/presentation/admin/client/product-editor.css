@@ -93,7 +93,7 @@
 .editor-stock-form input { width: 100%; min-height: 36px; }
 .editor-stock-form button { min-height: 36px; white-space: nowrap; }
 .editor-bulk-warning input { min-height: 36px; }
-.admin-root .pricing-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)) minmax(170px,1fr); gap: 12px; align-items: start; }
+.admin-root .pricing-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; align-items: start; }
 .admin-root .pricing-variant { display: grid; gap: 12px; min-width: 0; padding-block: 14px; border-top: 1px solid var(--admin-line); }
 .admin-root .pricing-variant-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .admin-root .pricing-variant-heading strong { font-size: 13px; }
@@ -167,4 +167,12 @@
   .admin-root .has-variants .show-variant-costs .variant-markup-field { grid-column: 2; grid-row: 4; }
   .admin-root .variation-row { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
   .admin-root .variation-row button { grid-column: 1 / -1; justify-self: end; }
+}
+.admin-root .editor-featured { display: flex; align-items: center; gap: .5rem; }
+.admin-root .editor-featured input { width: 18px; height: 18px; accent-color: var(--admin-primary); }
+.admin-root .has-variants .variant-discount-field { grid-column: 3; grid-row: 2; font-size: 11px; }
+.admin-root .has-variants .show-variant-costs :is(.variant-cost-field,.variant-markup-field) { grid-row: 3; }
+@media(max-width:700px) {
+  .admin-root .has-variants .variant-discount-field { grid-column: 2; grid-row: 4; font-size: 12px; }
+  .admin-root .has-variants .show-variant-costs :is(.variant-cost-field,.variant-markup-field) { grid-row: 5; }
 }

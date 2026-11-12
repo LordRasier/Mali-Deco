@@ -12,6 +12,19 @@ const body = { lines: [{ productId: 'p', variantId: 'v', quantity: 2 }], destina
 const row = { productId: 'p', variantId: 'v', name: 'Lamp', variantName: 'White', priceMinor: '12300', currency: 'ARS', supplyMode: 'made_to_order', weightGrams: 100, widthMm: 100, heightMm: 100, lengthMm: 100 };
 const session = { id: 'session', expiresAt: 900000 };
 
+test('quotes capture the payable discounted price for provider and persisted order snapshot', async () => {
+  let stored: QuoteSnapshot | undefined;
+  const db = { isInitialized: true, query: async (sql: string, args: unknown[]) => {
+    if (sql.startsWith('SELECT')) { assert.match(sql, /sale_price_minor/); return [{ ...row, salePriceMinor: '9840' }]; }
+    stored = JSON.parse(args[2] as string); return [];
+  } } as unknown as DataSource;
+  const service = new CheckoutQuoteService(db, postal, async captured => {
+    assert.equal(captured.lines[0].priceMinor, '9840'); return quoted as ShippingOptionsResult;
+  }, env, () => 1000);
+  await service.quote(session, body);
+  assert.equal(stored!.lines[0].priceMinor, '9840');
+});
+
 test('stock quotes accept exact availability and reject shortages without reserving units', async () => {
   let stockQuantity = 2, providers = 0; const writes: string[] = [];
   const db = { isInitialized: true, query: async (sql: string) => { if (sql.startsWith('SELECT')) return [{ ...row, supplyMode: 'stock', stockQuantity }]; writes.push(sql); return []; } } as unknown as DataSource;

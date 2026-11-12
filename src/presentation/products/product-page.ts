@@ -12,7 +12,7 @@ import { formatPrice } from '../catalog/shared/cart';
 
 type Detail = Awaited<ReturnType<PublicCatalog['detail']>>;
 type Model = { checkoutEnabled: boolean; layout: false; routes: StorefrontRoutes; mode: 'demo' | 'api'; demo: boolean; ready: boolean; brand: string; title: string; name: string; description: string;
-  productDetail?: Detail; selectedVariantId?: string; priceLabel: string; selectedName: string; availability: string; noindex: boolean; categoryName: string; categoryHref: string;
+  productDetail?: Detail; selectedVariantId?: string; regularPriceLabel?: string; discountPercent?: string; priceLabel: string; selectedName: string; availability: string; noindex: boolean; categoryName: string; categoryHref: string;
   variantSummary: { name: string; href: string; price: string; availability: string }[];
   bootstrap: string; variants: { name: string; id: string }[]; hasVariants: boolean; moreImages: boolean;
   images: { url: string; srcset: string; alt: string; first: boolean; illustration: boolean; position: number }[];
@@ -62,7 +62,7 @@ export class ProductPage {
       model.productDetail = { ...detail, variants: visible };
       model.variantSummary = visible.map(v => ({ name: v.name, price: formatPrice(v.priceMinor, v.currency), availability: availability(v), href: `${this.routes.product}/${encodeURIComponent(slug)}?variant=${encodeURIComponent(v.id)}` }));
       model.noindex = requested.kind !== 'none' && !selected;
-      if (selected) { model.selectedVariantId = selected.id; model.priceLabel = formatPrice(selected.priceMinor, selected.currency); model.selectedName = selected.name; model.availability = availability(selected); }
+      if (selected) { model.selectedVariantId = selected.id; model.priceLabel = formatPrice(selected.priceMinor, selected.currency); model.regularPriceLabel = selected.regularPriceMinor === undefined ? '' : formatPrice(selected.regularPriceMinor, selected.currency); model.discountPercent = selected.discountPercent; model.selectedName = selected.name; model.availability = availability(selected); }
       model.categoryName = detail.category?.name ?? ''; model.categoryHref = detail.category ? `/categorias/${encodeURIComponent(detail.category.slug)}` : '';
       model.canonical = this.mode === 'api' ? canonicalProductUrl(this.environment.PUBLIC_SITE_URL, slug) ?? '' : '';
       model.bootstrap = JSON.stringify(detail); // Template escapes this as an HTML attribute, never as executable script.

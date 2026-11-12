@@ -1,3 +1,4 @@
+import { productPrice } from '../../catalog/models/product-price';
 import { BadRequestException, Body, Controller, ForbiddenException, HttpCode, Inject, Post, Req } from '@nestjs/common';
 import type { DataSource } from 'typeorm';
 import type { MoneyConfig } from '../contracts/shipping.types';
@@ -34,7 +35,7 @@ export function parseQuoteIntent(value: unknown): QuoteIntent {
   return { lines, destination: destination as QuoteIntent['destination'] };
 }
 
-type CatalogRow = { supplyMode?: string; stockQuantity?: number; productId: string; variantId: string; name: string; weightGrams: number | null; widthMm: number | null; heightMm: number | null; lengthMm: number | null; priceMinor: string | number; currency: string };
+type CatalogRow = { salePriceMinor?: string | number | null; supplyMode?: string; stockQuantity?: number; productId: string; variantId: string; name: string; weightGrams: number | null; widthMm: number | null; heightMm: number | null; lengthMm: number | null; priceMinor: string | number; currency: string };
 export class CatalogShippingResolver {
   constructor(private readonly db: DataSource | undefined, private readonly money: MoneyConfig) {}
   async resolve(intent: QuoteIntent): ReturnType<TrustedResolver> {
@@ -44,7 +45,7 @@ export class CatalogShippingResolver {
     try {
       rows = await this.db.query(`SELECT p.id AS productId, v.id AS variantId, p.name AS name,
         p.product_weight_g AS weightGrams, p.product_width_mm AS widthMm, p.product_height_mm AS heightMm,
-        p.product_length_mm AS lengthMm, v.price_minor AS priceMinor, v.currency AS currency, v.supply_mode AS supplyMode, v.stock_quantity AS stockQuantity
+        p.product_length_mm AS lengthMm, v.price_minor AS priceMinor, v.sale_price_minor AS salePriceMinor, v.currency AS currency, v.supply_mode AS supplyMode, v.stock_quantity AS stockQuantity
         FROM products p JOIN product_variants v ON v.product_id = p.id
         WHERE p.status = 'active' AND p.archived_at IS NULL AND v.archived_at IS NULL AND (${pairs})`, intent.lines.flatMap(line => [line.productId, line.variantId]));
     } catch { return { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' }; }
@@ -58,7 +59,8 @@ export class CatalogShippingResolver {
       if (row?.supplyMode === 'stock' && (!validStock(row.stockQuantity) || line.quantity > row.stockQuantity)) return { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' };
       if (!row || row.currency !== this.money.currency || (typeof row.priceMinor === 'number' && !Number.isSafeInteger(row.priceMinor)) || !/^(0|[1-9]\d*)$/.test(String(row.priceMinor))) return { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' };
       if (typeof row.name !== 'string' || !row.name.trim() || row.name.length > 255 || ![row.weightGrams, row.widthMm, row.heightMm, row.lengthMm].every(n => typeof n === 'number' && Number.isSafeInteger(n) && n > 0)) return { status: 'unavailable', reason: 'LOGISTICS_UNAVAILABLE' };
-      total += BigInt(row.priceMinor) * BigInt(line.quantity);
+      try { total += BigInt(productPrice(row.priceMinor, row.salePriceMinor).priceMinor) * BigInt(line.quantity); }
+      catch { return { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' }; }
       if (total > BigInt(Number.MAX_SAFE_INTEGER)) return { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' };
       items.push({ description: row.name, quantity: line.quantity, weightGrams: row.weightGrams!, widthMm: row.widthMm!, heightMm: row.heightMm!, lengthMm: row.lengthMm! });
     }

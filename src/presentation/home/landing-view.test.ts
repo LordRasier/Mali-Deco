@@ -5,6 +5,15 @@ import { newBlock } from '../../shared/landing-layout';
 import { landingView } from './landing-view';
 import { publicCatalogFixture, publicFacetsFixture } from '../../../tests/support/public-storefront';
 import type { PublicCatalog } from '../../modules/catalog/services/public-catalog';
+
+test('featured landing blocks request only featured products and do not rewrite published selections', async () => {
+  const config = defaultContentConfig(), calls: Record<string, unknown>[] = [];
+  const catalog = { ...publicCatalogFixture, list: async (query: Record<string, unknown>) => { calls.push(query); return publicCatalogFixture.list(); } } as unknown as Pick<PublicCatalog, 'list' | 'selected'>;
+  const draft = structuredClone(config); draft.landing.blocks[1].props.mode = 'featured';
+  await landingView(draft, catalog, publicFacetsFixture, '/productos', true);
+  assert.deepEqual(calls, [{ limit: '24', featured: 'true' }]);
+  assert.equal(config.landing.blocks[1].props.mode, 'category');
+});
 test('real catalog selection is ordered, cached and isolated between published and draft layouts', async () => {
   const config = defaultContentConfig(); const products = config.landing.blocks[1];
   products.props.mode = 'manual'; products.props.productIds = ['b', 'a']; let reads = 0;

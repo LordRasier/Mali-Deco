@@ -22,6 +22,7 @@ export function publicProducts(result: Awaited<ReturnType<PublicCatalog['list']>
     category: item.category, primaryImage: item.primaryImage, images: item.images, variantCount: item.variantCount, priceRange: item.priceRange,
     variants: (item.matchedVariants ?? (item.matchedVariant ? [item.matchedVariant] : [])).map(variant => ({
       id: variant.id, name: variant.name, priceMinor: variant.priceMinor, currency: variant.currency,
+      ...(variant.discountPercent ? { regularPriceMinor: variant.regularPriceMinor, discountPercent: variant.discountPercent } : {}),
       supplyMode: variant.supplyMode ?? undefined, stockQuantity: variant.stockQuantity, material: variant.material,
       colorInfo: variant.color, color: variant.color?.hex ?? undefined, ...(variant.options ? { options: variant.options } : {}),
     })),
@@ -66,6 +67,8 @@ export function catalogCards(products: Product[], demo: boolean, productPath = '
       variantColorName: !demo && !colorMatchesName ? colorName : '',
       price: choices.selected ? formatPrice(choices.selected.priceMinor, choices.selected.currency) : choices.kind === 'none' ? 'Sin opciones disponibles' : 'Elegí una opción',
       priceState: choices.selected ? 'price' : 'prompt',
+      regularPrice: choices.selected?.regularPriceMinor !== undefined ? formatPrice(choices.selected.regularPriceMinor, choices.selected.currency) : '',
+      discountPercent: choices.selected?.discountPercent ?? '',
     };
   });
 }

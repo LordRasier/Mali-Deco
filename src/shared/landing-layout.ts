@@ -68,7 +68,7 @@ export function parseLanding(value: unknown): LandingLayout {
         } else {
           if (typeof field !== 'string' || field.length > 3000 || /[<>\p{Cs}\p{Cc}]/u.test(field.replace(/[\r\n\t]/g, ''))) fail('texto inválido.');
           if (key === 'href' && !landingHref(field as string) || ['image', 'mobileImage'].includes(key) && !landingImage(field as string)) fail('enlace o imagen inválidos.');
-          if (key === 'mode' && !['manual', 'category'].includes(field as string)) fail('origen de productos inválido.');
+          if (key === 'mode' && !['manual', 'category', 'featured'].includes(field as string)) fail('origen de productos inválido.');
           if (key === 'cardStyle' && !['icons', 'photo', 'circles'].includes(field as string)) fail('diseño de categorías inválido.');
           if (key === 'textPosition' && !['below', 'center'].includes(field as string)) fail('posición de texto inválida.');
           if (key === 'category' && field !== '' && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(field as string)) fail('categoría inválida.');

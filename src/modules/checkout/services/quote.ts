@@ -9,6 +9,7 @@ import { validateZipnovaConfig, type Destination, type DeliveryOption, type Zipn
 import { localOperatorOrigin } from '../../shipping/quotes/local-quote-guard';
 import type { CheckoutSession } from '../sessions/session';
 import { stockUnavailable, validStock } from '../../catalog/models/inventory';
+import { productPrice } from '../../catalog/models/product-price';
 
 export type QuoteLine = { productId: string; variantId: string; name: string; variantName: string; quantity: number; priceMinor: string; currency: string; supplyMode: 'stock' | 'made_to_order'; stockQuantity?: number; weightGrams: number; widthMm: number; heightMm: number; lengthMm: number };
 export type QuoteInputSnapshot = { destination: Destination; lines: QuoteLine[] };
@@ -41,8 +42,8 @@ export class CheckoutQuoteService {
     const intent = parseQuoteIntent({ lines: input.lines, destination });
     // One statement captures every price, name, supply mode and dimension used by the provider.
     // No transaction spans the external request and no before/after comparison can hide ABA.
-    const rows: QuoteLine[] = await this.db.query(`SELECT p.id AS productId, v.id AS variantId, p.name AS name,
-      v.name AS variantName, v.price_minor AS priceMinor, v.currency AS currency, v.supply_mode AS supplyMode, v.stock_quantity AS stockQuantity,
+    const rows: (QuoteLine & { salePriceMinor?: string | null })[] = await this.db.query(`SELECT p.id AS productId, v.id AS variantId, p.name AS name,
+      v.name AS variantName, v.price_minor AS priceMinor, v.sale_price_minor AS salePriceMinor, v.currency AS currency, v.supply_mode AS supplyMode, v.stock_quantity AS stockQuantity,
       p.product_weight_g AS weightGrams, p.product_width_mm AS widthMm, p.product_height_mm AS heightMm,
       p.product_length_mm AS lengthMm FROM products p JOIN product_variants v ON v.product_id = p.id
       WHERE p.status = 'active' AND p.archived_at IS NULL AND v.archived_at IS NULL AND
@@ -57,7 +58,8 @@ export class CheckoutQuoteService {
           !Number.isSafeInteger(row.weightGrams) || row.weightGrams < 10 || row.weightGrams > 10000000 ||
           ![row.widthMm, row.heightMm, row.lengthMm].every(n => Number.isSafeInteger(n) && n > 0 && n <= 50000)) throw unavailable();
       if (row.supplyMode === 'stock' && line.quantity > row.stockQuantity!) stockUnavailable();
-      return { ...row, priceMinor: String(row.priceMinor), quantity: line.quantity };
+      const { salePriceMinor, ...snapshot } = row;
+      return { ...snapshot, priceMinor: String(productPrice(row.priceMinor, salePriceMinor).priceMinor), quantity: line.quantity };
     });
     const subtotal = lines.reduce((sum, line) => sum + BigInt(line.priceMinor) * BigInt(line.quantity), 0n);
     if (subtotal > maxMinor || lines.some(line => line.currency !== lines[0].currency)) throw unavailable();

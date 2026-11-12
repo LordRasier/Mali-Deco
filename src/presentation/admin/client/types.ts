@@ -12,6 +12,7 @@ export interface Dimensions {
   packageLengthMm: number | null;
 }
 export interface ProductInput extends Dimensions {
+  featured?: boolean;
   name: string;
   slug: string;
   description: string;
@@ -23,6 +24,7 @@ export interface ProductInput extends Dimensions {
 }
 export interface Product extends ProductInput { id: string; archivedAt: string | null }
 export interface VariantInput {
+  salePriceMinor?: number | null;
   sku: string;
   name: string;
   priceMinor: number;
@@ -32,7 +34,8 @@ export interface VariantInput {
   colorId?: string | null;
   options?: { name: string; value: string }[];
 }
-export interface Variant extends Omit<VariantInput, 'priceMinor' | 'supplyMode'> {
+export interface Variant extends Omit<VariantInput, 'priceMinor' | 'supplyMode' | 'salePriceMinor'> {
+  salePriceMinor?: string | null;
   id: string;
   productId: string;
   priceMinor: string;

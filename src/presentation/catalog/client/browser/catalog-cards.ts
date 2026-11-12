@@ -1,5 +1,5 @@
 import type { createCartStore } from '../../../cart/client/state/cart-store';
-import { formatPrice } from '../../../shared/cart/cart';
+import { renderDiscountPrice } from './discount-price';
 import { parseCardData } from '../../shared/card-data';
 import { createCatalogCard } from '../state/catalog-card';
 import { mountCatalogZoom } from './catalog-zoom';
@@ -40,8 +40,7 @@ export function mountCatalogCards(cart: ReturnType<typeof createCartStore>, root
         const snapshot = state.snapshot();
         if (previous !== snapshot.product) { renderCardChoices(options, snapshot.product, state.select, choose); previous = snapshot.product; }
         updateCardChoices(options, snapshot.selected, snapshot.pending);
-        price.textContent = snapshot.selected ? formatPrice(snapshot.selected.priceMinor, snapshot.selected.currency)
-          : snapshot.product.variantCount === 0 ? 'Sin opciones disponibles' : 'Elegí una opción';
+        renderDiscountPrice(price, snapshot.selected, snapshot.product.variantCount === 0 ? 'Sin opciones disponibles' : 'Elegí una opción', card.querySelector<HTMLElement>('[data-card-discount]'));
         price.dataset.priceState = snapshot.selected ? 'price' : 'prompt';
         link.href = path + (snapshot.selected ? `?variant=${encodeURIComponent(snapshot.selected.id)}` : '');
         for (const infoLink of infoLinks) infoLink.href = link.href;

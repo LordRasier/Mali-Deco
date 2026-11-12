@@ -31,6 +31,7 @@
         <label>Costo (ARS)<input class="form-control-sm" form="product-information" name="initialCost" data-pricing-cost inputmode="decimal" placeholder="Opcional"></label>
         <label>Ganancia %<input class="form-control-sm" form="product-information" name="initialMarkup" data-pricing-markup inputmode="decimal" placeholder="Opcional"></label>
         <label>Precio de venta (ARS)<input class="form-control-sm" form="product-information" name="initialPrice" data-pricing-sale inputmode="decimal" placeholder="0,00" aria-describedby="initial-price-error"><span class="field-error" id="initial-price-error" data-initial-price-error role="alert"></span></label>
+        <label>Precio en descuento (ARS)<input class="form-control-sm" form="product-information" name="initialDiscount" data-pricing-discount inputmode="decimal" placeholder="Opcional"></label>
         <div class="pricing-stock"><div class="pricing-stock-heading"><label for="initial-stock">Stock</label><label class="pricing-unlimited"><input type="checkbox" form="product-information" name="initialUnlimited" data-pricing-unlimited checked> Ilimitado</label></div><input class="form-control-sm" id="initial-stock" form="product-information" name="initialStock" data-pricing-stock type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="Cantidad" disabled></div>
         <input type="hidden" form="product-information" name="initialSupplyMode" data-pricing-supply value="made_to_order">
       </div>
@@ -44,6 +45,7 @@
           <label>Costo (ARS)<input class="form-control-sm" name="cost" data-pricing-cost inputmode="decimal" placeholder="Opcional"></label>
           <label>Ganancia %<input class="form-control-sm" name="markup" data-pricing-markup inputmode="decimal" placeholder="Opcional"></label>
           <label>Precio de venta (ARS)<input class="form-control-sm" name="sale" data-pricing-sale inputmode="decimal" placeholder="0,00" required></label>
+          <label>Precio en descuento (ARS)<input class="form-control-sm" name="discount" data-pricing-discount inputmode="decimal" placeholder="Opcional"></label>
           <div class="pricing-stock"><div class="pricing-stock-heading"><label for="standard-stock">Stock</label><label class="pricing-unlimited"><input type="checkbox" data-pricing-unlimited checked> Ilimitado</label></div><input class="form-control-sm" id="standard-stock" name="stock" data-pricing-stock type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="Cantidad" disabled></div>
           <input type="hidden" data-pricing-supply value="made_to_order">
         </div>
@@ -51,13 +53,14 @@
       </form>{{/unless}}{{/if}}
       {{#each variants}}
       {{#if editable}}
-      <form class="pricing-variant" method="post" action="/admin" data-pricing-form data-pricing-fields data-variant-id="{{id}}" data-image-id="{{imageId}}" data-pricing-currency="{{currency}}" data-price-minor="{{priceMinor}}" data-cost-minor="{{costMinor}}" data-supply-mode="{{supplyMode}}" data-stock-quantity="{{stockQuantity}}" aria-label="Precio y stock de {{name}}" novalidate>
+      <form class="pricing-variant" method="post" action="/admin" data-pricing-form data-pricing-fields data-variant-id="{{id}}" data-image-id="{{imageId}}" data-pricing-currency="{{currency}}" data-price-minor="{{priceMinor}}" data-cost-minor="{{costMinor}}" data-sale-price-minor="{{salePriceMinor}}" data-supply-mode="{{supplyMode}}" data-stock-quantity="{{stockQuantity}}" aria-label="Precio y stock de {{name}}" novalidate>
         <div class="pricing-variant-heading"><button type="button" class="variant-image variant-only" data-variant-image aria-label="Elegir imagen de {{name}}"><img {{#if imageUrl}}src="{{imageUrl}}"{{else}}hidden{{/if}} alt="{{name}}"><span data-variant-image-placeholder {{#if imageUrl}}hidden{{/if}}>+ Foto</span><span class="variant-image-edit" aria-hidden="true">✎</span></button><div><strong>{{name}}</strong><small>{{optionsLabel}}</small><small>{{sku}}</small></div></div>
         <div class="variant-row-actions"><button type="button" class="link-button" data-product-action="variant-edit" data-variant-id="{{id}}" aria-label="Editar {{name}}">Editar</button><button type="button" class="link-button variant-only" data-variant-cost-toggle aria-expanded="false">Costo</button><button type="button" class="link-button" data-product-action="variant-archive" data-variant-id="{{id}}" aria-label="Archivar {{name}}">Archivar</button></div>
         <div class="pricing-grid">
           <label class="variant-cost-field">Costo ({{currency}})<input class="form-control-sm" name="cost" data-pricing-cost inputmode="decimal" placeholder="Opcional" value="{{costDecimal}}"></label>
           <label class="variant-markup-field">Ganancia %<input class="form-control-sm" name="markup" data-pricing-markup inputmode="decimal" placeholder="Opcional" value="{{markup}}"></label>
           <label class="variant-sale-field">Precio de venta ({{currency}})<input class="form-control-sm" name="sale" data-pricing-sale inputmode="decimal" value="{{priceDecimal}}" required></label>
+          <label class="variant-discount-field">Precio en descuento ({{currency}})<input class="form-control-sm" name="discount" data-pricing-discount inputmode="decimal" value="{{salePriceDecimal}}" placeholder="Sin descuento"></label>
           <div class="pricing-stock"><div class="pricing-stock-heading"><label for="stock-{{id}}">Stock</label><label class="pricing-unlimited"><input type="checkbox" data-pricing-unlimited {{#if unlimited}}checked{{/if}}> Ilimitado</label></div><input class="form-control-sm" id="stock-{{id}}" name="stock" data-pricing-stock type="number" min="0" max="1000000" step="1" inputmode="numeric" value="{{stockQuantity}}" {{#if unlimited}}disabled{{/if}}></div>
           <input type="hidden" data-pricing-supply value="{{supplyMode}}">
         </div>
@@ -66,6 +69,7 @@
       {{/if}}
       {{/each}}
       {{#if archivedVariants}}<details class="variant-archived-list"><summary>Variantes archivadas ({{archivedVariants.length}})</summary>{{#each archivedVariants}}<div class="pricing-archived"><span>{{name}}</span><span>{{priceLabel}}</span></div>{{/each}}</details>{{/if}}
+      <p class="editor-caption">El precio en descuento se aplica solo cuando es menor que el precio de venta. El porcentaje se calcula automáticamente; dejarlo vacío elimina el descuento.</p>
       <p class="editor-caption">El stock se descuenta al registrar un pedido. Ilimitado permite comprar sin límite de inventario.</p>
       {{#if variantPagination}}<nav class="pagination" aria-label="Páginas de variantes"><button type="button" data-product-action="variant-page" data-product-page="{{previousVariantPage}}" {{#unless hasPreviousVariants}}disabled{{/unless}}>Anterior</button><span>{{variantPage}} de {{variantPages}}</span><button type="button" data-product-action="variant-page" data-product-page="{{nextVariantPage}}" {{#unless hasNextVariants}}disabled{{/unless}}>Siguiente</button></nav>{{/if}}
       <button type="button" data-product-action="variant-create" {{#if simpleId}}data-first-variant="{{simpleId}}"{{/if}}>Agregar variantes</button>
@@ -89,6 +93,8 @@
       {{#if editing}}<div class="editor-publish-actions">{{#if draft}}<button type="button" class="primary btn-sm" data-product-publish>Publicar en catálogo</button>{{else}}<button type="button" data-product-unpublish>Volver a borrador</button>{{/if}}</div>{{else}}<p class="editor-caption">Guardá el borrador para continuar con la publicación.</p>{{/if}}
     </section>
     <section class="panel editor-panel"><h2>Organización</h2>
+      <label class="editor-featured"><input type="checkbox" form="product-information" name="featured" {{#if product.featured}}checked{{/if}}> Destacado</label>
+      <p class="editor-caption">Aparece en los bloques de inicio que usan «Productos destacados». El producto debe estar publicado. La selección manual y por categoría no cambia.</p>
       <div><label>Categoría principal<select form="product-information" name="categoryId" data-product-category disabled>
         <option value="">Sin asignar</option>{{#if product.categoryId}}<option value="{{product.categoryId}}" selected>Asignación actual</option>{{/if}}
       </select></label><p data-product-category-message class="editor-caption" role="status">Cargando opciones…</p>

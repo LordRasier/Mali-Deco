@@ -1,5 +1,5 @@
 import type { createCartStore } from '../../../cart/client/state/cart-store';
-import { formatPrice } from '../../../shared/cart/cart';
+import { renderDiscountPrice } from '../../../catalog/client/browser/discount-price';
 import { parseProductDetailResponse } from '../../../shared/catalog/api-catalog';
 import { createProductStore } from '../state/product-store';
 import { mountProductGallery } from './product-gallery';
@@ -51,7 +51,7 @@ export function mountProductPanel(cart: ReturnType<typeof createCartStore>, open
     }
     selected.textContent = state.selected?.name ?? 'Elegí una opción';
     if (availability) availability.textContent = state.selected?.supplyMode === 'made_to_order' ? 'Se fabrica a pedido' : state.selected?.supplyMode === 'stock' ? (state.selected.stockQuantity ?? 0) > 0 ? 'En stock' : 'Sin stock' : 'Consultá disponibilidad';
-    price.textContent = state.selected ? formatPrice(state.selected.priceMinor, state.selected.currency) : 'Seleccioná una variante';
+    renderDiscountPrice(price, state.selected, 'Seleccioná una variante', root.querySelector<HTMLElement>('[data-product-discount]'));
     warning.textContent = state.warning ?? ''; warning.hidden = !state.warning;
     status.textContent = state.status === 'loading' ? 'Verificando variante…' : state.status === 'error' ? 'No pudimos verificar la variante.' : '';
     retry.hidden = state.status !== 'error'; more.hidden = !state.hasMore || state.pageConflict;

@@ -6,6 +6,15 @@ import { serializeZipnovaDynamicQuote } from '../providers/zipnova/zipnova';
 
 const intent = { destination: { country: 'AR', city: 'Mar del Plata', state: 'Buenos Aires', postalCode: '7600' }, lines: [{ productId: 'p1', variantId: 'v1', quantity: 2 }] };
 const row = { productId: 'p1', variantId: 'v1', name: 'Florero', weightGrams: 400, widthMm: 101, heightMm: 200, lengthMm: 120, priceMinor: '1250', currency: 'ARS' };
+
+test('declared shipping value uses the active discounted amount and rejects corrupt discounts', async () => {
+  const result = await new CatalogShippingResolver(database([{ ...row, salePriceMinor: '1000' }]), { currency: 'ARS', exponent: 2 }).resolve(parseQuoteIntent(intent));
+  assert.equal(result.status, 'resolved');
+  if (result.status === 'resolved') assert.equal(result.value.declaredValue, 20);
+  for (const salePriceMinor of ['-1', 'bad', '9007199254740992']) assert.deepEqual(
+    await new CatalogShippingResolver(database([{ ...row, salePriceMinor }]), { currency: 'ARS', exponent: 2 }).resolve(parseQuoteIntent(intent)),
+    { status: 'unavailable', reason: 'CATALOG_UNAVAILABLE' });
+});
 function database(rows: unknown[], capture: unknown[] = []): DataSource {
   return { isInitialized: true, query: async (_sql: string, parameters: unknown[]) => { capture.push(parameters); return rows; } } as unknown as DataSource;
 }

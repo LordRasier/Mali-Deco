@@ -2,7 +2,7 @@ import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { DataSource, IsNull } from 'typeorm';
 import { ProductSchema, SettingsSchema, VariantSchema } from '../models/catalog.entities';
 import { parseCatalogQuery } from '../validation/catalog-validation';
-import { assertMinorUnits } from '../models/price';
+import { productPrice } from '../models/product-price';
 import { listPublicProducts, selectedPublicProducts } from '../queries/public-listing';
 import { readPublicImages } from '../queries/public-images';
 import { publicVariantOptions } from '../queries/public-variant-options';
@@ -62,8 +62,7 @@ export class PublicCatalog {
       images: images.get(product.id) ?? [],
       category: product.categoryId ? categories.get(product.categoryId) ?? null : null,
       variants: variants.filter(v => v.productId === product.id).map(v => {
-        const priceMinor = Number(v.priceMinor); assertMinorUnits(priceMinor);
-        return { id: v.id, name: v.name, priceMinor, currency: v.currency, supplyMode: v.supplyMode, stockQuantity: v.stockQuantity ?? 0, ...publicVariantOptions(v.options),
+        return { id: v.id, name: v.name, ...productPrice(v.priceMinor, v.salePriceMinor), currency: v.currency, supplyMode: v.supplyMode, stockQuantity: v.stockQuantity ?? 0, ...publicVariantOptions(v.options),
           material: v.materialId ? materials.get(v.materialId) ?? null : null,
           color: v.colorId ? colors.get(v.colorId) ?? null : null };
       }), page, limit, total };

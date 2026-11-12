@@ -49,12 +49,22 @@ async function fixture(readOnly = false) {
 test('variant forms preserve currency precision, explicit supply mode and omitted/null assignments', () => {
   const values: Record<string, string> = { sku: 'SKU', name: 'Variant', price: '123.45', currency: 'ARS', supplyMode: 'stock', materialId: 'm1', colorId: 'c1' };
   const read = (name: string) => values[name] ?? '';
-  assert.deepEqual(variantFormInput(read, { material: false, color: false }), input);
+  assert.deepEqual(variantFormInput(read, { material: false, color: false }), { ...input, salePriceMinor: null });
   values.colorId = ''; assert.equal(variantFormInput(read, { material: false, color: true }).colorId, null);
   assert.equal('materialId' in variantFormInput(read, { material: false, color: true }), false);
   values.currency = 'JPY'; assert.throws(() => variantFormInput(read, { material: false, color: false }));
   values.price = '123'; assert.equal(variantFormInput(read, { material: true, color: false }).priceMinor, 123);
   values.supplyMode = ''; assert.throws(() => variantFormInput(read, { material: false, color: false }), /suministro/);
+});
+
+test('variant saves do not discard discount drafts after a mismatched acknowledgement', async () => {
+  const f = await fixture(), editor = createVariantEditor(f.session, f.view, 'p1', false, f.runtime);
+  const receipt = { ...input, id: 'v1', productId: 'p1', priceMinor: String(input.priceMinor), salePriceMinor: '9500', archivedAt: null };
+  f.runtime.request = async () => receipt as never;
+  await editor.save({ ...input, salePriceMinor: 9000 }, 'v1');
+  assert.equal(f.committed, 0); assert.match(f.error, /confirmar/);
+  receipt.salePriceMinor = '9000'; await editor.save({ ...input, salePriceMinor: 9000 }, 'v1');
+  assert.equal(f.committed, 1); editor.dispose();
 });
 
 test('saving a simple price does not replay identity fields from a stale tab', async () => {

@@ -1,5 +1,6 @@
 <article {{#if anchorId}}id="{{anchorId}}" tabindex="-1" data-shared-product{{/if}} {{#if @root.visualPreview}}data-editor-path="source.products.{{@index}}"{{/if}} class="catalog-card" data-catalog-card data-card-bootstrap="{{bootstrap}}">
   <div class="catalog-image{{#if illustration}} is-illustration{{/if}}">
+    <span class="catalog-discount-ribbon" data-card-discount aria-label="{{discountPercent}}% de descuento en la opción seleccionada" {{#unless discountPercent}}hidden{{/unless}}>{{#if discountPercent}}{{discountPercent}}% OFF{{/if}}</span>
     {{#if sharePath}}<details class="catalog-share" data-product-share data-share-path="{{sharePath}}" data-share-name="{{name}}" data-share-origin="{{@root.seo.origin}}">
       <summary aria-label="Compartir {{name}}" title="Compartir artículo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="5" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg></summary>
       <div class="catalog-share-panel">
@@ -35,7 +36,7 @@
     {{#if dimensions}}<p class="catalog-card-dimensions">{{#each dimensions}}<span class="catalog-card-dimension" title="{{label}}: {{value}}"><svg class="catalog-dimension-icon catalog-dimension-icon-{{axis}}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 12h16m-4-4 4 4-4 4M8 8l-4 4 4 4"/></svg><span class="sr-only">{{label}}: </span>{{value}}</span>{{/each}}</p>{{/if}}
     <div class="catalog-options" data-card-options hidden></div>
     <div class="catalog-buy-row">
-      <p class="catalog-price" data-card-price data-price-state="{{priceState}}" aria-live="polite">{{price}}</p>
+      <p class="catalog-price" data-card-price data-price-state="{{priceState}}" aria-live="polite">{{#if regularPrice}}<del class="product-regular-price" aria-label="Precio habitual: {{regularPrice}}">{{regularPrice}}</del> <span aria-label="Precio en descuento: {{price}}">{{price}}</span>{{else}}{{price}}{{/if}}</p>
       <div data-card-purchase hidden><button type="button" class="catalog-add" data-card-add disabled>Agregar</button></div>
     </div>
     <p class="catalog-card-feedback" data-card-status role="status"></p>

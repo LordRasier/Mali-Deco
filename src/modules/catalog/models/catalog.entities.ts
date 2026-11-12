@@ -3,6 +3,7 @@ import { EntitySchema } from 'typeorm';
 export interface ProductRow {
   id: string; slug: string; name: string; description: string; status: 'draft' | 'active'; archivedAt: Date | null;
   categoryId: string | null;
+  featured?: boolean;
   bulkWarningThreshold?: number | null; bulkWarningMessage?: string | null;
   productWeightG: number | null; productWidthMm: number | null; productHeightMm: number | null; productLengthMm: number | null;
   packageWeightG: number | null; packageWidthMm: number | null; packageHeightMm: number | null; packageLengthMm: number | null;
@@ -13,6 +14,7 @@ export interface VariantRow {
   materialId: string | null; colorId: string | null;
   stockQuantity?: number;
   costMinor?: string | null;
+  salePriceMinor?: string | null;
   options?: { name: string; value: string }[] | null;
   imageId?: string | null;
   materialName?: string | null; colorName?: string | null;
@@ -28,6 +30,7 @@ export const ProductSchema = new EntitySchema<ProductRow>({
     name: { type: 'varchar', length: 255 }, description: { type: 'text' },
     status: { type: 'enum', enum: ['draft', 'active'] }, archivedAt: { name: 'archived_at', type: 'datetime', nullable: true },
     categoryId: { name: 'category_id', type: 'char', length: 36, nullable: true },
+    featured: { type: 'boolean', default: false },
     bulkWarningThreshold: dimension('bulk_warning_threshold'),
     bulkWarningMessage: { name: 'bulk_warning_message', type: 'varchar', length: 300, nullable: true },
     productWeightG: dimension('product_weight_g'), productWidthMm: dimension('product_width_mm'),
@@ -42,6 +45,7 @@ export const VariantSchema = new EntitySchema<VariantRow>({
     sku: { type: 'varchar', length: 255 }, name: { type: 'varchar', length: 255 },
     priceMinor: { name: 'price_minor', type: 'bigint', unsigned: true }, currency: { type: 'char', length: 3 },
     costMinor: { name: 'cost_minor', type: 'bigint', unsigned: true, nullable: true },
+    salePriceMinor: { name: 'sale_price_minor', type: 'bigint', unsigned: true, nullable: true },
     options: { name: 'options_json', type: 'json', nullable: true },
     imageId: { name: 'image_id', type: 'char', length: 36, nullable: true },
     materialId: { name: 'material_id', type: 'char', length: 36, nullable: true },

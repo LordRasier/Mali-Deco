@@ -12,13 +12,13 @@ const result = await build({
 // Audit the graph before writing anything that can be served; never ship server dependencies.
 for (const [input, metadata] of Object.entries(result.metafile.inputs)) {
   // The existing public catalog parser reuses this pure currency precision helper.
-  if (!input.startsWith('src/presentation/checkout/client/') && !input.startsWith('src/presentation/cart/client/') && !input.startsWith('src/presentation/catalog/client/') && !input.startsWith('src/presentation/products/client/') && !input.startsWith('src/presentation/shipping/client/') && !input.startsWith('src/presentation/shared/') && !input.startsWith('src/presentation/catalog/shared/') && !['src/presentation/browser/browser.ts', 'src/presentation/browser/site-header.ts', 'src/presentation/admin/client/money.ts'].includes(input)) throw new Error(`Unexpected browser dependency: ${input}`);
+  if (!input.startsWith('src/presentation/checkout/client/') && !input.startsWith('src/presentation/cart/client/') && !input.startsWith('src/presentation/catalog/client/') && !input.startsWith('src/presentation/products/client/') && !input.startsWith('src/presentation/shipping/client/') && !input.startsWith('src/presentation/shared/') && !input.startsWith('src/presentation/catalog/shared/') && !['src/presentation/browser/browser.ts', 'src/presentation/browser/site-header.ts', 'src/presentation/admin/client/money.ts', 'src/shared/product-discount.ts'].includes(input)) throw new Error(`Unexpected browser dependency: ${input}`);
   if (metadata.imports.some(item => item.external)) throw new Error(`External browser import: ${input}`);
 }
 for (const output of Object.values(result.metafile.outputs)) if (output.imports.length) throw new Error('Browser bundle must be self-contained');
 // Includes the shared material/property selectors on cards and product detail.
-// Includes the local sharing controller (~2.6 KB); no social SDKs are bundled.
-if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 106000) throw new Error('Unexpected browser output size');
+// Includes sharing and the pure discount renderer/arithmetic (~1.2 KB additional); no SDKs or server dependencies.
+if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 108000) throw new Error('Unexpected browser output size');
 const file = result.outputFiles[0];
 if (/process\.env|sourceMappingURL|__webpack_require__/.test(file.text)) throw new Error('Unexpected runtime or environment dependency');
 const destination = resolve(root, 'src/presentation/cart/public/generated/cart.js');

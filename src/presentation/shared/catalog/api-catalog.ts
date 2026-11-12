@@ -1,3 +1,4 @@
+import { discountPercentage } from '../../../shared/product-discount';
 import type { CatalogQuery } from './catalog-query';
 import { catalogQueryParams } from './catalog-query';
 import type { CatalogImage, CatalogPage, ColorLookup, Facets, Lookup, PriceRange, Product, StorefrontData, Variant } from './storefront-types';
@@ -44,6 +45,14 @@ function parseRange(value: unknown): PriceRange | null {
 }
 export function parseVariant(value: unknown): Variant {
   const item = object(value, 'variante');
+  const priceMinor = integer(item.priceMinor, 'precio');
+  let discount: Pick<Variant, 'regularPriceMinor' | 'discountPercent'> = {};
+  if (item.regularPriceMinor !== undefined || item.discountPercent !== undefined) {
+    const regularPriceMinor = integer(item.regularPriceMinor, 'precio habitual');
+    const discountPercent = discountPercentage(regularPriceMinor, priceMinor);
+    if (!discountPercent || item.discountPercent !== discountPercent) throw new Error('Descuento de catálogo inválido');
+    discount = { regularPriceMinor, discountPercent };
+  }
   if (item.supplyMode !== null && item.supplyMode !== 'stock' && item.supplyMode !== 'made_to_order') throw new Error('Respuesta inválida del catálogo: abastecimiento');
   if (item.stockQuantity !== undefined && (!Number.isSafeInteger(item.stockQuantity) || Number(item.stockQuantity) < 0 || Number(item.stockQuantity) > 1000000)) throw new Error('Stock de catálogo inválido');
   const material = parseLookup(item.material) as Lookup | null;
@@ -56,7 +65,7 @@ export function parseVariant(value: unknown): Variant {
       if (name.length > 60 || content.length > 100) throw new Error('Propiedad de variante inválida');
       return { name, value: content }; });
   }
-  return { id: text(item.id, 'variante id'), name: text(item.name, 'variante nombre'), priceMinor: integer(item.priceMinor, 'precio'), currency: currencyCode(item.currency), supplyMode: item.supplyMode ?? undefined, ...(item.stockQuantity !== undefined ? { stockQuantity: Number(item.stockQuantity) } : {}), ...(options ? { options } : {}), material, colorInfo, color: colorInfo?.hex ?? undefined };
+  return { id: text(item.id, 'variante id'), name: text(item.name, 'variante nombre'), priceMinor, ...discount, currency: currencyCode(item.currency), supplyMode: item.supplyMode ?? undefined, ...(item.stockQuantity !== undefined ? { stockQuantity: Number(item.stockQuantity) } : {}), ...(options ? { options } : {}), material, colorInfo, color: colorInfo?.hex ?? undefined };
 }
 export function parseCatalogImage(value: unknown): CatalogImage | null {
   if (value == null) return null;

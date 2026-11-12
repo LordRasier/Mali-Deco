@@ -37,3 +37,6 @@
 .product-dimensions dd { margin: .2rem 0 0; font-weight: 700; overflow-wrap: anywhere; }
 .product-order-note { line-height: 1.5; margin-top: 1.5rem; }
 @media(max-width:760px) { .product-layout-grid { grid-template-columns: 1fr; } .product-header { align-items: stretch; flex-direction: column; } }
+.product-regular-price { color: #62625b; font-size: .85em; font-weight: 400; margin-right: .5rem; }
+.product-discount-label { display: inline-block; padding: .25rem .5rem; background: #a32620; color: white; font-size: .8rem; font-weight: 600; }
+.product-discount-label[hidden] { display: none; }

@@ -55,7 +55,7 @@ test('document is saved in the order, included in replay identity and excluded f
   await assert.rejects(f.service.create('session', key, { ...input, contact: { ...input.contact, document: '12345678' } }), { status: 409 });
   assert.doesNotMatch(JSON.stringify(await f.service.findAttempt('session', key)), /00123456|document/);
 });
-function fake() {
+function fake(salePriceMinor?: string) {
   let stored: { quoteId: unknown; keyHash: unknown; bodyHash: unknown; snapshot: unknown; orderStatus: string; paymentStatus: string; fulfillmentStatus: string; shippingStatus: string } | undefined; let sessionAvailable = true; let quoteAvailable = true; let catalog = { ...row }; let inserts = 0;
   const tx = { query: async (sql: string, args: unknown[]) => {
     if (sql.includes('FROM checkout_sessions')) return sessionAvailable && typeof args[0] === 'string' && ['session', 'other'].includes(args[0]) ? [{ id: 'session' }] : [];
@@ -67,13 +67,27 @@ function fake() {
     }
     if (sql.includes('FROM checkout_quotes')) return quoteAvailable ? [{ snapshot: JSON.stringify(quote) }] : [];
     if (sql.includes('FROM products')) return [catalog];
-    if (sql.includes('FROM product_variants')) return [catalog];
+    if (sql.includes('FROM product_variants')) return [{ ...catalog, ...(salePriceMinor === undefined ? {} : { priceMinor: '200', salePriceMinor }) }];
     if (sql.startsWith('INSERT')) { inserts++; stored = { quoteId: args[2], keyHash: args[3], bodyHash: args[4], snapshot: args[8], orderStatus: 'received', paymentStatus: 'not_started', fulfillmentStatus: 'not_started', shippingStatus: 'not_started' }; return []; }
     throw Error(sql);
   } };
   const db = { isInitialized: true, transaction: async (fn: (manager: typeof tx) => Promise<unknown>) => fn(tx) };
-  return { service: new OrdersService(db as unknown as DataSource), setPaymentStatus: (status: string) => { if (stored) stored.paymentStatus = status; }, expire: () => { quoteAvailable = false; }, expireSession: () => { sessionAvailable = false; }, change: () => { catalog = { ...catalog, priceMinor: '101' }; }, inserts: () => inserts };
+  return { service: new OrdersService(db as unknown as DataSource), setPaymentStatus: (status: string) => { if (stored) stored.paymentStatus = status; }, expire: () => { quoteAvailable = false; }, expireSession: () => { sessionAvailable = false; }, change: () => { catalog = { ...catalog, priceMinor: '101' }; if (salePriceMinor !== undefined) salePriceMinor = '99'; }, inserts: () => inserts };
 }
+
+test('order locks revalidate effective prices and reject changed discounts without repricing historical orders', async () => {
+  const f = fake('100');
+  const result = await f.service.create('session', key, body);
+  assert.equal(result.totalMinor, '250');
+  assert.equal(result.lines[0].unitPriceMinor, '100');
+  f.change();
+  assert.deepEqual(await f.service.create('session', key, body), result);
+  for (const sale of ['99', '101', '200']) {
+    const changed = fake(sale);
+    await assert.rejects(changed.service.create('session', key, body), { status: 409 });
+    assert.equal(changed.inserts(), 0);
+  }
+});
 test('replays same body after quote expiry and rejects changed body', async () => {
   const f = fake(); const first = await f.service.create('session', key, body); f.expire();
   assert.equal(first.totalMinor, '250'); assert.deepEqual(await f.service.create('session', key, body), first); assert.equal(f.inserts(), 1);

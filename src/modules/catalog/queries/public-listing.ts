@@ -1,12 +1,14 @@
 import { DataSource, EntityManager } from 'typeorm';
 import { assertMinorUnits } from '../models/price';
+import { productPrice } from '../models/product-price';
+import { effectiveVariantPriceSql } from './effective-price-sql';
 import { readPublicImages } from './public-images';
 import { ListingQuery, parseListingQuery } from './listing-query';
 import { productOrder, productPredicate, variantPredicate } from './listing-sql';
 import { publicVariantOptions } from './public-variant-options';
 
 type Lookup = { id: string; slug: string; name: string };
-type Variant = { optionsJson?: unknown; stockQuantity?: number; productId: string; id: string; name: string; priceMinor: string; currency: string; supplyMode: 'stock' | 'made_to_order' | null;
+type Variant = { salePriceMinor?: string | null; optionsJson?: unknown; stockQuantity?: number; productId: string; id: string; name: string; priceMinor: string; currency: string; supplyMode: 'stock' | 'made_to_order' | null;
   materialId: string | null; materialSlug: string | null; materialName: string | null;
   colorId: string | null; colorSlug: string | null; colorName: string | null; colorHex: string | null };
 type Product = { bulkWarningThreshold?: number | null; bulkWarningMessage?: string | null; id: string; slug: string; name: string; description: string; categoryId: string | null; categorySlug: string | null; categoryName: string | null; minPrice: string | null; maxPrice: string | null; variantCount: string | number;
@@ -20,7 +22,7 @@ function lookup(id: string | null, slug: string | null, name: string | null): Lo
 }
 export function publicVariant(row: Variant) {
   const color = lookup(row.colorId, row.colorSlug, row.colorName);
-  return { id: row.id, name: row.name, priceMinor: priceNumber(row.priceMinor), currency: row.currency, supplyMode: row.supplyMode, stockQuantity: row.stockQuantity ?? 0, ...publicVariantOptions(row.optionsJson),
+  return { id: row.id, name: row.name, ...productPrice(row.priceMinor, row.salePriceMinor), currency: row.currency, supplyMode: row.supplyMode, stockQuantity: row.stockQuantity ?? 0, ...publicVariantOptions(row.optionsJson),
     material: lookup(row.materialId, row.materialSlug, row.materialName), color: color ? { ...color, hex: row.colorHex } : null };
 }
 
@@ -45,7 +47,7 @@ async function listSnapshot(db: EntityManager, query: ListingQuery, ids?: string
   const product = productPredicate(query);
   if (ids) { product.sql += ids.length ? ` AND p.id IN (${ids.map(() => '?').join(',')})` : ' AND 1 = 0'; product.params.push(...ids); }
   // Never even aggregate prices across currencies: an unscoped page has no price range.
-  const prices = query.currency ? 'MIN(v.price_minor) AS min_price, MAX(v.price_minor) AS max_price' : 'NULL AS min_price, NULL AS max_price';
+  const prices = query.currency ? `MIN(${effectiveVariantPriceSql}) AS min_price, MAX(${effectiveVariantPriceSql}) AS max_price` : 'NULL AS min_price, NULL AS max_price';
   const from = `FROM products p
     LEFT JOIN categories c ON c.id = p.category_id AND c.archived_at IS NULL
     LEFT JOIN (SELECT v.product_id, ${prices}
@@ -63,9 +65,9 @@ async function listSnapshot(db: EntityManager, query: ListingQuery, ids?: string
     ORDER BY ${productOrder(query.sort)} LIMIT ? OFFSET ?`, [...parameters, query.limit, (query.page - 1) * query.limit]);
   let representatives: Variant[] = [];
   if (rows.length) {
-    const order = query.currency ? 'v.price_minor ASC, v.id ASC' : 'v.id ASC';
+    const order = query.currency ? `${effectiveVariantPriceSql} ASC, v.id ASC` : 'v.id ASC';
     representatives = await db.query(`SELECT * FROM (SELECT v.product_id AS productId, v.id, v.name,
-      v.price_minor AS priceMinor, v.currency, v.supply_mode AS supplyMode, v.stock_quantity AS stockQuantity, v.options_json AS optionsJson,
+      v.price_minor AS priceMinor, v.sale_price_minor AS salePriceMinor, v.currency, v.supply_mode AS supplyMode, v.stock_quantity AS stockQuantity, v.options_json AS optionsJson,
       m.id AS materialId, m.slug AS materialSlug, m.name AS materialName,
       co.id AS colorId, co.slug AS colorSlug, co.name AS colorName, co.hex AS colorHex,
       ROW_NUMBER() OVER (PARTITION BY v.product_id ORDER BY ${order}) AS row_rank

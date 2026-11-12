@@ -18,11 +18,12 @@ export interface VariantInput {
   sku: string; name: string; priceMinor: number; currency: string; supplyMode: 'stock' | 'made_to_order';
   materialId?: string | null; colorId?: string | null;
   costMinor?: number | null; stockQuantity?: number;
+  salePriceMinor?: number | null;
   options?: VariantOption[];
 }
 
 export interface CatalogProductInput extends ProductInput { categoryId?: string | null }
-export type VariantPriceInput = Pick<VariantInput, 'priceMinor' | 'currency' | 'supplyMode' | 'costMinor' | 'stockQuantity'>;
+export type VariantPriceInput = Pick<VariantInput, 'priceMinor' | 'currency' | 'supplyMode' | 'costMinor' | 'stockQuantity' | 'salePriceMinor'>;
 
 export class CatalogAdmin {
   constructor(private readonly db?: DataSource) {}
@@ -129,7 +130,7 @@ export class CatalogAdmin {
     const db = this.database();
     if (input.options !== undefined) return this.saveUnique(writeConfiguredVariant(db, productId, { ...input, options: validateVariantOptions(input.options) }, id));
     return withAssignments(db, [['materials', input.materialId], ['colors', input.colorId]], async (manager) => {
-      const parent = await manager.getRepository(ProductSchema).findOneBy({ id: productId, archivedAt: IsNull() });
+      const parent = await manager.getRepository(ProductSchema).findOne({ where: { id: productId, archivedAt: IsNull() }, lock: { mode: 'pessimistic_write' } });
       if (!parent) throw new NotFoundException('Product not found');
       const repo = manager.getRepository(VariantSchema);
       const values = { ...this.variantFields(input), ...(input.materialId !== undefined ? { materialId: input.materialId } : {}), ...(input.colorId !== undefined ? { colorId: input.colorId } : {}) };
@@ -146,6 +147,7 @@ export class CatalogAdmin {
       if (!parent) throw new NotFoundException('Product not found');
       return this.writeVariant(manager.getRepository(VariantSchema), productId, id, {
         priceMinor: String(input.priceMinor), currency: input.currency, supplyMode: input.supplyMode,
+        ...(input.salePriceMinor !== undefined ? { salePriceMinor: input.salePriceMinor === null ? null : String(input.salePriceMinor) } : {}),
       });
     });
   }
@@ -163,6 +165,9 @@ export class CatalogAdmin {
   }
   private async writeVariant(repo: Repository<VariantRow>, productId: string, id: string, values: Partial<VariantRow>) {
     const where = { id, productId, archivedAt: IsNull() };
+    const current = await repo.findOne({ where, lock: { mode: 'pessimistic_write' } });
+    if (!current) throw new NotFoundException('Variant not found');
+    if (values.currency !== undefined && values.currency !== current.currency && values.salePriceMinor === undefined) values.salePriceMinor = null;
     const result = await this.saveUnique(repo.update(where, values));
     if (!result.affected) throw new NotFoundException('Variant not found');
     const variant = await repo.findOneBy(where);
@@ -193,12 +198,14 @@ export class CatalogAdmin {
   }
   private variantFields(input: VariantInput) {
     return { sku: input.sku, name: input.name, priceMinor: String(input.priceMinor), currency: input.currency, supplyMode: input.supplyMode,
+      ...(input.salePriceMinor !== undefined ? { salePriceMinor: input.salePriceMinor === null ? null : String(input.salePriceMinor) } : {}),
       ...(input.options !== undefined ? { options: validateVariantOptions(input.options) } : {}),
       ...(input.costMinor !== undefined ? { costMinor: input.costMinor === null ? null : String(input.costMinor) } : {}) };
   }
   private productFields(input: ProductInput): Omit<ProductRow, 'id' | 'archivedAt' | 'categoryId'> {
     return {
       name: input.name, slug: input.slug, description: input.description, status: input.status,
+      ...(input.featured !== undefined ? { featured: input.featured } : {}),
       ...(input.bulkWarningThreshold !== undefined ? { bulkWarningThreshold: input.bulkWarningThreshold, bulkWarningMessage: input.bulkWarningMessage?.trim() ?? null } : {}),
       productWeightG: input.productWeightG ?? null, productWidthMm: input.productWidthMm ?? null,
       productHeightMm: input.productHeightMm ?? null, productLengthMm: input.productLengthMm ?? null,

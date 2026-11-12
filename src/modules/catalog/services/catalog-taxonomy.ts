@@ -25,7 +25,6 @@ export type CatalogDatabase = DataSource | EntityManager;
 // serializes assignment with archive and avoids attaching an already archived row.
 export async function withAssignments<T>(db: DataSource, assignments: Array<[TaxonomyGroup, string | null | undefined]>, work: (manager: CatalogDatabase) => Promise<T>): Promise<T> {
   const selected = assignments.filter((entry): entry is [TaxonomyGroup, string] => !!entry[1]);
-  if (!selected.length) return work(db);
   return db.transaction(async (manager) => {
     for (const [group, id] of selected) {
       const rows: unknown[] = await manager.query(`SELECT id FROM ${group} WHERE id = ? AND archived_at IS NULL FOR UPDATE`, [id]);

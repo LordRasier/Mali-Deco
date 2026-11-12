@@ -1,3 +1,4 @@
+import { productPrice } from '../../catalog/models/product-price';
 import { BadRequestException, ConflictException, HttpException, ServiceUnavailableException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import type { DataSource, EntityManager } from 'typeorm';
@@ -90,10 +91,13 @@ export class OrdersService {
       for (const line of sorted) {
         if (seen.has(pair(line)) || !Number.isSafeInteger(line.quantity) || line.quantity < 1 || line.quantity > 999 || !text(line.name,255) || !text(line.variantName,255) || !['stock', 'made_to_order'].includes(line.supplyMode) || line.currency !== option.currency || ![line.weightGrams,line.widthMm,line.heightMm,line.lengthMm].every((n: unknown) => Number.isSafeInteger(n) && (n as number) > 0)) return conflict();
         seen.add(pair(line)); units += line.quantity; if (units > 1000) return conflict();
-        const rows = await tx.query(`SELECT name AS variantName, price_minor AS priceMinor, currency, supply_mode AS supplyMode, stock_quantity AS stockQuantity
+        const rows = await tx.query(`SELECT name AS variantName, price_minor AS priceMinor, sale_price_minor AS salePriceMinor, currency, supply_mode AS supplyMode, stock_quantity AS stockQuantity
           FROM product_variants WHERE product_id = ? AND id = ? AND archived_at IS NULL FOR UPDATE`, [line.productId, line.variantId]);
         const row = { ...products.get(line.productId), ...rows[0] };
-        if (rows.length !== 1 || (['name','variantName','currency','supplyMode','weightGrams','widthMm','heightMm','lengthMm'] as const).some(k => row[k] !== line[k]) || String(row.priceMinor) !== line.priceMinor) return conflict();
+        if (rows.length !== 1 || (['name','variantName','currency','supplyMode','weightGrams','widthMm','heightMm','lengthMm'] as const).some(k => row[k] !== line[k])) return conflict();
+        let currentPrice: number;
+        try { currentPrice = productPrice(row.priceMinor, row.salePriceMinor).priceMinor; } catch { return conflict(); }
+        if (String(currentPrice) !== line.priceMinor) return conflict();
         if (line.supplyMode === 'stock') {
           if (!validStock(row.stockQuantity)) return conflict();
           if (row.stockQuantity < line.quantity) stockUnavailable();

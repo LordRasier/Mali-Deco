@@ -6,6 +6,7 @@
     <h3 data-variant-form-title>{{title}}</h3><div class="editor-grid" data-variant-details>
       <label>Nombre de la variante<input name="name" maxlength="255" value="{{variant.name}}" placeholder="Se completa con los valores elegidos" required></label>
       <label>Precio<input name="price" inputmode="decimal" value="{{variant.price}}" required><small data-variant-price-help>Hasta {{priceDigits}} decimales; no se realiza conversión de moneda.</small></label>
+      <label>Precio en descuento<input name="salePrice" inputmode="decimal" value="{{variant.salePrice}}" placeholder="Opcional"><small>Se aplica solo si es menor que el precio habitual. Vacío elimina el descuento.</small></label>
       <label>Modo de suministro<select name="supplyMode"><option value="" {{#if supplyUnset}}selected{{/if}}>Elegir…</option><option value="stock" {{#if supplyStock}}selected{{/if}}>Stock</option><option value="made_to_order" {{#if supplyMadeToOrder}}selected{{/if}}>A pedido</option></select></label>
       <details class="variant-advanced"><summary>SKU y moneda</summary><div class="editor-grid"><label>Código (SKU)<input name="sku" maxlength="255" value="{{variant.sku}}" required><small>Se propone automáticamente. Puede editarlo.</small></label>
       <label>Moneda<input name="currency" maxlength="3" value="{{variant.currency}}" required><small>Código de tres letras, por ejemplo ARS.</small></label></div></details>

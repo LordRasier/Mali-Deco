@@ -3,11 +3,13 @@ import { currencyFractionDigits, minorToDecimal } from '../../catalog/shared/mon
 import { formatPrice } from '../../catalog/shared/cart';
 import { markupFromAmounts } from '../shared/pricing-calculator';
 import { groupProperties } from '../../catalog/shared/variant-properties';
+import { productPrice } from '../../../modules/catalog/models/product-price';
 
 export function variantFormModel(variant?: VariantRow, optionNames: string[] = []) {
   const currency = variant?.currency ?? 'ARS';
   return { editingVariant: Boolean(variant), variant: { id: variant?.id ?? '', sku: variant?.sku ?? '', name: variant?.name ?? '', currency,
     price: variant ? minorToDecimal(variant.priceMinor, currency) : '', materialId: variant?.materialId ?? null, colorId: variant?.colorId ?? null,
+    salePrice: variant?.salePriceMinor == null ? '' : minorToDecimal(variant.salePriceMinor, currency),
     options: variant?.options ?? optionNames.map(name => ({ name, value: '' })) },
     autoVariantName: !variant || variant.name === 'Estándar',
     priceDigits: currencyFractionDigits(currency), supplyUnset: !variant?.supplyMode,
@@ -23,7 +25,7 @@ export function variantListModel(product: ProductRow, variants: VariantRow[] = [
   const first = live[0];
   const standard = total === variants.length && live.length === 1 && first.name === 'Estándar' && !first.colorId && !first.materialId && !first.options?.length ? first : undefined;
   const price = (v: VariantRow) => formatPrice(BigInt(v.priceMinor), v.currency);
-  const prices = live.map(v => BigInt(v.priceMinor));
+  const prices = live.map(v => BigInt(productPrice(v.priceMinor, v.salePriceMinor).priceMinor));
   const lowest = prices.reduce((a, b) => a < b ? a : b, prices[0] ?? 0n);
   const previewPrice = total !== variants.length || new Set(live.map(v => v.currency)).size > 1
     ? 'El precio depende de la opción y la moneda' : live.length
@@ -40,6 +42,7 @@ export function variantListModel(product: ProductRow, variants: VariantRow[] = [
     previewPrice, pricingComplete: total === variants.length, priceCheck: live.length ? 'Precio guardado' : total > variants.length ? 'Se comprobará al publicar' : 'Falta un precio',
     hasPreviousVariants: page > 1, hasNextVariants: page < pages && page < 10000, previousVariantPage: page - 1, nextVariantPage: page + 1,
     variants: variants.map(variant => ({ id: variant.id, sku: variant.sku, name: variant.name, priceMinor: variant.priceMinor, currency: variant.currency, priceLabel: price(variant),
+      salePriceMinor: variant.salePriceMinor ?? '', salePriceDecimal: variant.salePriceMinor == null ? '' : minorToDecimal(variant.salePriceMinor, variant.currency).replace('.', ','),
       imageId: variant.imageId ?? '', imageUrl: variant.imageId ? `/api/v1/admin/catalog/products/${encodeURIComponent(product.id)}/images/${encodeURIComponent(variant.imageId)}/content?w=320` : '',
       optionsLabel: (variant.options ?? []).map(option => `${option.name}: ${option.value}`).join(' · '),
       priceDecimal: minorToDecimal(variant.priceMinor, variant.currency).replace('.', ','), costMinor: variant.costMinor ?? '',

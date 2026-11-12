@@ -1,12 +1,13 @@
 import { BadRequestException, Body, Controller, HttpCode, Inject, Post, ServiceUnavailableException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { assertMinorUnits } from '../models/price';
+import { productPrice } from '../models/product-price';
 import { readPublicImages } from '../queries/public-images';
 import { publicVariantOptions } from '../queries/public-variant-options';
 
 export interface CartPair { productId: string; variantId: string }
 interface ResolvedRow {
   optionsJson?: unknown;
+  salePriceMinor?: string | number | null;
   productId: string; productSlug: string; productName: string; productDescription: string;
   variantId: string; variantName: string; priceMinor: string | number; currency: string;
   stockQuantity?: number; bulkWarningThreshold?: number | null; bulkWarningMessage?: string | null;
@@ -55,7 +56,7 @@ export class PublicCartResolver {
     try {
       rows = await this.db.query(`SELECT
       p.id AS productId, p.slug AS productSlug, p.name AS productName, p.description AS productDescription,
-      v.id AS variantId, v.name AS variantName, v.price_minor AS priceMinor, v.currency AS currency,
+      v.id AS variantId, v.name AS variantName, v.price_minor AS priceMinor, v.sale_price_minor AS salePriceMinor, v.currency AS currency,
       v.supply_mode AS supplyMode, v.stock_quantity AS stockQuantity, v.options_json AS optionsJson,
       p.bulk_warning_threshold AS bulkWarningThreshold, p.bulk_warning_message AS bulkWarningMessage,
       m.id AS materialId, m.slug AS materialSlug, m.name AS materialName,
@@ -81,13 +82,11 @@ export class PublicCartResolver {
     for (const line of lines) {
       const row = byPair.get(pairKey(line));
       if (!row) { missing.push(line); continue; }
-      const priceMinor = Number(row.priceMinor);
-      assertMinorUnits(priceMinor);
       resolved.push({
         ...line,
         product: { id: row.productId, slug: row.productSlug, name: row.productName, description: row.productDescription, bulkWarningThreshold: row.bulkWarningThreshold ?? null, bulkWarningMessage: row.bulkWarningMessage ?? null, primaryImage: images.get(row.productId)?.[0] ?? null },
         variant: {
-          id: row.variantId, name: row.variantName, priceMinor, currency: row.currency, supplyMode: row.supplyMode, stockQuantity: row.stockQuantity ?? 0, ...publicVariantOptions(row.optionsJson),
+          id: row.variantId, name: row.variantName, ...productPrice(row.priceMinor, row.salePriceMinor), currency: row.currency, supplyMode: row.supplyMode, stockQuantity: row.stockQuantity ?? 0, ...publicVariantOptions(row.optionsJson),
           material: row.materialId === null ? null : { id: row.materialId, slug: row.materialSlug, name: row.materialName },
           color: row.colorId === null ? null : { id: row.colorId, slug: row.colorSlug, name: row.colorName, hex: row.colorHex },
         },

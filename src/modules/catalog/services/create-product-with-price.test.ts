@@ -16,10 +16,11 @@ test('creates the product and its standard priced variant in one transaction', a
     save: async (value: Record<string, unknown>) => { writes.push({ kind: schema === ProductSchema ? 'product' : schema === VariantSchema ? 'variant' : 'unknown', value }); return value; },
   }) };
   const db = { isInitialized: true, transaction: async (work: (m: typeof manager) => Promise<unknown>) => { transactions++; return work(manager); } } as unknown as DataSource;
-  const result = await new CatalogAdmin(db).createProductWithPrice(product, { ...price, costMinor: 100000, stockQuantity: 5, supplyMode: 'stock' });
+  const result = await new CatalogAdmin(db).createProductWithPrice({ ...product, featured: true }, { ...price, salePriceMinor: 100000, costMinor: 100000, stockQuantity: 5, supplyMode: 'stock' });
   assert.equal(transactions, 1); assert.deepEqual(writes.map(w => w.kind), ['product', 'variant']);
   assert.equal(writes[1].value.productId, result.id); assert.equal(writes[1].value.priceMinor, '125000');
   assert.equal(writes[1].value.costMinor, '100000'); assert.equal(writes[1].value.stockQuantity, 5);
+  assert.equal(writes[0].value.featured, true); assert.equal(writes[1].value.salePriceMinor, '100000');
 });
 
 test('rejects invalid initial prices before accessing persistence', async () => {

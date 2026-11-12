@@ -7,7 +7,7 @@ import type { StockInput } from './inventory-form';
 type Session = Pick<ReturnType<typeof createSessionStore>, 'getSnapshot' | 'getEpoch' | 'expire'>;
 type View = { busy(value: boolean): void; error(message: string): void; committed(): void; stockSaved?(id: string, quantity: number): void };
 type Runtime = { request: typeof apiRequest; confirm(): boolean };
-type Price = Pick<VariantInput, 'priceMinor' | 'currency' | 'supplyMode'>;
+type Price = Pick<VariantInput, 'priceMinor' | 'currency' | 'supplyMode' | 'salePriceMinor'>;
 const validId = (id: string) => /^[-\x21-\x7e]{1,36}$/.test(id);
 const uncertain = 'No se pudo confirmar el resultado. La operación podría haberse completado; revise las variantes antes de reintentar.';
 function confirmed(value: unknown, productId: string, id?: string): boolean {
@@ -39,6 +39,10 @@ export function createVariantEditor(session: Session, view: View, productId: str
       const receipt = result as { id?: string; productId?: string; stockQuantity?: number } | undefined;
       const valid = action === '/stock' ? receipt?.id === id && receipt?.productId === productId && receipt?.stockQuantity === (body as StockInput).stockQuantity : confirmed(result, productId, id);
       if (method === 'DELETE' ? result !== undefined : !valid) throw new ApiError(502, uncertain);
+      if (body && 'salePriceMinor' in body && body.salePriceMinor !== undefined) {
+        const saved = (result as { salePriceMinor?: string | null }).salePriceMinor ?? null;
+        if (saved !== (body.salePriceMinor === null ? null : String(body.salePriceMinor))) throw new ApiError(502, uncertain);
+      }
       busy = false; lease?.release(); view.busy(false);
       if (accepts()) { if (action === '/stock' && view.stockSaved) view.stockSaved(id!, (body as StockInput).stockQuantity); else view.committed(); }
     } catch (failure) {
@@ -53,7 +57,7 @@ export function createVariantEditor(session: Session, view: View, productId: str
   }
   return {
     save: (body: VariantInput, id?: string) => write(id === undefined ? 'POST' : 'PUT', id, body),
-    savePrice: ({ priceMinor, currency, supplyMode }: Price, id: string) => write('PUT', id, { priceMinor, currency, supplyMode }, '/price'),
+    savePrice: ({ priceMinor, currency, supplyMode, salePriceMinor }: Price, id: string) => write('PUT', id, { priceMinor, currency, supplyMode, ...(salePriceMinor !== undefined ? { salePriceMinor } : {}) }, '/price'),
     saveStock: (body: StockInput, id: string) => write('PUT', id, body, '/stock'),
     archive: async (id: string, archived: boolean) => { if (current() && !busy && !readOnly && !archived && runtime.confirm()) await write('DELETE', id); },
     dispose: () => { active = false; reservation?.release(); reservation = undefined; },

@@ -28,6 +28,7 @@ function field(form: HTMLFormElement, name: string, optional = false): string {
   const control = form.elements.namedItem(name);
   if (!control && optional) return '';
   if (!control || !('value' in control) || typeof control.value !== 'string') throw new Error('El formulario no está completo.');
+  if (name === 'featured' && 'checked' in control) return String(control.checked);
   return control.value;
 }
 
@@ -199,10 +200,10 @@ export function mountAdminProducts(root: HTMLElement, session: typeof sessionSto
     else if (form.matches('[data-product-form]')) {
       event.preventDefault();
       try {
-        const product = productFormInput(name => field(form, name), categoryChanged);
+        const product = productFormInput(name => field(form, name, name === 'featured'), categoryChanged);
         const initialPricing = get('[data-initial-pricing]');
         if (root.dataset.productView === 'create' && initialPricing) {
-          const hasPrice = ['initialCost', 'initialMarkup', 'initialPrice', 'initialStock'].some(name => field(form, name, true).trim());
+          const hasPrice = ['initialCost', 'initialMarkup', 'initialPrice', 'initialDiscount', 'initialStock'].some(name => field(form, name, true).trim());
           const priceError = get('[data-initial-price-error]'); if (priceError) priceError.textContent = '';
           try { void controller.save(product, hasPrice ? readPricing(initialPricing, 'ARS') : undefined); }
           catch (error) { if (priceError) priceError.textContent = error instanceof Error ? error.message : 'Revisá el precio y el stock.'; }
@@ -247,7 +248,7 @@ export function mountAdminProducts(root: HTMLElement, session: typeof sessionSto
       if (blocked(stockDrafts.size > 0, 'Guarde primero el stock.')) return;
       if (generalPending() || blocked(simpleDirty || !!pricing?.pending(), 'Guarde primero el precio.')) return;
       if (route.view !== 'variant-create' && route.view !== 'variant-edit' && form.dataset.inlineVariant === undefined) return;
-      try { void variant?.save({ ...variantFormInput(name => field(form, name), { material: true, color: true }), options: readVariantOptions(form) }, route.view === 'variant-edit' ? route.variantId : form.dataset.inlineVariant || undefined); }
+      try { void variant?.save({ ...variantFormInput(name => field(form, name, name === 'salePrice'), { material: true, color: true }), options: readVariantOptions(form) }, route.view === 'variant-edit' ? route.variantId : form.dataset.inlineVariant || undefined); }
       catch (failure) { view.error(failure instanceof Error ? failure.message : 'Revise los datos de la variante.', false); }
     }
   };

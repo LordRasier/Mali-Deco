@@ -12,6 +12,14 @@ const row = {
   sku: 'PRIVATE-SKU', internalNote: 'PRIVATE-NOTE',
 };
 
+test('cart resolution returns the active sale price and regular price without trusting client prices', async () => {
+  const db = { isInitialized: true, query: async (sql: string) => sql.includes('FROM product_images') ? [] : [{ ...row, salePriceMinor: '9840' }] } as unknown as DataSource;
+  const result = await new PublicCartResolver(db).resolve({ lines: [{ productId: 'p1', variantId: 'v1' }] });
+  assert.equal(result.resolved[0].variant.priceMinor, 9840);
+  assert.equal(result.resolved[0].variant.regularPriceMinor, 12300);
+  assert.equal(result.resolved[0].variant.discountPercent, '20');
+});
+
 test('resolver partitions requested pairs independently of page and hides private columns', async () => {
   let sql = ''; let params: unknown[] = [];
   const db = { isInitialized: true, query: async (q: string, p: unknown[]) => { if (q.includes('FROM product_images')) return []; sql = q; params = p; return [row]; } } as unknown as DataSource;

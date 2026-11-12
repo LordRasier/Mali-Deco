@@ -29,6 +29,8 @@ export async function writeConfiguredVariant(db: DataSource, productId: string, 
     [productId, id ?? '', input.materialId, input.colorId ?? null, key(input.options?.[0]?.name ?? ''), key(input.options?.[0]?.value ?? '')]);
     if (duplicates.length) throw new ConflictException('Ya existe una variante con ese material y valor. Editá la existente.');
     const values = { sku: input.sku, name: input.name, priceMinor: String(input.priceMinor), currency: input.currency,
+      ...(input.salePriceMinor !== undefined ? { salePriceMinor: input.salePriceMinor === null ? null : String(input.salePriceMinor) }
+        : current && current.currency !== input.currency ? { salePriceMinor: null } : {}),
       supplyMode: input.supplyMode, materialId: input.materialId, colorId: input.colorId ?? null, options: input.options ?? [] };
     if (current) { const result = await repo.update({ id, productId, archivedAt: IsNull() }, values);
       if (!result.affected) throw new NotFoundException('Variant not found');

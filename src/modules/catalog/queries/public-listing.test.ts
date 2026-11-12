@@ -1,9 +1,18 @@
+import { effectiveVariantPriceSql } from './effective-price-sql';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DataSource } from 'typeorm';
 import { parseListingQuery } from './listing-query';
 import { productOrder, productPredicate, variantPredicate } from './listing-sql';
-import { listPublicProducts, selectedPublicProducts } from './public-listing';
+import { listPublicProducts, selectedPublicProducts, publicVariant } from './public-listing';
+
+test('public variant prices and SQL price filters use active discounts consistently', () => {
+  const variant = publicVariant({ id: 'v', name: 'Vase', productId: 'p', priceMinor: '10000', salePriceMinor: '7500', currency: 'ARS', supplyMode: null,
+    materialId: null, materialSlug: null, materialName: null, colorId: null, colorSlug: null, colorName: null, colorHex: null });
+  assert.equal(variant.priceMinor, 7500); assert.equal(variant.regularPriceMinor, 10000); assert.equal(variant.discountPercent, '25');
+  const sql = variantPredicate(parseListingQuery({ currency: 'ARS', minPriceMinor: '7000', maxPriceMinor: '8000' })).sql;
+  assert.equal((sql.match(/sale_price_minor < v.price_minor/g) ?? []).length, 2);
+});
 
 test('validates bounded filters, currency-safe prices, and exact query types', () => {
   const q = parseListingQuery({ category: 'jarrones,lamparas', material: 'pla,pla', color: 'rojo,azul', currency: 'ARS', minPriceMinor: '0', maxPriceMinor: '9007199254740991', sort: 'price_desc', page: '2', limit: '100' });
@@ -22,7 +31,8 @@ test('validates bounded filters, currency-safe prices, and exact query types', (
 test('one variant predicate combines every variant-level constraint, with bounded placeholders', () => {
   const q = parseListingQuery({ category: 'unknown', material: 'pla,petg', color: 'red,blue', currency: 'ARS', minPriceMinor: '0', maxPriceMinor: '200' });
   const v = variantPredicate(q);
-  assert.match(v.sql, /m\.slug IN \(\?, \?\) AND co\.slug IN \(\?, \?\) AND v\.currency = \? AND v\.price_minor >= \? AND v\.price_minor <= \?/);
+  assert.match(v.sql, /m\.slug IN \(\?, \?\) AND co\.slug IN \(\?, \?\) AND v\.currency = \?/);
+  assert.ok(v.sql.endsWith(`${effectiveVariantPriceSql} >= ? AND ${effectiveVariantPriceSql} <= ?`));
   assert.deepEqual(v.params, ['pla', 'petg', 'red', 'blue', 'ARS', 0, 200]);
   const p = productPredicate(q);
   assert.match(p.sql, /c\.slug IN \(\?\)/);
@@ -56,7 +66,8 @@ test('listing counts products, pages stably and returns only eligible representa
   assert.match(calls[0].sql, /m\.slug IN \(\?\) AND co\.slug IN \(\?\) AND v\.currency = \?/);
   assert.match(calls[1].sql, /ORDER BY matched\.min_price ASC, p\.name ASC, p\.id ASC LIMIT \? OFFSET \?/);
   assert.deepEqual(calls[1].params, ['pla', 'red', 'ARS', 1, 1]);
-  assert.match(calls[2].sql, /ROW_NUMBER\(\) OVER \(PARTITION BY v\.product_id ORDER BY v\.price_minor ASC, v\.id ASC\)/);
+  assert.ok(calls[2].sql.includes(`ROW_NUMBER() OVER (PARTITION BY v.product_id ORDER BY ${effectiveVariantPriceSql} ASC, v.id ASC)`));
+  assert.ok(calls[1].sql.includes(`MIN(${effectiveVariantPriceSql}) AS min_price, MAX(${effectiveVariantPriceSql}) AS max_price`));
   assert.deepEqual(calls[2].params, ['pla', 'red', 'ARS', 'p1']);
 });
 
@@ -86,7 +97,7 @@ test('unscoped requests never compare mixed-currency amounts', async () => {
   const connection = { query: async (sql: string) => { calls.push(sql); return calls.length === 1 ? [{ total: 0 }] : []; } };
   const fake = { transaction: async (_isolation: string, work: (value: typeof connection) => unknown) => work(connection) } as unknown as DataSource;
   await listPublicProducts(fake, {});
-  assert.ok(calls.every(sql => !/MIN\(v\.price_minor\)|MAX\(v\.price_minor\)/.test(sql)));
+  assert.ok(calls.every(sql => !/MIN\(|MAX\(/.test(sql)));
 });
 
 test('manual landing selection keeps public visibility predicates, bounded IDs and requested order', async () => {
