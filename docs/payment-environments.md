@@ -53,7 +53,7 @@ En las notificaciones Webhooks de cada aplicación de Mercado Pago, seleccionar 
 
 La ruta antigua `/api/v1/payments/mercadopago/webhook` queda ligada a pruebas. El secreto genérico ya no se usa como secreto de prueba: completar `MERCADOPAGO_TEST_WEBHOOK_SECRET`.
 
-El checkout necesita la configuración completa de cotización Zipnova (`ZIPNOVA_ENABLED`, cuenta, origen, moneda/exponente y token/secret). En producción esas credenciales de envío deben estar inyectadas en el proceso; el cargador `ZIPNOVA_ENV_FILE` continúa siendo solo local. Una cotización fallida nunca se interpreta como envío gratuito.
+El checkout necesita la configuración completa de cotización Zipnova (`ZIPNOVA_ENABLED`, cuenta, origen, moneda/exponente y token/secret). Se puede inyectar en el proceso o indicar `ZIPNOVA_ENV_FILE=.env.zipnova` en el `.env` principal: el cargador importa únicamente las ocho claves de Zipnova permitidas, también en producción. Los valores ya presentes en el proceso tienen prioridad, incluso si están vacíos. Consultar [la configuración de envíos](zipnova-quote-foundation.md). Una cotización fallida nunca se interpreta como envío gratuito.
 
 El proxy debe preservar el Host público configurado. Sesiones y mutaciones exigen ese Host, Origin exacto, JSON y CSRF; en producción la cookie usa Secure, HttpOnly y SameSite Strict. El retorno `/checkout/return` no confirma pagos ni refleja parámetros recibidos: ofrece volver al checkout para consultar el estado autenticado.
 

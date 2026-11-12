@@ -1,36 +1,84 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { test } from 'node:test';
-import { loadLocalZipnovaCredentials } from './local-credentials';
+import { loadZipnovaEnvironment } from './local-credentials';
+import { pendingShippingService } from '../../quotes/catalog-quote';
 
-test('explicit local estimates load only credentials, never activation, checkout or database settings', () => {
+const settings = {
+  ZIPNOVA_ENABLED: 'true', ZIPNOVA_CURRENCY: 'ARS', ZIPNOVA_CURRENCY_EXPONENT: '2',
+  ZIPNOVA_API_TOKEN: 'synthetic-token', ZIPNOVA_API_SECRET: 'synthetic-secret',
+  ZIPNOVA_ACCOUNT_ID: '4', ZIPNOVA_ORIGIN_ID: '8', ZIPNOVA_OPERATOR_ORIGIN: 'http://127.0.0.1:3000',
+};
+const fixture = (run: (path: string) => void) => {
   const directory = mkdtempSync(join(tmpdir(), 'mali-zipnova-env-'));
   try {
     const path = join(directory, 'private.env');
-    writeFileSync(path, 'ZIPNOVA_API_TOKEN=synthetic-token\nZIPNOVA_API_SECRET=synthetic-secret\nZIPNOVA_ENABLED=false\nLOCAL_TEST_CHECKOUT_ENABLED=true\nDB_HOST=untrusted.invalid\n');
-    const env = { npm_lifecycle_event: 'dev', NODE_ENV: 'development', ZIPNOVA_ENABLED: 'true', ZIPNOVA_ENV_FILE: path, LOCAL_TEST_CHECKOUT_ENABLED: 'false' };
-    loadLocalZipnovaCredentials(env);
-    assert.deepEqual(env, { npm_lifecycle_event: 'dev', NODE_ENV: 'development', ZIPNOVA_ENABLED: 'true', ZIPNOVA_ENV_FILE: path,
-      LOCAL_TEST_CHECKOUT_ENABLED: 'false', ZIPNOVA_API_TOKEN: 'synthetic-token', ZIPNOVA_API_SECRET: 'synthetic-secret' });
-    const explicit = { ...env, ZIPNOVA_API_TOKEN: 'explicit-token', ZIPNOVA_API_SECRET: 'explicit-secret' };
-    loadLocalZipnovaCredentials(explicit);
-    assert.equal(explicit.ZIPNOVA_API_TOKEN, 'explicit-token');
-    assert.equal(explicit.ZIPNOVA_API_SECRET, 'explicit-secret');
+    const content = Object.entries(settings).map(([key, value]) => `${key}=${value}`).join('\n');
+    writeFileSync(path, content + '\nNODE_ENV=untrusted\nPUBLIC_SITE_URL=https://untrusted.invalid\nDB_HOST=untrusted.invalid\nMERCADOPAGO_ACCESS_TOKEN=untrusted\nLOCAL_TEST_CHECKOUT_ENABLED=true\nZIPNOVA_ENV_FILE=untrusted.env\n');
+    run(path);
   } finally { rmSync(directory, { recursive: true, force: true }); }
+};
+
+test('an explicit provider file configures production and direct development starts without network or unrelated settings', () => {
+  fixture(path => {
+    for (const nodeEnv of ['production', 'development']) {
+      const env: NodeJS.ProcessEnv = { NODE_ENV: nodeEnv, PUBLIC_SITE_URL: 'https://store.example', ZIPNOVA_ENV_FILE: path };
+      loadZipnovaEnvironment(env);
+      assert.deepEqual(env, { NODE_ENV: nodeEnv, PUBLIC_SITE_URL: 'https://store.example', ZIPNOVA_ENV_FILE: path, ...settings });
+      const provider = pendingShippingService(undefined, env, async () => { throw Error('Network prohibited'); });
+      assert.equal(provider.unavailableReason(), null);
+    }
+  });
 });
 
-test('disabled providers, tests, production and direct starts never read the private file', () => {
-  const enabled = { npm_lifecycle_event: 'dev', NODE_ENV: 'development', ZIPNOVA_ENABLED: 'true', ZIPNOVA_ENV_FILE: 'missing-private.env' };
-  for (const override of [{ ZIPNOVA_ENABLED: 'false' }, { ZIPNOVA_ENABLED: undefined }, { NODE_ENV: 'test' }, { NODE_ENV: 'production' }, { NODE_ENV: undefined }, { npm_lifecycle_event: undefined }, { ZIPNOVA_ENV_FILE: undefined }]) {
-    const env = { ...enabled, ...override }, before = { ...env };
-    assert.doesNotThrow(() => loadLocalZipnovaCredentials(env));
+test('relative explicit file paths resolve from the process working directory', () => {
+  fixture(path => {
+    const env: NodeJS.ProcessEnv = { NODE_ENV: 'production', ZIPNOVA_ENV_FILE: relative(process.cwd(), path) };
+    loadZipnovaEnvironment(env);
+    assert.equal(env.ZIPNOVA_API_TOKEN, settings.ZIPNOVA_API_TOKEN);
+    assert.equal(env.ZIPNOVA_ACCOUNT_ID, settings.ZIPNOVA_ACCOUNT_ID);
+  });
+});
+
+test('existing process configuration wins for every permitted key, including disabled and empty values', () => {
+  fixture(path => {
+    const env: NodeJS.ProcessEnv = { NODE_ENV: 'production', ZIPNOVA_ENV_FILE: path,
+      ...Object.fromEntries(Object.keys(settings).map(key => [key, 'existing-value'])),
+      ZIPNOVA_ENABLED: 'false', ZIPNOVA_API_TOKEN: '', PUBLIC_SITE_URL: 'https://store.example' };
+    const before = { ...env };
+    loadZipnovaEnvironment(env);
     assert.deepEqual(env, before);
+    assert.equal(pendingShippingService(undefined, env).unavailableReason(), 'DISABLED');
+  });
+});
+
+test('missing or blank required provider configuration stays unavailable after loading', () => {
+  fixture(path => {
+    for (const key of ['ZIPNOVA_API_TOKEN', 'ZIPNOVA_API_SECRET', 'ZIPNOVA_ACCOUNT_ID', 'ZIPNOVA_ORIGIN_ID', 'ZIPNOVA_CURRENCY', 'ZIPNOVA_CURRENCY_EXPONENT']) {
+      const env: NodeJS.ProcessEnv = { NODE_ENV: 'production', PUBLIC_SITE_URL: 'https://store.example', ZIPNOVA_ENV_FILE: path, [key]: '' };
+      loadZipnovaEnvironment(env);
+      assert.equal(pendingShippingService(undefined, env).unavailableReason(), 'CONFIG_UNAVAILABLE', key);
+    }
+    writeFileSync(path, 'ZIPNOVA_ENABLED=true\nZIPNOVA_API_TOKEN=synthetic-token\n');
+    const incomplete: NodeJS.ProcessEnv = { NODE_ENV: 'production', PUBLIC_SITE_URL: 'https://store.example', ZIPNOVA_ENV_FILE: path };
+    loadZipnovaEnvironment(incomplete);
+    assert.equal(pendingShippingService(undefined, incomplete).unavailableReason(), 'CONFIG_UNAVAILABLE');
+  });
+});
+
+test('no private file is discovered or loaded unless a path was explicitly configured', () => {
+  for (const nodeEnv of ['development', 'production', 'test']) {
+    const env: NodeJS.ProcessEnv = { NODE_ENV: nodeEnv };
+    loadZipnovaEnvironment(env);
+    assert.deepEqual(env, { NODE_ENV: nodeEnv });
   }
 });
 
-test('an explicitly configured missing private file fails without leaking its path', () => {
-  assert.throws(() => loadLocalZipnovaCredentials({ npm_lifecycle_event: 'dev', NODE_ENV: 'development', ZIPNOVA_ENABLED: 'true', ZIPNOVA_ENV_FILE: 'missing-private.env' }),
-    { message: 'Unable to load local Zipnova credentials' });
+test('an unreadable explicitly configured file fails startup without leaking its path', () => {
+  fixture(path => {
+    assert.throws(() => loadZipnovaEnvironment({ NODE_ENV: 'production', ZIPNOVA_ENV_FILE: path + '.missing' }),
+      { message: 'Unable to load Zipnova configuration file' });
+  });
 });

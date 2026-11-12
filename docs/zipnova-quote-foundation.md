@@ -1,6 +1,6 @@
 # Estimación de envío en el carrito
 
-## Flujo local
+## Flujo de cotización
 
 1. En la administración, cargar peso en gramos y ancho, alto y largo en milímetros por unidad del artículo. Los campos del paquete permanecen separados: el estimador dinámico utiliza los del artículo.
 2. En modo API, ingresar el código postal una vez y elegir la localidad si hay varias coincidencias.
@@ -25,17 +25,39 @@ Se usa `account_id` y `origin_id` explícitos. Peso en gramos y medidas en cent�
 
 La cuenta tiene seleccionado empaquetado dinámico con límite de lado 150 cm y peso 30.000 g. Zipnova intenta minimizar bultos, pero puede generar más de uno. La guía no confirma cómo añade protección o tara de la caja; no se agregan valores inventados. Debe acordarse y verificarse qué protección está incluida en las medidas cargadas para cada unidad y contrastar bultos calculados con pedidos físicamente embalados. La API no documenta moneda en la respuesta de cotización. No hay sandbox confirmado. Se realizaron cotizaciones reales controladas con un producto sintético marcado como prueba; no se creó ni pagó ningún envío. Antes de usar datos comerciales reales deben validarse catálogo, precios y logística. No incluir credenciales en archivos versionados, logs o cliente.
 
-## Transporte y futura entrada local
+## Configuración y transporte
 
-### Inicio de desarrollo con credenciales privadas
+### Archivo privado en desarrollo y producción
 
-Para conservar las credenciales fuera del repositorio, `npm run dev` admite `ZIPNOVA_ENV_FILE` en el `.env` local ignorado por Git. Indicar la ruta absoluta al archivo privado creado por el asistente. Solo se lee con `NODE_ENV=development` y `ZIPNOVA_ENABLED=true`; importa únicamente `ZIPNOVA_API_TOKEN` y `ZIPNOVA_API_SECRET`, sin sobrescribir valores ya presentes. No importa indicadores de activación, checkout ni configuración de base de datos. Un archivo configurado que no puede leerse interrumpe el inicio con un error sin exponer su contenido. Los inicios directos, pruebas y producción no usan esta carga automática.
+El arranque lee el archivo indicado explícitamente por `ZIPNOVA_ENV_FILE`, también en producción y en inicios directos sin npm. Una ruta relativa se resuelve desde el directorio de trabajo del proceso; una ruta absoluta permite conservar el archivo fuera de la carpeta del proyecto. No se descubre ni carga un archivo por defecto. En producción, el supervisor debe cargar el `.env` principal o inyectar esa variable, como el resto de la configuración de la aplicación.
 
-En el `.env` local deben permanecer explícitos el origen permitido, cuenta, origen de despacho y moneda/exponente. Mantener `LOCAL_TEST_CHECKOUT_ENABLED=false`; la tienda no registra rutas de compra ni proveedores de pago activos. Reiniciar el proceso después de cambiar estos valores. No copiar el contenido del archivo privado al proyecto.
+En el `.env` principal:
 
-La ruta está desactivada salvo que `NODE_ENV=development` y `ZIPNOVA_ENABLED=true`. En producción permanece desactivada incluso con esas credenciales. Para habilitarla también exige `ZIPNOVA_OPERATOR_ORIGIN` con el origen exacto del navegador local, por ejemplo `http://127.0.0.1:3000`, sin exigir `ZIPNOVA_LOGISTICS_VALIDATED` para esta estimación. El checkout de prueba requiere su propia activación local y validación numérica, pero no afirma preparación para despacho ni exige ese indicador; habilitar cotizaciones del carrito por sí solo no activa el checkout. Requiere `ZIPNOVA_ACCOUNT_ID` y `ZIPNOVA_ORIGIN_ID` enteros positivos, `ZIPNOVA_CURRENCY` en código de tres letras mayúsculas, `ZIPNOVA_CURRENCY_EXPONENT` explícito entre 0 y 3, y `ZIPNOVA_API_TOKEN` y `ZIPNOVA_API_SECRET` válidos como formato. Una configuración incompleta devuelve `CONFIG_UNAVAILABLE`; la ausencia de catálogo o medidas devuelve indisponibilidad antes de la red. La validez numérica no certifica el embalaje físico ni garantiza el precio final.
+```dotenv
+ZIPNOVA_ENV_FILE=.env.zipnova
+# En producción, conservar el origen HTTPS canónico de la tienda:
+PUBLIC_SITE_URL=https://mali-store.com.ar
+```
 
-API y servidor web de desarrollo escuchan en `127.0.0.1`. Tanto el proxy como la API verifican origen y Host exactos, POST JSON y rechazan `Sec-Fetch-Site: cross-site`; la API también comprueba la dirección local del socket. No usar túneles ni exponer puertos. Esta barrera es para pruebas locales y supone confiables los procesos del equipo; no sustituye autenticación, controles distribuidos ni seguridad para producción.
+El archivo privado puede contener toda la configuración del proveedor:
+
+```dotenv
+ZIPNOVA_ENABLED=true
+ZIPNOVA_CURRENCY=ARS
+ZIPNOVA_CURRENCY_EXPONENT=2
+ZIPNOVA_API_TOKEN=token_del_proveedor
+ZIPNOVA_API_SECRET=secret_del_proveedor
+ZIPNOVA_ACCOUNT_ID=identificador_de_cuenta
+ZIPNOVA_ORIGIN_ID=identificador_de_origen
+# Solo para desarrollo local:
+# ZIPNOVA_OPERATOR_ORIGIN=http://127.0.0.1:3000
+```
+
+Reemplazar los valores de ejemplo por credenciales e identificadores válidos. Solo se importan esas ocho claves de Zipnova: se ignoran configuración de base, pagos, `NODE_ENV`, `PUBLIC_SITE_URL` y otras variables. Los valores presentes en el proceso tienen prioridad, incluidos valores vacíos y `ZIPNOVA_ENABLED=false`; evitar duplicarlos vacíos en el `.env` principal o en PM2. Un archivo configurado que no puede leerse interrumpe el inicio sin exponer su ruta ni contenido. La validación del proveedor mantiene bloqueadas las cotizaciones si falta una clave requerida. Reiniciar después de cambiar el archivo. No versionarlo ni incluirlo en logs; restringir su lectura al usuario del proceso. Los pagos se activan por separado en [Configuración → Pagos](payment-environments.md).
+
+Las cotizaciones requieren `ZIPNOVA_ENABLED=true`, cuenta y origen de despacho como enteros positivos, moneda de tres letras mayúsculas, exponente entre 0 y 3, y token/secret válidos como formato. Una configuración incompleta devuelve `CONFIG_UNAVAILABLE`; la ausencia de catálogo o medidas devuelve indisponibilidad antes de la red. La búsqueda de localidades también queda bloqueada cuando Zipnova está deshabilitado o incompleto, aunque Andreani esté disponible. La validez numérica no certifica el embalaje físico ni garantiza el precio final.
+
+En producción, la API valida POST JSON y Host/Origin exactos contra `PUBLIC_SITE_URL`, además de `Sec-Fetch-Site` cuando está presente. `ZIPNOVA_OPERATOR_ORIGIN` se usa únicamente para desarrollo local: exige origen loopback literal y socket local. Un valor HTTPS en esa variable no reemplaza `PUBLIC_SITE_URL` ni cambia la política de producción. El servidor Node escucha en `127.0.0.1`; el proxy productivo debe preservar el Host público.
 
 El transporte usa solo el endpoint fijo de cotización, rechaza redirecciones, establece timeout y limita respuestas; no crea envíos. Por proceso admite hasta dos solicitudes simultáneas y diez por minuto; ante un 429 respeta `Retry-After` o espera un minuto si falta o es inválido. La cotización recibe un plazo interno máximo de cinco minutos, tras el cual el carrito descarta la selección y pide volver a cotizar; no es garantía de precio del transportista ni tiempo estimado de entrega. Las pruebas usan exclusivamente `fetch` simulado. Para habilitar una prueba local, verificar DB, cuenta, origen, moneda, credenciales y medidas numéricas del artículo. La validación física del embalaje corresponde al uso operativo, no al ingreso de medidas de prueba. Los controles de abuso y vigencia permanecen activos. La configuración vive en el proceso del servidor, nunca en el navegador ni en logs.
 

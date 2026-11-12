@@ -3,7 +3,7 @@ import { loadEnvFile } from 'node:process';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { configureHttp } from './presentation/configure-http';
-import { loadLocalZipnovaCredentials } from './modules/shipping/providers/zipnova/local-credentials';
+import { loadZipnovaEnvironment } from './modules/shipping/providers/zipnova/local-credentials';
 import { loadLocalPaymentCredentials } from './modules/payments/local-credentials';
 import { loadLocalEmailCredentials } from './modules/order-emails/email-config';
 
@@ -14,7 +14,7 @@ async function bootstrap() {
     try { loadEnvFile('.env'); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
   }
-  loadLocalZipnovaCredentials(process.env);
+  loadZipnovaEnvironment(process.env);
   loadLocalPaymentCredentials(process.env);
   loadLocalEmailCredentials(process.env);
   // Database registration reads the environment while this module is evaluated.
