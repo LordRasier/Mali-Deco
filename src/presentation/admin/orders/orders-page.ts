@@ -65,7 +65,7 @@ function detail(order: Detail) {
 export class OrdersPage {
   constructor(private readonly orders: ReadOrders) {}
   async read(query: Record<string, unknown>) {
-    const filterKeys = ['search', 'orderStatus', 'paymentStatus', 'shippingStatus'];
+    const filterKeys = ['search', 'orderStatus', 'paymentStatus', 'shippingStatus', 'paymentMode'];
     if (Object.keys(query).some(key => !['view', 'page', 'id', ...filterKeys].includes(key))) throw new BadRequestException('Invalid orders view');
     const view = query.view ?? 'list', page = query.page ?? '1';
     if (!['list', 'detail'].includes(String(view)) || typeof view !== 'string' || typeof page !== 'string' || !/^[1-9]\d*$/.test(page) || !Number.isSafeInteger(Number(page)) || Number(page) > 1000000) throw new BadRequestException('Invalid orders query');
@@ -74,6 +74,7 @@ export class OrdersPage {
     const model = { layout: false as const, section: 'orders' as const, title: 'Pedidos', message: '', available: true,
       page: Number(page), pages: 1, total: 0, previous: '', next: '', items: [] as ReturnType<typeof summary>[], order: null as ReturnType<typeof detail> | null,
       stats: { awaitingPayment: 0, toPrepare: 0, inTransit: 0 }, search: filters.search ?? '', filterQuery: new URLSearchParams(filters).toString(),
+      paymentModes: [{ value: 'production', label: 'Ventas reales' }, { value: 'test', label: 'Pruebas' }, { value: 'all', label: 'Todos' }].map(m => ({ ...m, selected: m.value === (filters.paymentMode ?? 'production') })),
       orderOptions: choices(orderStates.orderStatus, filters.orderStatus), paymentOptions: choices(orderStates.paymentStatus, filters.paymentStatus), shippingOptions: choices(orderStates.shippingStatus, filters.shippingStatus) };
     if (view === 'detail') {
       if (typeof query.id !== 'string' || !/^[\x21-\x7e]{1,36}$/.test(query.id)) throw new BadRequestException('Invalid order id');

@@ -10,6 +10,7 @@
       <button class="settings-tab" type="button" id="settings-tab-images" role="tab" aria-controls="settings-panel-images" aria-selected="false" tabindex="-1" data-settings-tab="images">Imágenes</button>
       <button class="settings-tab" type="button" id="settings-tab-seo" role="tab" aria-controls="settings-panel-seo" aria-selected="false" tabindex="-1" data-settings-tab="seo">SEO y medición</button>
       <button class="settings-tab" type="button" id="settings-tab-emails" role="tab" aria-controls="settings-panel-emails" aria-selected="false" tabindex="-1" data-settings-tab="emails">Emails</button>
+      <button class="settings-tab" type="button" id="settings-tab-payments" role="tab" aria-controls="settings-panel-payments" aria-selected="false" tabindex="-1" data-settings-tab="payments">Pagos</button>
     </div>
     <div class="settings-feedback">
       <p class="notice" data-settings-message role="status" hidden></p>
@@ -35,6 +36,23 @@
         <div class="settings-actions"><p class="admin-hint">Nombre, color y redes se guardan juntos.</p><button class="primary" type="submit">Guardar cambios</button></div>
       </fieldset>
     </form>
+    <section class="settings-tab-panel" id="settings-panel-payments" role="tabpanel" aria-labelledby="settings-tab-payments" tabindex="0" data-settings-panel="payments" hidden>
+      <div class="settings-section-heading"><h2>Mercado Pago</h2><p>Elegí el entorno para los nuevos pedidos. Los pagos pendientes mantienen su configuración original.</p></div>
+      <form class="admin-form" data-payments-form>
+        <fieldset disabled>
+          <legend class="sr-only">Configuración de pagos</legend>
+          <div class="settings-grid">
+            <label>Entorno<select name="mode"><option value="production">Producción · pagos reales</option><option value="test">Pruebas · solo propietario</option></select></label>
+            <label class="payment-enabled"><input type="checkbox" name="enabled"> Mercado Pago habilitado</label>
+          </div>
+          <p class="notice" data-payments-warning hidden>Modo prueba: el checkout público queda pausado. Solo el propietario puede probar con su sesión iniciada. Los pedidos de prueba no descuentan stock ni permiten despacho.</p>
+          <div class="settings-grid" data-payments-credentials></div>
+          <div class="settings-actions"><button type="button" data-payments-verify>Verificar conexión</button><button class="primary" type="submit">Guardar pagos</button></div>
+        </fieldset>
+        <p data-payments-message role="status">Cargando configuración de pagos…</p>
+        <div class="settings-actions"><button type="button" data-payments-reload>Recargar pagos</button><a href="/checkout" target="_blank" rel="noopener" data-payments-test-link hidden>Abrir checkout de prueba</a></div>
+      </form>
+    </section>
     <section class="settings-tab-panel" id="settings-panel-seo" role="tabpanel" aria-labelledby="settings-tab-seo" tabindex="0" data-settings-panel="seo" hidden>
       <div class="settings-section-heading"><h2>SEO y medición</h2><p>Elegí cómo se presenta tu tienda en buscadores y cómo medir sus visitas.</p></div>
       <form class="admin-form" data-site-form data-revision="{{siteRevision}}" data-available="{{siteAvailable}}">

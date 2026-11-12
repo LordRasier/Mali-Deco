@@ -36,7 +36,7 @@
         <h3 id="summary-title">Resumen</h3>
         <dl class="cart-subtotals" data-cart-totals></dl>
         <dl class="cart-estimate" aria-live="polite"><dt>Envío estimado</dt><dd data-shipping-amount>A calcular</dd><dt class="cart-grand-total">Total estimado</dt><dd class="cart-grand-total" data-shipping-total>A calcular</dd></dl>
-        {{#if checkoutEnabled}}<p class="cart-limitations">Prueba local: no se realizarán cobros ni se generarán envíos.</p>{{else}}<p class="cart-limitations">{{copy.cart.orderNote}}</p>{{/if}}
+        {{#if checkoutEnabled}}<p class="cart-limitations">Revisá los datos de entrega y el total antes de pagar.</p>{{else}}<p class="cart-limitations">{{copy.cart.orderNote}}</p>{{/if}}
         <div class="cart-summary-actions">
           {{#if checkoutEnabled}}<a class="cart-primary" href="/checkout" data-cart-checkout>Continuar al checkout</a>{{/if}}
           <a class="cart-secondary" href="{{routes.catalog}}">Volver al catálogo</a>

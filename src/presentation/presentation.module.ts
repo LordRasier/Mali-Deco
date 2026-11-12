@@ -30,9 +30,12 @@ import { IdentityModule } from '../modules/identity/identity.module';
 import { ContentPreviewController } from './admin/content/content-preview.controller';
 import { ContentSettings } from '../modules/settings/content-settings';
 import { ContentChoicesController } from './admin/content/content-choices.controller';
+import { PaymentsModule } from '../modules/payments/payments.module';
+import { CheckoutAccess } from '../modules/payments/checkout-access';
+import { PaymentSettings } from '../modules/payments/payment-settings';
 
 @Module({
-  imports: [IdentityModule, CatalogModule, AdminPresentationModule, SettingsModule],
+  imports: [IdentityModule, CatalogModule, AdminPresentationModule, SettingsModule, PaymentsModule],
   controllers: [MvcHomeController, MvcCatalogController, MvcProductController, MvcCartController, ShippingReturnsController, InformationController, DiscoveryController, CategoryController, ContentPreviewController, ContentChoicesController],
 })
 export class PresentationModule {
@@ -44,13 +47,13 @@ export class PresentationModule {
     const checkout = localCheckoutPageEnabled(config, mode);
     const paymentAvailable = !!paymentConfig(env);
     const initialInformation = storeInformation(env);
-    return { module: PresentationModule, controllers: checkout ? [MvcCheckoutController] : [], providers: [
+    return { module: PresentationModule, controllers: mode === 'api' ? [MvcCheckoutController] : [], providers: [
       { provide: SEO_ENV, useValue: Object.freeze({ NODE_ENV: env.NODE_ENV, PUBLIC_SITE_URL: env.PUBLIC_SITE_URL }) },
-      ...(checkout ? [{ provide: CheckoutPage, useFactory: (catalog: PublicCatalog) => new CheckoutPage(catalog, mode, config, canonicalRoutes, paymentAvailable), inject: [PublicCatalog] }] : []),
+      ...(mode === 'api' ? [{ provide: CheckoutPage, useFactory: (catalog: PublicCatalog, access: CheckoutAccess) => new CheckoutPage(catalog, mode, config, canonicalRoutes, paymentAvailable, access), inject: [PublicCatalog, CheckoutAccess] }] : []),
       { provide: MVC_CART_MODE, useValue: mode }, { provide: STOREFRONT_ROUTES, useValue: canonicalRoutes },
       { provide: INFORMATION_CHECKOUT_ENABLED, useValue: checkout },
       { provide: STORE_INFORMATION, useFactory: (settings: StoreSettings) => new StoreInformationReader(initialInformation, settings), inject: [StoreSettings] },
-      { provide: CartPage, useFactory: (catalog: PublicCatalog, routes: StorefrontRoutes) => new CartPage(catalog, mode, routes, config), inject: [PublicCatalog, STOREFRONT_ROUTES] },
+      { provide: CartPage, useFactory: (catalog: PublicCatalog, routes: StorefrontRoutes, payments: PaymentSettings) => new CartPage(catalog, mode, routes, config, payments), inject: [PublicCatalog, STOREFRONT_ROUTES, PaymentSettings] },
       { provide: HomePage, useFactory: (catalog: PublicCatalog, routes: StorefrontRoutes, content: ContentSettings, facets: PublicFacets) => new HomePage(catalog, mode, routes, config, content, facets), inject: [PublicCatalog, STOREFRONT_ROUTES, ContentSettings, PublicFacets] },
       { provide: CatalogPage, useFactory: (catalog: PublicCatalog, facets: PublicFacets, routes: StorefrontRoutes, content: ContentSettings) => new CatalogPage(catalog, facets, mode, routes, config, content), inject: [PublicCatalog, PublicFacets, STOREFRONT_ROUTES, ContentSettings] },
       { provide: ProductPage, useFactory: (catalog: PublicCatalog, routes: StorefrontRoutes, resolver: PublicCartResolver) => new ProductPage(catalog, mode, config, routes, resolver), inject: [PublicCatalog, STOREFRONT_ROUTES, PublicCartResolver] },

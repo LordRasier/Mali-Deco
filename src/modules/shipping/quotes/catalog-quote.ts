@@ -1,3 +1,4 @@
+import { publicPaymentOrigin } from '../../payments/payment-registry';
 import { productPrice } from '../../catalog/models/product-price';
 import { BadRequestException, Body, Controller, ForbiddenException, HttpCode, Inject, Post, Req } from '@nestjs/common';
 import type { DataSource } from 'typeorm';
@@ -5,7 +6,7 @@ import type { MoneyConfig } from '../contracts/shipping.types';
 import { ZipnovaQuoteAdapter, type QuoteIntent, type ShippingOptionsResult, type TrustedResolver } from '../providers/zipnova/zipnova-provider';
 import { validateDestination, validateZipnovaConfig, type ZipnovaConfig } from '../providers/zipnova/zipnova';
 import { createZipnovaTransport } from '../providers/zipnova/zipnova-transport';
-import { isLocalQuoteRequest, localOperatorOrigin } from './local-quote-guard';
+import { isShippingQuoteRequest, localOperatorOrigin } from './local-quote-guard';
 import type { IncomingMessage } from 'node:http';
 import { validStock } from '../../catalog/models/inventory';
 import { PostalCodeResolver } from '../postal/postal-code-resolver';
@@ -86,9 +87,9 @@ export class ShippingQuoteService {
 }
 /** Local estimates use validated catalog measurements, not dispatch-readiness confirmation. */
 export function pendingShippingService(db: DataSource | undefined, env: NodeJS.ProcessEnv, fetcher?: typeof fetch): ShippingQuoteService {
-  if (env.NODE_ENV !== 'development' || !env.ZIPNOVA_ENABLED || env.ZIPNOVA_ENABLED === 'false') return new ShippingQuoteService();
+  if ((!publicPaymentOrigin(env) && env.NODE_ENV !== 'development') || !env.ZIPNOVA_ENABLED || env.ZIPNOVA_ENABLED === 'false') return new ShippingQuoteService();
   try {
-    if (env.ZIPNOVA_ENABLED !== 'true' || !localOperatorOrigin(env) || !/^[1-9]\d*$/.test(env.ZIPNOVA_ACCOUNT_ID ?? '') || !/^[1-9]\d*$/.test(env.ZIPNOVA_ORIGIN_ID ?? '') || !/^[0-3]$/.test(env.ZIPNOVA_CURRENCY_EXPONENT ?? '')) throw new Error('Incomplete Zipnova configuration');
+    if (env.ZIPNOVA_ENABLED !== 'true' || (!localOperatorOrigin(env) && !publicPaymentOrigin(env)) || !/^[1-9]\d*$/.test(env.ZIPNOVA_ACCOUNT_ID ?? '') || !/^[1-9]\d*$/.test(env.ZIPNOVA_ORIGIN_ID ?? '') || !/^[0-3]$/.test(env.ZIPNOVA_CURRENCY_EXPONENT ?? '')) throw new Error('Incomplete Zipnova configuration');
     const config: ZipnovaConfig = { accountId: Number(env.ZIPNOVA_ACCOUNT_ID), originId: Number(env.ZIPNOVA_ORIGIN_ID), source: 'storefront', currency: env.ZIPNOVA_CURRENCY ?? '', exponent: Number(env.ZIPNOVA_CURRENCY_EXPONENT) };
     validateZipnovaConfig(config);
     const transport = createZipnovaTransport(env, fetcher);
@@ -103,7 +104,7 @@ export class ShippingQuoteController {
   constructor(@Inject(ShippingQuoteService) private readonly service: ShippingQuoteService, @Inject(PostalCodeResolver) private readonly postal: PostalCodeResolver) {}
   @Post('destination') @HttpCode(200)
   destination(@Body() body: unknown, @Req() request: IncomingMessage) {
-    if (!isLocalQuoteRequest(request, process.env)) throw new ForbiddenException();
+    if (!isShippingQuoteRequest(request, process.env)) throw new ForbiddenException();
     const input = object(body); keys(input, ['postalCode']);
     if (typeof input.postalCode !== 'string') throw new BadRequestException('Código postal inválido');
     if (this.service.unavailableReason()) return Promise.resolve({status:'unavailable' as const});
@@ -111,7 +112,7 @@ export class ShippingQuoteController {
   }
   @Post('quote') @HttpCode(200)
   quote(@Body() body: unknown, @Req() request: IncomingMessage) {
-    if (!isLocalQuoteRequest(request, process.env)) throw new ForbiddenException();
+    if (!isShippingQuoteRequest(request, process.env)) throw new ForbiddenException();
     const input = object(body); keys(input, ['lines','destination']);
     const target = object(input.destination); keys(target, ['postalCode','candidateId']);
     if (typeof target.postalCode !== 'string' || typeof target.candidateId !== 'string') throw new BadRequestException('Destino inválido');

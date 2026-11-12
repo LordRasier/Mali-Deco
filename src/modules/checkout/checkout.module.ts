@@ -9,16 +9,17 @@ import { CheckoutQuoteService, pendingCheckoutQuoteService } from './services/qu
 import { SessionController, SessionService } from './sessions/session';
 import { PaymentService } from '../payments/payment-service';
 import { PaymentController } from '../payments/payment-controller';
-import { MercadoPagoTestProvider, paymentConfig } from '../payments/mercadopago';
+import { PaymentsModule } from '../payments/payments.module';
+import { PaymentRegistry } from '../payments/payment-registry';
 import { PaymentWebhook, PaymentWebhookController } from '../payments/payment-webhook';
 
 @Module({
-  imports: [ShippingModule, OrdersModule],
+  imports: [ShippingModule, OrdersModule, PaymentsModule],
   controllers: [SessionController, CheckoutQuoteController, CheckoutOrderController, PaymentController, PaymentWebhookController],
   providers: [
-    { provide: PaymentWebhook, useFactory: (db?: DataSource) => { const config = paymentConfig(process.env); return new PaymentWebhook(db, config ? new MercadoPagoTestProvider(config) : undefined, process.env.MERCADOPAGO_WEBHOOK_SECRET); }, inject: [{ token: DataSource, optional: true }] },
-    { provide: PaymentService, useFactory: (db?: DataSource) => { const config = paymentConfig(process.env); return new PaymentService(db, config ? new MercadoPagoTestProvider(config) : undefined); }, inject: [{ token: DataSource, optional: true }] },
-    { provide: SessionService, useFactory: (db?: DataSource) => new SessionService(db), inject: [{ token: DataSource, optional: true }] },
+    { provide: PaymentWebhook, useFactory: (registry: PaymentRegistry, db?: DataSource) => new PaymentWebhook(db, registry), inject: [PaymentRegistry, { token: DataSource, optional: true }] },
+    { provide: PaymentService, useFactory: (registry: PaymentRegistry, db?: DataSource) => new PaymentService(db, registry), inject: [PaymentRegistry, { token: DataSource, optional: true }] },
+    { provide: SessionService, useFactory: (db?: DataSource) => new SessionService(db, process.env, Date.now, true), inject: [{ token: DataSource, optional: true }] },
     { provide: CheckoutQuoteService, useFactory: (db: DataSource | undefined, postal: PostalCodeResolver) => pendingCheckoutQuoteService(db, postal, process.env), inject: [{ token: DataSource, optional: true }, PostalCodeResolver] },
   ],
 })

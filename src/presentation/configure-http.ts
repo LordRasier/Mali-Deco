@@ -15,7 +15,7 @@ import { configuredInformation, contentModel } from './information/content-model
 export function configureHttp(app: NestExpressApplication): void {
   // Exact GET exclusions only: excluding admin/* would steal existing API controllers.
   const managedPaths = Object.values(pagePaths);
-  const paths = ['/', 'catalogo', 'categorias/:slug', 'productos/:slug', 'robots.txt', 'sitemap.xml', 'sitemaps/:name', 'carrito', ...new Set([...managedPaths.map(p => p.slice(1)), ...informationPaths]), 'admin', 'admin/sections/:section', 'checkout'];
+  const paths = ['/', 'catalogo', 'categorias/:slug', 'productos/:slug', 'robots.txt', 'sitemap.xml', 'sitemaps/:name', 'carrito', ...new Set([...managedPaths.map(p => p.slice(1)), ...informationPaths]), 'admin', 'admin/sections/:section', 'checkout', 'checkout/return'];
   app.setGlobalPrefix('api/v1', { exclude: paths.map(path => ({ path, method: RequestMethod.GET })) });
   const information = app.get<StoreInformationReader>(STORE_INFORMATION);
   const content = app.get(ContentSettings);
@@ -23,6 +23,7 @@ export function configureHttp(app: NestExpressApplication): void {
   app.use(async (request: { method: string; path: string }, response: { locals: Record<string, unknown>; status(code: number): { send(body: string): void }; setHeader(name: string, value: string): void; redirect(code: number, path: string): void }, next: (error?: unknown) => void) => {
     try {
       const path = decodeURIComponent(request.path).toLowerCase().replace(/\/$/, '') || '/';
+      if (/^\/api\/v1\/(checkout|payments|admin\/settings\/payments)(\/|$)/.test(path)) response.setHeader('Cache-Control', 'private, no-store');
       const publicPage = ['GET', 'HEAD'].includes(request.method) && (publicPages.has(path) || /^\/(productos|categorias)\/[^/]+$/.test(path));
       const commerce = /^\/api\/v1\/(catalog\/(products|categories|facets|cart)(\/|$)|checkout(\/|$)|shipping(\/|$))/.test(path);
       if (publicPage || commerce) {

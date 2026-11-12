@@ -1,4 +1,13 @@
+import { publicPaymentOrigin } from '../../payments/payment-registry';
 type LocalRequest = { method?: string; headers: Record<string, string | string[] | undefined>; socket: { remoteAddress?: string } };
+
+export function isShippingQuoteRequest(request: LocalRequest, env: NodeJS.ProcessEnv): boolean {
+  if (isLocalQuoteRequest(request, env)) return true;
+  const origin = publicPaymentOrigin(env);
+  return env.NODE_ENV === 'production' && !!origin && request.method === 'POST' && request.headers.origin === origin && request.headers.host === new URL(origin).host &&
+    typeof request.headers['content-type'] === 'string' && /^application\/json\s*(?:;|$)/i.test(request.headers['content-type']) &&
+    (request.headers['sec-fetch-site'] === undefined || request.headers['sec-fetch-site'] === 'same-origin');
+}
 
 export function localOperatorOrigin(env: NodeJS.ProcessEnv): string | null {
   if (env.NODE_ENV !== 'development' || !env.ZIPNOVA_OPERATOR_ORIGIN) return null;

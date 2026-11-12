@@ -5,7 +5,7 @@ import type { DataSource } from 'typeorm';
 import { PaymentWebhook, verifyWebhook } from './payment-webhook';
 import { MercadoPagoTestProvider } from './mercadopago';
 
-const secret = 'synthetic-webhook-secret', requestId = 'request-1', ts = '1794048000';
+const secret = 'synthetic-webhook-secret', requestId = 'request-1', ts = String(Math.floor(Date.now() / 1000));
 const sign = (id = '456') => `ts=${ts},v1=${createHmac('sha256', secret).update(`id:${id};request-id:${requestId};ts:${ts};`).digest('hex')}`;
 const id = 'ca665af8-41b6-4ba4-bb75-54cf9c0f142e';
 test('webhook authenticates the query ID and rejects altered, missing or duplicated signatures', () => {

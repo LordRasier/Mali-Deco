@@ -6,6 +6,7 @@ import type { QuoteSnapshot, QuoteLine } from '../../checkout/services/quote';
 import { stockUnavailable, validStock } from '../../catalog/models/inventory';
 import { statusColumns, statuses } from './order-state';
 import { listOrders, orderDetail } from './orders-query';
+import type { PaymentContext } from '../../payments/payment-registry';
 
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const keyValid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
@@ -46,7 +47,7 @@ export class OrdersService {
       throw new ServiceUnavailableException('Orders database unavailable');
     }
   }
-  async create(sessionId: string, idempotencyKey: string, value: unknown) {
+  async create(sessionId: string, idempotencyKey: string, value: unknown, payment?: PaymentContext) {
     if (!id(sessionId) || !keyValid(idempotencyKey)) throw new BadRequestException('Invalid idempotency key');
     const body = parseOrder(value); const bodyHash = hash(JSON.stringify(body)); const keyHash = hash(idempotencyKey);
     return this.safe(() => this.database().transaction(async (tx: EntityManager) => {
@@ -57,6 +58,11 @@ export class OrdersService {
         if (previous[0].bodyHash !== bodyHash) throw new ConflictException({ code: 'KEY_USED', message: 'Idempotency key already used' });
         return { ...JSON.parse(previous[0].snapshot).result, ...statuses(previous[0]) };
       }
+      if (payment) {
+        // Lock the same configuration row as the admin writer. No mixed-mode order may commit.
+        const [settings] = await tx.query('SELECT enabled, mode, revision FROM store_payment_settings WHERE id = 1 LOCK IN SHARE MODE');
+        if (!settings || !Number(settings.enabled) || settings.mode !== payment.mode || Number(settings.revision) !== payment.revision) return conflict();
+      }
       const used = await tx.query('SELECT id FROM checkout_orders WHERE idempotency_key_hash = ?', [keyHash]);
       if (used.length) throw new ConflictException({ code: 'KEY_USED', message: 'Idempotency key already used' });
       const quoteUsed = await tx.query('SELECT id FROM checkout_orders WHERE quote_id = ?', [body.quoteId]);
@@ -64,6 +70,7 @@ export class OrdersService {
       const quotes = await tx.query('SELECT snapshot FROM checkout_quotes WHERE id = ? AND session_id = ? AND expires_at > UTC_TIMESTAMP(6) FOR UPDATE', [body.quoteId, sessionId]);
       if (quotes.length !== 1) return conflict();
       let q: QuoteSnapshot; try { q = JSON.parse(quotes[0].snapshot); } catch { return conflict(); }
+      if (payment && (!q.payment || q.payment.mode !== payment.mode || q.payment.sellerId !== payment.sellerId || q.payment.revision !== payment.revision)) return conflict();
       if (!q || !q.destination || !Array.isArray(q.lines) || !q.lines.length || q.lines.length > 100 || !Array.isArray(q.options) || !q.options.length || !Number.isSafeInteger(q.validUntil) || q.validUntil <= Date.now()) return conflict();
       const options = q.options.filter((o) => o && o.id === body.optionId);
       if (options.length !== 1) return conflict();
@@ -101,19 +108,22 @@ export class OrdersService {
         if (line.supplyMode === 'stock') {
           if (!validStock(row.stockQuantity)) return conflict();
           if (row.stockQuantity < line.quantity) stockUnavailable();
+          if (payment?.mode !== 'test') {
           const result = await tx.query(`UPDATE product_variants SET stock_quantity = stock_quantity - ?
             WHERE id = ? AND product_id = ? AND supply_mode = 'stock' AND archived_at IS NULL AND stock_quantity >= ?`, [line.quantity, line.variantId, line.productId, line.quantity]);
           if (result.affectedRows !== 1) stockUnavailable();
+          }
         }
         const unit = money(line.priceMinor); const lineTotal = unit * BigInt(line.quantity); total += lineTotal;
         if (total > BigInt(Number.MAX_SAFE_INTEGER)) return conflict();
         lines.push({ name: line.name, variantName: line.variantName, quantity: line.quantity, unitPriceMinor: unit.toString(), lineTotalMinor: lineTotal.toString(), currency: line.currency });
       }
       const orderId = randomUUID(); const createdAt = new Date().toISOString();
-      const result = { id: orderId, createdAt, orderStatus: 'received', paymentStatus: 'not_started', fulfillmentStatus: 'not_started', shippingStatus: 'not_started', testLocal: true, currency: option.currency, totalMinor: total.toString(), contact: body.contact,
+      if (payment && (total <= 0n || total > 999999999n)) throw new BadRequestException('El total excede el límite admitido por el pago.');
+      const result = { id: orderId, createdAt, orderStatus: 'received', paymentStatus: 'not_started', fulfillmentStatus: 'not_started', shippingStatus: 'not_started', testLocal: payment?.mode !== 'production', paymentMode: payment?.mode ?? 'test', currency: option.currency, totalMinor: total.toString(), contact: body.contact,
         destination: { country: q.destination.country, postalCode: q.destination.postalCode, city: q.destination.city, state: q.destination.state, ...body.address },
         shipping: { carrierName: option.carrierName, serviceName: option.serviceName, amountMinor: money(option.amountMinor).toString(), currency: option.currency, pickupPoint }, lines };
-      await tx.query('INSERT INTO checkout_orders (id, session_id, quote_id, idempotency_key_hash, body_hash, created_at, currency, total_minor, snapshot) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [orderId, sessionId, body.quoteId, keyHash, bodyHash, new Date(createdAt), option.currency, total.toString(), JSON.stringify({ result, quote: q, selection: { optionId: body.optionId, pickupPointId: body.pickupPointId } })]);
+      await tx.query('INSERT INTO checkout_orders (id, session_id, quote_id, idempotency_key_hash, body_hash, created_at, currency, total_minor, snapshot, payment_mode, payment_seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [orderId, sessionId, body.quoteId, keyHash, bodyHash, new Date(createdAt), option.currency, total.toString(), JSON.stringify({ result, quote: q, selection: { optionId: body.optionId, pickupPointId: body.pickupPointId } }), payment?.mode ?? 'test', payment?.sellerId ?? null]);
       return result;
     }));
   }

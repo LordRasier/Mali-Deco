@@ -64,7 +64,8 @@ export class EmailWorker implements OnModuleInit, OnModuleDestroy {
       if (!validEmail(recipient) || /@(?:.*\.)?(?:example\.(?:com|org|net|test|invalid)|[^@]+\.(?:test|invalid|localhost))$/i.test(recipient)) {
         await this.finish(row.id, 'failed', 'invalid_recipient'); return;
       }
-      const [current] = await db.query('SELECT payment_status AS paymentStatus, order_status AS orderStatus FROM checkout_orders WHERE id = ?', [row.orderId]);
+      const [current] = await db.query('SELECT payment_status AS paymentStatus, order_status AS orderStatus, payment_mode AS paymentMode FROM checkout_orders WHERE id = ?', [row.orderId]);
+      if (this.config.mode === 'live' && current?.paymentMode === 'test') { await this.finish(row.id, 'skipped', 'test_order_in_live'); return; }
       if (!current || current.paymentStatus !== 'approved' || current.orderStatus === 'cancelled') { await this.finish(row.id, 'skipped', 'order_no_longer_eligible'); return; }
       message = await this.build(db, this.config, row.id, row.stage, order, recipient);
       await db.query(`UPDATE order_email_outbox SET recipient = ? WHERE id = ? AND status = 'sending'`, [recipient, row.id]);

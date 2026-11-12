@@ -2,7 +2,7 @@ import { isIP } from 'node:net';
 
 export type PaymentOrder = { id: string; currency: string; totalMinor: string };
 export type ReconciledPayment = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'partially_refunded' | 'in_mediation' | 'refunded' | 'charged_back';
-export type PaymentConfig = { token: string; sellerId: string; returnUrl: string; notificationUrl?: string };
+export type PaymentConfig = { token: string; sellerId: string; returnUrl: string; notificationUrl?: string; mode?: 'test' | 'production' };
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const identity = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v > 0 ? String(v) : typeof v === 'string' && /^[1-9]\d{0,15}$/.test(v) ? v : '';
 
@@ -30,7 +30,7 @@ export function checkoutUrl(value: unknown, preferenceId: string): string {
   return url.href;
 }
 
-/** Test sellers only. No POST retry: a lost response is an uncertain external effect. */
+/** Each instance belongs to one seller and environment. No retry of an uncertain POST. */
 export class MercadoPagoTestProvider {
   private verified = false;
   private verification: Promise<void> | undefined;
@@ -45,21 +45,23 @@ export class MercadoPagoTestProvider {
     if (!this.verification) this.verification = this.checkSeller().catch(error => { this.verification = undefined; throw error; });
     return this.verification;
   }
+  /** Explicit diagnostics always perform a fresh authenticated read. */
+  verifyConnection(): Promise<void> { return this.checkSeller(); }
   private async checkSeller(): Promise<void> {
     // Official credentials guide uses this authenticated identity endpoint; never infer test mode from token prefixes.
     const seller = await this.json('https://api.mercadolibre.com/users/me');
-    if (!record(seller) || identity(seller.id) !== this.config.sellerId || seller.site_id !== 'MLA' || !Array.isArray(seller.tags) || !seller.tags.includes('test_user')) throw Error('Test seller verification failed');
+    if (!record(seller) || identity(seller.id) !== this.config.sellerId || seller.site_id !== 'MLA' || !Array.isArray(seller.tags) || seller.tags.includes('test_user') !== (this.config.mode !== 'production')) throw Error('Seller environment verification failed');
     this.verified = true;
   }
   private amount(order: PaymentOrder): number {
-    // Deliberately bounded test amount; exact integer minor units remain authoritative.
-    if (!this.verified || order.currency !== 'ARS' || !/^[1-9]\d{0,8}$/.test(order.totalMinor)) throw Error('Invalid test payment');
+    // Bounded to retain exact cents when serialized to the provider's decimal number.
+    if (!this.verified || order.currency !== 'ARS' || !/^[1-9]\d{0,8}$/.test(order.totalMinor)) throw Error('Invalid payment amount');
     return Number(order.totalMinor) / 100;
   }
   async start(order: PaymentOrder): Promise<{ preferenceId: string; url: string }> {
     const amount = this.amount(order);
     const value = await this.json('https://api.mercadopago.com/checkout/preferences', {
-      items: [{ id: order.id, title: 'Test order', quantity: 1, currency_id: 'ARS', unit_price: amount }],
+      items: [{ id: order.id, title: this.config.mode === 'production' ? 'Pedido de la tienda' : 'Pedido de prueba', quantity: 1, currency_id: 'ARS', unit_price: amount }],
       external_reference: order.id,
       ...(this.config.notificationUrl ? { notification_url: this.config.notificationUrl } : {}),
       back_urls: { success: this.config.returnUrl, pending: this.config.returnUrl, failure: this.config.returnUrl },
@@ -72,7 +74,7 @@ export class MercadoPagoTestProvider {
     const value = await this.json(`https://api.mercadopago.com/v1/payments/${paymentId}`);
     // Checkout Pro test sellers can return live_mode=true. The test boundary is
     // the authenticated test_user identity and matching collector, not this flag.
-    if (!record(value) || identity(value.id) !== paymentId || typeof value.live_mode !== 'boolean' || identity(value.collector_id) !== this.sellerId || typeof value.external_reference !== 'string' || !/^[a-f0-9-]{36}$/.test(value.external_reference)) throw Error('Untrusted payment notification');
+    if (!record(value) || identity(value.id) !== paymentId || typeof value.live_mode !== 'boolean' || (this.config.mode === 'production' && !value.live_mode) || identity(value.collector_id) !== this.sellerId || typeof value.external_reference !== 'string' || !/^[a-f0-9-]{36}$/.test(value.external_reference)) throw Error('Untrusted payment notification');
     return value.external_reference;
   }
   async reconcile(order: PaymentOrder): Promise<ReconciledPayment | null> {
@@ -81,7 +83,7 @@ export class MercadoPagoTestProvider {
     if (!record(value) || !Array.isArray(value.results) || !record(value.paging) || value.paging.total !== value.results.length || value.results.length > 100) throw Error('Incomplete payment search');
     const statuses: ReconciledPayment[] = [];
     for (const payment of value.results) {
-      if (!record(payment) || !identity(payment.id) || typeof payment.live_mode !== 'boolean' || identity(payment.collector_id) !== this.config.sellerId || payment.external_reference !== order.id || payment.currency_id !== order.currency) throw Error('Untrusted payment');
+      if (!record(payment) || !identity(payment.id) || typeof payment.live_mode !== 'boolean' || (this.config.mode === 'production' && !payment.live_mode) || identity(payment.collector_id) !== this.config.sellerId || payment.external_reference !== order.id || payment.currency_id !== order.currency) throw Error('Untrusted payment');
       const decimal = String(payment.transaction_amount);
       if (!/^\d+(\.\d{1,2})?$/.test(decimal)) throw Error('Invalid payment amount');
       const [whole, fraction = ''] = decimal.split('.');

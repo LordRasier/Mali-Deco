@@ -10,10 +10,11 @@ import { localOperatorOrigin } from '../../shipping/quotes/local-quote-guard';
 import type { CheckoutSession } from '../sessions/session';
 import { stockUnavailable, validStock } from '../../catalog/models/inventory';
 import { productPrice } from '../../catalog/models/product-price';
+import { publicPaymentOrigin, type PaymentContext } from '../../payments/payment-registry';
 
 export type QuoteLine = { productId: string; variantId: string; name: string; variantName: string; quantity: number; priceMinor: string; currency: string; supplyMode: 'stock' | 'made_to_order'; stockQuantity?: number; weightGrams: number; widthMm: number; heightMm: number; lengthMm: number };
 export type QuoteInputSnapshot = { destination: Destination; lines: QuoteLine[] };
-export type QuoteSnapshot = QuoteInputSnapshot & { options: (DeliveryOption & { id: string })[]; quotedAt: number; validUntil: number; packageCount: number };
+export type QuoteSnapshot = QuoteInputSnapshot & { options: (DeliveryOption & { id: string })[]; quotedAt: number; validUntil: number; packageCount: number; payment?: PaymentContext };
 /** Receives the only catalog snapshot read for this quote; must never re-resolve IDs. */
 export type QuoteProvider = (snapshot: QuoteInputSnapshot) => Promise<ShippingOptionsResult>;
 const unavailable = () => new ServiceUnavailableException('Checkout quote unavailable');
@@ -22,15 +23,15 @@ const minor = (value: unknown): value is string => typeof value === 'string' && 
 const label = (value: unknown, max = 150): value is string => typeof value === 'string' && !!value.trim() && value.length <= max && ![...value].some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127);
 export class CheckoutQuoteService {
   constructor(private readonly db: DataSource | undefined, private readonly postal: Pick<PostalCodeResolver, 'resolve'>, private readonly provider?: QuoteProvider, private readonly env: NodeJS.ProcessEnv = process.env, private readonly now = Date.now) {}
-  async quote(session: CheckoutSession, body: unknown) {
-    try { return await this.createQuote(session, body); }
+  async quote(session: CheckoutSession, body: unknown, payment?: PaymentContext) {
+    try { return await this.createQuote(session, body, payment); }
     catch (error) {
       if (error instanceof HttpException) throw error;
       throw unavailable();
     }
   }
-  private async createQuote(session: CheckoutSession, body: unknown) {
-    if (this.env.NODE_ENV !== 'development' || this.env.LOCAL_TEST_CHECKOUT_ENABLED !== 'true' || !this.provider || !this.db?.isInitialized) throw unavailable();
+  private async createQuote(session: CheckoutSession, body: unknown, payment?: PaymentContext) {
+    if ((!payment && (this.env.NODE_ENV !== 'development' || this.env.LOCAL_TEST_CHECKOUT_ENABLED !== 'true')) || !this.provider || !this.db?.isInitialized) throw unavailable();
     if (session.expiresAt <= this.now()) throw new ForbiddenException();
     if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).sort().join(',') !== 'destination,lines') throw new BadRequestException();
     const input = body as { lines: unknown; destination: unknown }, target = input.destination;
@@ -81,7 +82,7 @@ export class CheckoutQuoteService {
       return { id: randomUUID(), carrierId, carrierName, serviceCode, serviceName, logisticType, amountMinor, currency,
         ...(pickupPoints ? { pickupPoints: pickupPoints.map(({ id, description }) => ({ id, description })) } : {}) };
     });
-    const quoteId = randomUUID(), snapshot: QuoteSnapshot = { ...captured, options, quotedAt, validUntil, packageCount: result.packageCount! };
+    const quoteId = randomUUID(), snapshot: QuoteSnapshot = { ...captured, options, quotedAt, validUntil, packageCount: result.packageCount!, ...(payment ? { payment } : {}) };
     await this.db.query('INSERT INTO checkout_quotes (id, session_id, snapshot, expires_at, created_at) VALUES (?, ?, ?, ?, ?)', [quoteId, session.id, JSON.stringify(snapshot), new Date(validUntil), new Date(quotedAt)]);
     return { quoteId, validUntil, options: options.map(({ id, carrierName, serviceName, serviceCode, amountMinor, currency, pickupPoints }) => ({ id, carrierName, serviceName, serviceCode, amountMinor, currency, ...(pickupPoints ? { pickupPoints } : {}) })) };
   }
@@ -91,7 +92,8 @@ export function pendingCheckoutQuoteService(db: DataSource | undefined, postal: 
   const disabled = () => new CheckoutQuoteService(db, postal, undefined, env);
   // This opt-in only records local test orders. Numeric catalog validation below is
   // not a declaration that packaging is ready for dispatch; no shipment is created.
-  if (env.NODE_ENV !== 'development' || env.LOCAL_TEST_CHECKOUT_ENABLED !== 'true' || env.ZIPNOVA_ENABLED !== 'true' || !localOperatorOrigin(env)) return disabled();
+  const local = env.NODE_ENV === 'development' && env.LOCAL_TEST_CHECKOUT_ENABLED === 'true' && localOperatorOrigin(env);
+  if ((!publicPaymentOrigin(env) && !local) || env.ZIPNOVA_ENABLED !== 'true') return disabled();
   try {
     if (!/^[1-9]\d*$/.test(env.ZIPNOVA_ACCOUNT_ID ?? '') || !/^[1-9]\d*$/.test(env.ZIPNOVA_ORIGIN_ID ?? '') || !/^[0-3]$/.test(env.ZIPNOVA_CURRENCY_EXPONENT ?? '')) return disabled();
     const config: ZipnovaConfig = { accountId: Number(env.ZIPNOVA_ACCOUNT_ID), originId: Number(env.ZIPNOVA_ORIGIN_ID), currency: env.ZIPNOVA_CURRENCY ?? '', exponent: Number(env.ZIPNOVA_CURRENCY_EXPONENT), source: 'storefront' };

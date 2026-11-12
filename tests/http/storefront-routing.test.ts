@@ -38,7 +38,8 @@ test('canonical public controllers keep fixed local links and API boundaries wit
     assert.equal((await fetch(origin + '/catalogo?_rsc=invalid')).status, 400);
     assert.equal((await fetch(origin + '/productos/missing')).status, 404);
     assert.equal((await fetch(origin + '/carrito?layout=missing')).status, 400);
-    for (const path of ['/api/v1/catalogo', '/api/v1/carrito', '/api/v1/productos/florero-ondas', '/checkout']) assert.equal((await fetch(origin + path)).status, 404, path);
+    for (const path of ['/api/v1/catalogo', '/api/v1/carrito', '/api/v1/productos/florero-ondas']) assert.equal((await fetch(origin + path)).status, 404, path);
+    const checkout = await fetch(origin + '/checkout'); assert.equal(checkout.status, 200); assert.match(await checkout.text(), /data-new-orders-enabled="false"/);
     assert.equal((await fetch(origin + '/admin')).status, 200);
     assert.equal((await fetch(origin + '/api/v1/health')).status, 200);
     for (const path of ['/api/v1/admin/orders', '/api/v1/admin/settings']) assert.equal((await fetch(origin + path)).status, 401);

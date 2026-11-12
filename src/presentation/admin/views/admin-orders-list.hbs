@@ -10,6 +10,7 @@
   <section class="card card-admin order-list-card" aria-label="Listado de pedidos">
     <header class="card-header"><h2 class="card-title">Listado de pedidos</h2><span class="muted">{{total}} resultados</span></header>
     <form class="orders-filters" data-orders-filters>
+      <label>Entorno<select class="form-control" name="paymentMode">{{#each paymentModes}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
       <label class="order-search">Buscar pedido<input class="form-control" name="search" type="search" maxlength="120" value="{{search}}" placeholder="N.º, cliente, email o teléfono"></label>
       <label>Pedido<select class="form-control" name="orderStatus"><option value="">Todos los estados</option>{{#each orderOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
       <label>Pago<select class="form-control" name="paymentStatus"><option value="">Todos los pagos</option>{{#each paymentOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>

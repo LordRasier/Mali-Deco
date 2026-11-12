@@ -2,6 +2,7 @@ import { BadRequestException, Body, ConflictException, Controller, ForbiddenExce
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { DataSource } from 'typeorm';
 import { isLocalQuoteRequest, localOperatorOrigin } from '../../shipping/quotes/local-quote-guard';
+import { publicPaymentOrigin } from '../../payments/payment-registry';
 
 export type CheckoutRequest = { method?: string; headers: Record<string, string | string[] | undefined>; socket: { remoteAddress?: string } };
 export type CheckoutSession = { id: string; expiresAt: number };
@@ -31,12 +32,20 @@ function tokenFrom(req: CheckoutRequest): string | undefined {
   return matches[0].slice('store_checkout='.length);
 }
 
-/** Local test capability, not production authentication. start reuses a valid cookie;
- * requireMutation validates local origin/host/proxy, session expiry and x-csrf-token,
+/** start reuses a valid cookie; public mode uses canonical origin/host and Secure cookies.
+ * requireMutation validates request origin, session expiry and x-csrf-token,
  * returning the durable session id for quote/order ownership. Neither method rotates
  * an existing cookie or silently replaces an invalid/expired session. */
 export class SessionService {
-  constructor(private readonly db?: DataSource, private readonly env: NodeJS.ProcessEnv = process.env, private readonly now = Date.now) {}
+  constructor(private readonly db?: DataSource, private readonly env: NodeJS.ProcessEnv = process.env, private readonly now = Date.now, private readonly publicCheckout = false) {}
+  get secureCookie() { return this.env.NODE_ENV === 'production'; }
+  private assertRequest(req: CheckoutRequest) {
+    if (!this.publicCheckout) return assertLocalCheckoutRequest(req, this.env);
+    const origin = this.env.NODE_ENV === 'production' ? publicPaymentOrigin(this.env) : this.env.ADMIN_ORIGIN;
+    let canonical: URL;
+    try { canonical = new URL(origin!); } catch { throw new ForbiddenException(); }
+    if (!origin || canonical.origin !== origin || (this.env.NODE_ENV !== 'production' && !['127.0.0.1', 'localhost', '[::1]'].includes(canonical.hostname)) || req.method !== 'POST' || req.headers.origin !== origin || req.headers.host !== canonical.host || typeof req.headers['content-type'] !== 'string' || !/^application\/json(?:\s*;|$)/i.test(req.headers['content-type']) || (req.headers['sec-fetch-site'] !== undefined && req.headers['sec-fetch-site'] !== 'same-origin')) throw new ForbiddenException();
+  }
   private database(): DataSource {
     if (!this.db?.isInitialized) throw new ServiceUnavailableException('Checkout unavailable');
     return this.db;
@@ -53,7 +62,7 @@ export class SessionService {
     return { id: row.id, expiresAt };
   }
   async start(req: CheckoutRequest): Promise<CheckoutSession & { token: string; csrf: string }> {
-    assertLocalCheckoutRequest(req, this.env);
+    this.assertRequest(req);
     let existing: string | undefined;
     try { existing = tokenFrom(req); }
     catch (error) {
@@ -73,14 +82,14 @@ export class SessionService {
     return { id, token, csrf: csrf(token), expiresAt };
   }
   async requireMutation(req: CheckoutRequest): Promise<CheckoutSession> {
-    assertLocalCheckoutRequest(req, this.env);
+    this.assertRequest(req);
     const token = tokenFrom(req), supplied = req.headers['x-csrf-token'];
     if (!token || typeof supplied !== 'string' || !/^[a-f0-9]{64}$/.test(supplied) || !timingSafeEqual(Buffer.from(supplied), Buffer.from(csrf(token)))) throw new ForbiddenException();
     return this.find(token);
   }
   /** Recover CSRF for an existing capability only; never creates or rotates a session. */
   async resume(req: CheckoutRequest): Promise<{ csrf: string }> {
-    assertLocalCheckoutRequest(req, this.env);
+    this.assertRequest(req);
     const token = tokenFrom(req);
     if (!token) throw new ForbiddenException();
     await this.find(token);
@@ -88,7 +97,7 @@ export class SessionService {
   }
   /** Only discard an invalid capability; never rotate a valid one or create an order. */
   async reset(req: CheckoutRequest): Promise<void> {
-    assertLocalCheckoutRequest(req, this.env);
+    this.assertRequest(req);
     let token: string | undefined;
     try { token = tokenFrom(req); }
     catch (error) { if (error instanceof InvalidCheckoutCookie) return; throw error; }
@@ -105,7 +114,7 @@ export class SessionController {
   async reset(@Body() body: unknown, @Req() req: CheckoutRequest, @Res({ passthrough: true }) res: { clearCookie(name: string, options: object): void }) {
     if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) throw new BadRequestException('Invalid session request');
     await this.sessions.reset(req);
-    res.clearCookie('store_checkout', { httpOnly: true, sameSite: 'strict', secure: false, path: '/api/v1/checkout' });
+    res.clearCookie('store_checkout', { httpOnly: true, sameSite: 'strict', secure: !!this.sessions.secureCookie, path: '/api/v1/checkout' });
     return {};
   }
   @Post('session/resume') @HttpCode(200)
@@ -117,7 +126,7 @@ export class SessionController {
   async start(@Body() body: unknown, @Req() req: CheckoutRequest, @Res({ passthrough: true }) res: { cookie(name: string, value: string, options: object): void }) {
     if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) throw new BadRequestException('Invalid session request');
     const session = await this.sessions.start(req);
-    res.cookie('store_checkout', session.token, { httpOnly: true, sameSite: 'strict', secure: false, path: '/api/v1/checkout', expires: new Date(session.expiresAt) });
+    res.cookie('store_checkout', session.token, { httpOnly: true, sameSite: 'strict', secure: !!this.sessions.secureCookie, path: '/api/v1/checkout', expires: new Date(session.expiresAt) });
     return { csrf: session.csrf };
   }
 }

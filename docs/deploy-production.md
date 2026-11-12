@@ -1,5 +1,28 @@
 # Actualizar la tienda existente
 
+## Entornos de Mercado Pago
+
+Esta entrega parte de `0018072` y requiere `PaymentEnvironments1793362600000` antes de reiniciar. Leer [configuración y validación de pagos](payment-environments.md), completar `MERCADOPAGO_ENV_FILE=.env.mercadopago` y conservar los secretos privados del servidor.
+
+Con la versión publicada en `main` y las credenciales de mantenimiento disponibles:
+
+```sh
+git pull --ff-only origin main
+npm ci --include=dev
+npm run build
+NODE_ENV=production npm run migration:payments
+# Restaurar las credenciales habituales de la aplicación antes del reinicio.
+pm2 restart mali-deco --update-env
+```
+
+Conservar el nombre real del proceso PM2 y su carga de `.env`. Detener la secuencia si falla cualquier paso. No utilizar `:local-root` en producción. Si faltan migraciones anteriores, aplicarlas también antes del reinicio; el comando de pagos no las ejecuta.
+
+La migración deja los nuevos pagos **deshabilitados**. En **Configuración → Pagos**, el propietario debe verificar la conexión, elegir el entorno y habilitar los pagos. Registrar únicamente el evento **Pagos** en las URLs de producción y prueba que muestra el panel, con la firma de la aplicación correspondiente. Verificar la recepción efectiva de notificaciones antes de dar por terminado el despliegue.
+
+## Entrega anterior: promociones
+
+Las instrucciones que siguen se conservan para instalaciones que todavía no aplicaron la migración de promociones.
+
 Para esta entrega, ejecutar `npm run migration:promotions` con una cuenta autorizada para migraciones **antes de iniciar o reiniciar la aplicación actualizada**. Ejecutar los pasos cuando la versión a desplegar ya esté publicada en `main`.
 
 ## Cambios desde el último push

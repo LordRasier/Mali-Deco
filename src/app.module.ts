@@ -13,7 +13,6 @@ import { OrderEmailsModule } from './modules/order-emails/order-emails.module';
 import { MediaModule } from './modules/media/media.module';
 import { PresentationModule } from './presentation/presentation.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
-import { localCheckoutEnabled } from './presentation/shared/checkout/checkout-config';
 
 if (!process.env.DB_HOST && process.env.NODE_ENV === 'production') {
   throw new Error('DB_HOST is required in production');
@@ -31,7 +30,7 @@ if (!process.env.DB_HOST && process.env.NODE_ENV === 'production') {
 })
 export class AppModule {}
 
-/** Test checkout is an explicit development capability, never a production payment flow. */
+/** Routes stay mounted for late notifications; persisted settings gate new orders. */
 export function applicationModule(env: NodeJS.ProcessEnv): DynamicModule {
-  return { module: AppModule, imports: [PresentationModule.configure(env), ...(localCheckoutEnabled(env) ? [CheckoutModule] : [])] };
+  return { module: AppModule, imports: [PresentationModule.configure(env), CheckoutModule] };
 }

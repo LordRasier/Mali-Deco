@@ -8,6 +8,7 @@ import { configureHttp } from '../../src/presentation/configure-http';
 import { SessionService } from '../../src/modules/checkout/sessions/session';
 import { CheckoutQuoteService } from '../../src/modules/checkout/services/quote';
 import { CheckoutModule } from '../../src/modules/checkout/checkout.module';
+import { CheckoutAccess } from '../../src/modules/payments/checkout-access';
 
 test('MVC HTTP composition preserves checkout cookie scope, JSON/CSRF and proxy-header restrictions', async () => {
   const original = { ...process.env };
@@ -27,6 +28,7 @@ test('MVC HTTP composition preserves checkout cookie scope, JSON/CSRF and proxy-
     const { applicationModule } = await import('../../src/app.module');
     const module = await Test.createTestingModule({ imports: [applicationModule(env), CheckoutModule] })
       .overrideProvider(SessionService).useValue(new SessionService(db, env))
+      .overrideProvider(CheckoutAccess).useValue({ current: async () => ({ mode: 'test', sellerId: '456', revision: 0 }) })
       .overrideProvider(CheckoutQuoteService).useValue({ quote: () => { quotes++; return { quoteId: 'synthetic-only' }; } }).compile();
     app = module.createNestApplication<NestExpressApplication>({ logger: false });
     configureHttp(app);

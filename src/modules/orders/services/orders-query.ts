@@ -5,7 +5,7 @@ import { readEmailDeliveries } from '../../order-emails/email-outbox';
 import { publicEmailConfig } from '../../order-emails/email-config';
 
 export function orderFilters(query: Record<string, unknown>) {
-  if (!query || Object.keys(query).some(k => !['page', 'limit', 'search', 'orderStatus', 'paymentStatus', 'shippingStatus'].includes(k))) throw new BadRequestException('Invalid filters');
+  if (!query || Object.keys(query).some(k => !['page', 'limit', 'search', 'orderStatus', 'paymentStatus', 'shippingStatus', 'paymentMode'].includes(k))) throw new BadRequestException('Invalid filters');
   const number = (v: unknown, fallback: number, max: number) => {
     if (v === undefined) return fallback;
     if (typeof v !== 'string' || !/^[1-9]\d*$/.test(v) || !Number.isSafeInteger(Number(v)) || Number(v) > max) throw new BadRequestException('Invalid pagination');
@@ -13,6 +13,10 @@ export function orderFilters(query: Record<string, unknown>) {
   };
   const page = number(query.page, 1, 1000000), limit = number(query.limit, 20, 100);
   const clauses: string[] = [], params: string[] = [];
+  const mode = query.paymentMode ?? 'production';
+  if (!['production', 'test', 'all'].includes(String(mode)) || typeof mode !== 'string') throw new BadRequestException('Invalid payment mode filter');
+  // Snapshot projection also works before the additive payment migration is deployed.
+  if (mode !== 'all') clauses.push(mode === 'test' ? "JSON_UNQUOTE(JSON_EXTRACT(snapshot, '$.result.testLocal')) = 'true'" : "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(snapshot, '$.result.testLocal')), 'false') <> 'true'");
   const columns = { orderStatus: 'order_status', paymentStatus: 'payment_status', shippingStatus: 'shipping_status' };
   for (const key of Object.keys(columns) as (keyof typeof columns)[]) {
     if (query[key] === undefined || query[key] === '') continue;
@@ -29,9 +33,9 @@ export function orderFilters(query: Record<string, unknown>) {
 export async function listOrders(db: DataSource, query: Record<string, unknown>) {
   const { page, limit, where, params } = orderFilters(query);
   const [counts] = await db.query(`SELECT COUNT(*) AS total,
-    COALESCE(SUM(payment_status IN ('pending', 'not_started') AND order_status <> 'cancelled'), 0) AS awaitingPayment,
-    COALESCE(SUM(payment_status = 'approved' AND shipping_status IN ('not_started', 'ready_to_ship') AND order_status <> 'cancelled'), 0) AS toPrepare,
-    COALESCE(SUM(shipping_status = 'shipped'), 0) AS inTransit FROM checkout_orders${where}`, params);
+    COALESCE(SUM(payment_status IN ('pending', 'not_started') AND order_status <> 'cancelled' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(snapshot, '$.result.testLocal')), 'false') <> 'true'), 0) AS awaitingPayment,
+    COALESCE(SUM(payment_status = 'approved' AND shipping_status IN ('not_started', 'ready_to_ship') AND order_status <> 'cancelled' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(snapshot, '$.result.testLocal')), 'false') <> 'true'), 0) AS toPrepare,
+    COALESCE(SUM(shipping_status = 'shipped' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(snapshot, '$.result.testLocal')), 'false') <> 'true'), 0) AS inTransit FROM checkout_orders${where}`, params);
   const rows = await db.query(`SELECT id, created_at AS createdAt, currency, total_minor AS totalMinor, snapshot, ${statusColumns}
     FROM checkout_orders${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, [...params, limit, (page - 1) * limit]);
   return { items: rows.map((r: OrderState & { id: string; createdAt: Date; currency: string; totalMinor: string; snapshot: string }) => {

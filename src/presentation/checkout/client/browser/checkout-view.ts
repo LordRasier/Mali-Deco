@@ -111,7 +111,11 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
     const shippingLabels: Record<string, string> = { not_started: 'No iniciado', ready_to_ship: 'Listo para despachar', shipped: 'En camino', delivered: 'Entregado', returned: 'Devuelto' };
     node('order-payment-status').textContent = `Pago: ${labels[state.order?.paymentStatus ?? 'not_started']}. Envío: ${shippingLabels[state.order?.shippingStatus ?? 'not_started']}.`;
     node('payment-box').hidden = !state.order?.paymentAvailable;
-    node('payment-message').textContent = paymentStatus === 'uncertain' ? 'Inicio de pago incierto. No crees otro pedido ni otro pago. Consulta el resultado o solicita revisión al administrador.' : paymentStatus === 'ready' ? 'Pago preparado. Abrir o volver desde Mercado Pago no confirma el pago; consulta el resultado aquí.' : paymentStatus === 'disabled' ? 'El pago de prueba no está disponible.' : paymentStatus === 'not_started' ? 'El pedido está registrado; el pago aún no se inició.' : `Resultado verificado por el servidor: ${labels[paymentStatus] ?? 'No disponible'}.`;
+    const orderMode = root.querySelector<HTMLElement>('[data-checkout-order-mode]');
+    if (orderMode) orderMode.textContent = state.order?.testLocal ? 'PEDIDO DE PRUEBA' : 'PEDIDO REGISTRADO';
+    const paymentHelp = root.querySelector<HTMLElement>('[data-checkout-payment-help]');
+    if (paymentHelp) paymentHelp.textContent = state.order?.testLocal ? 'Usá únicamente cuentas y tarjetas de prueba. Conservá esta página para consultar el resultado.' : 'El pago se abre en otra pestaña. Conservá esta página para consultar el resultado.';
+    node('payment-message').textContent = paymentStatus === 'uncertain' ? 'Inicio de pago incierto. No crees otro pedido ni otro pago. Consulta el resultado o solicita revisión al administrador.' : paymentStatus === 'ready' ? 'Pago preparado. Abrir o volver desde Mercado Pago no confirma el pago; consulta el resultado aquí.' : paymentStatus === 'disabled' ? 'El pago no está disponible.' : paymentStatus === 'not_started' ? 'El pedido está registrado; el pago aún no se inició.' : `Resultado verificado por el servidor: ${labels[paymentStatus] ?? 'No disponible'}.`;
     button('payment-start').hidden = paymentStatus !== 'not_started';
     button('payment-start').disabled = state.sending;
     button('payment-refresh').disabled = state.sending;
@@ -185,7 +189,8 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
     node('grand-total').textContent = shippingIncluded ? `Total estimado: ${formatPrice(cart.totals[selected!.currency] + BigInt(selected!.amountMinor), selected!.currency)}` : '';
     node('total-message').textContent = selected && !shippingIncluded && !cart.unresolved ? !pickupReady ? 'Elegí un punto de retiro para calcular el total.' : 'No se puede sumar el envío a los subtotales en distintas monedas.' : '';
     button('submit').disabled = locked || !cart.ready || !cart.items.length || !shippingIncluded || !validQuote || state.quoteBusy;
-    button('submit').textContent = state.sending ? 'Enviando…' : 'Registrar pedido de prueba';
+    button('submit').textContent = state.sending ? 'Enviando…' : root.dataset.testMode === 'true' ? 'Registrar pedido de prueba' : 'Registrar pedido';
+    if (root.dataset.newOrdersEnabled === 'false') { button('submit').disabled = true; button('quote').disabled = true; }
     if (state.focusRequest && state.focusRequest !== focused) {
       focused = state.focusRequest;
       if (state.error) node('error').focus(); else if (state.pending) node('pending').focus();

@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Checkout de prueba | {{brand}}</title>
+  <title>Finalizar compra | {{brand}}</title>
   <link rel="stylesheet" href="/assets/storefront/cart.css">
   <link rel="stylesheet" href="/assets/storefront/shell.css">
   <link rel="stylesheet" href="/assets/checkout/checkout.css">
@@ -19,12 +19,12 @@
   <main id="main" class="cart-page checkout-page" tabindex="-1" data-cart-mode="api" data-product-base="{{routes.product}}">
     <nav class="breadcrumb" aria-label="Ubicación"><a href="{{routes.home}}">Inicio</a> / <a href="{{routes.cart}}">Carrito</a> / Checkout</nav>
     {{#if ready}}
-    <section data-checkout-root>
+    <section data-checkout-root data-new-orders-enabled="{{newOrdersEnabled}}" data-test-mode="{{testMode}}">
       <header class="checkout-heading">
         <div><p class="eyebrow">UN PASO MÁS</p><h1>Finalizar pedido</h1><p>Completa tus datos y revisa la entrega.</p></div>
-        <span class="checkout-test-badge">Prueba local</span>
+        {{#if testMode}}<span class="checkout-test-badge">PRUEBA · Solo propietario</span>{{/if}}
       </header>
-      <p class="checkout-test-notice">No se realizarán cobros ni se generarán envíos. Usa datos ficticios. Los pedidos de prueba también descuentan el stock configurado.</p>
+      {{#if testMode}}<p class="checkout-test-notice">Usá cuentas y tarjetas de prueba. No se descuenta stock real ni se habilitan despachos.</p>{{/if}}{{#unless newOrdersEnabled}}<p class="checkout-test-notice">Las nuevas compras están pausadas. Podés consultar el estado de un pedido iniciado.</p>{{/unless}}
       <div data-checkout-error-box class="checkout-alert" hidden>
         <p data-checkout-error role="alert" tabindex="-1"></p>
         <div data-checkout-reset-box hidden>
@@ -39,14 +39,14 @@
         <button type="button" data-checkout-check hidden>Consultar estado del intento</button>
       </div>
       <section data-checkout-order tabindex="-1" class="checkout-section checkout-success" role="status" hidden>
-        <p class="eyebrow">PRUEBA COMPLETADA</p><h2>Pedido de prueba recibido</h2><p data-checkout-order-reference></p><p data-checkout-order-total></p>
+        <p class="eyebrow" data-checkout-order-mode>PEDIDO REGISTRADO</p><h2>Pedido recibido</h2><p data-checkout-order-reference></p><p data-checkout-order-total></p>
         <p data-checkout-order-payment-status>Puedes consultarlo en administración. Pago no iniciado. Envío no iniciado.</p>
         <div data-checkout-payment-box hidden>
-          <h3>Mercado Pago de prueba</h3>
-          <p>Usa únicamente una cuenta compradora y tarjetas de prueba. El pago se abre en otra pestaña; conserva esta página para consultar el resultado.</p>
+          <h3>Mercado Pago</h3>
+          <p data-checkout-payment-help>El pago se abre en otra pestaña. Conservá esta página para consultar el resultado.</p>
           <p data-checkout-payment-message aria-live="polite"></p>
-          <button type="button" data-checkout-payment-start>Preparar pago de prueba</button>
-          <a data-checkout-payment-link target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" hidden>Abrir Mercado Pago de prueba</a>
+          <button type="button" data-checkout-payment-start>Preparar pago</button>
+          <a data-checkout-payment-link target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" hidden>Abrir Mercado Pago</a>
           <button type="button" data-checkout-payment-refresh>Consultar pago</button>
         </div>
         <button type="button" data-checkout-new-order hidden>Iniciar otra compra</button>
@@ -56,7 +56,7 @@
       <p data-checkout-empty hidden>Tu carrito está vacío. <a href="{{routes.catalog}}">Ver catálogo</a></p>
       <form method="dialog" data-checkout-form hidden>
         <fieldset data-checkout-fields disabled>
-          <legend class="sr-only">Datos del pedido de prueba</legend>
+          <legend class="sr-only">Datos del pedido</legend>
           <div class="checkout-grid">
             <div class="checkout-details">
               <section class="checkout-section" aria-labelledby="checkout-contact-title">
@@ -96,9 +96,9 @@
                 <label class="checkout-payment" for="checkout-mercadopago">
                   <input id="checkout-mercadopago" type="radio" data-checkout-payment disabled aria-describedby="checkout-payment-notice">
                   <span><strong>Mercado Pago</strong><small>{{#if paymentAvailable}}Disponible después de registrar el pedido{{else}}Próximamente disponible{{/if}}</small></span>
-                  <span class="checkout-payment-badge">{{#if paymentAvailable}}Solo prueba{{else}}No activo{{/if}}</span>
+                  <span class="checkout-payment-badge">{{#if paymentAvailable}}{{#if testMode}}Prueba{{else}}Disponible{{/if}}{{else}}No activo{{/if}}</span>
                 </label>
-                <p id="checkout-payment-notice" class="checkout-helper">{{#if paymentAvailable}}Después de registrar el pedido podrás preparar un pago de prueba. Mercado Pago se abre en otra pestaña. Usa solo cuentas y tarjetas de prueba.{{else}}En esta prueba el pedido se registra sin pago. No se solicitarán datos de tarjeta ni se abrirá Mercado Pago.{{/if}}</p>
+                <p id="checkout-payment-notice" class="checkout-helper">{{#if paymentAvailable}}Después de registrar el pedido podrás pagar con Mercado Pago. {{#if testMode}}Usá solo cuentas y tarjetas de prueba.{{/if}}{{else}}Los nuevos pagos no están disponibles en este momento.{{/if}}</p>
               </section>
             </div>
             <aside class="checkout-section checkout-summary" aria-labelledby="checkout-summary-title">
@@ -106,8 +106,8 @@
               <p data-checkout-unresolved role="status" hidden>Esperá a que se verifique el carrito.</p>
               <dl data-checkout-totals></dl><p data-checkout-shipping-total></p><p data-checkout-grand-total></p><p data-checkout-total-message></p>
               <p class="checkout-helper">Revisa tus datos y el total antes de confirmar. El envío es una estimación.</p>
-              <button type="submit" data-checkout-submit disabled>Registrar pedido de prueba</button>
-              <p class="checkout-submit-note">Sin cobro · Sin envío real</p>
+              <button type="submit" data-checkout-submit disabled>Registrar pedido</button>
+              {{#if testMode}}<p class="checkout-submit-note">Pedido de prueba · Sin despacho real</p>{{/if}}
             </aside>
           </div>
         </fieldset>
@@ -115,7 +115,7 @@
       <noscript>El checkout necesita JavaScript. No se inició ningún pedido.</noscript>
     </section>
     {{else}}
-    <h1>El checkout de prueba no está disponible.</h1><a href="{{routes.cart}}">Volver al carrito</a>
+    <h1>El checkout no está disponible.</h1><a href="{{routes.cart}}">Volver al carrito</a>
     {{/if}}
   </main>
   {{> site_footer}}

@@ -47,10 +47,11 @@ export class OrderManagement {
   async update(id: string, value: unknown, actor: string) {
     orderId(id); const b = parseUpdate(value);
     return this.safe(() => this.database().transaction(async tx => {
-      const [row] = await tx.query(`SELECT ${statusColumns}, revision, tracking_number AS trackingNumber, tracking_url AS trackingUrl, internal_note AS internalNote FROM checkout_orders WHERE id = ? FOR UPDATE`, [id]);
+      const [row] = await tx.query(`SELECT ${statusColumns}, payment_mode AS paymentMode, revision, tracking_number AS trackingNumber, tracking_url AS trackingUrl, internal_note AS internalNote FROM checkout_orders WHERE id = ? FOR UPDATE`, [id]);
       if (!row) throw new NotFoundException('Order not found');
       if (Number(row.revision) !== b.revision) throw new ConflictException({ code: 'ORDER_CHANGED', message: 'Order changed; reload before saving' });
       const previous = statuses(row);
+      if (row.paymentMode === 'test' && (b.orderStatus === 'completed' || b.shippingStatus !== 'not_started' || b.trackingNumber || b.trackingUrl)) throw new BadRequestException('Los pedidos de prueba no permiten despachos ni seguimiento real.');
       validateTransition(previous, b);
       if (b.paymentStatus !== previous.paymentStatus) {
         const payment = await tx.query('SELECT order_id FROM checkout_payment_starts WHERE order_id = ?', [id]);

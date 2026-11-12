@@ -178,6 +178,7 @@ test('public pages allow only self-hosted fonts and fixed licensed font assets a
     for (const file of ['README.md', 'catalog-sources.json', '.env', 'unknown.woff2']) assert.equal((await fetch(origin + '/assets/storefront/fonts/' + file)).status, 404);
     for (const method of ['POST', 'PUT']) assert.equal((await fetch(origin + '/assets/storefront/fonts/lora-latin-variable.woff2', { method })).status, 404);
     assert.equal((await fetch(origin + '/assets/storefront/fonts/figtree-variable.woff2', { method: 'POST' })).status, 404);
-    assert.equal((await fetch(origin + '/checkout')).status, 404);
+    const checkout = await fetch(origin + '/checkout');
+    assert.equal(checkout.status, 200); assert.match(await checkout.text(), /data-new-orders-enabled="false"/);
   });
 });
