@@ -35,7 +35,7 @@ test('local payment scenarios: real MariaDB and HTTP, simulated Mercado Pago res
   const provider = new MercadoPagoTestProvider({ token: 'synthetic-token', sellerId: '123', returnUrl: 'https://example.test/payments/return', notificationUrl: 'https://example.test/api/v1/payments/mercadopago/webhook' }, async (input, init) => {
     apiCalls++; const url = new URL(String(input));
     assert.equal(new Headers(init?.headers).get('authorization'), 'Bearer synthetic-token');
-    if (url.href === 'https://api.mercadolibre.com/users/me') return Response.json({ id: 123, site_id: 'MLA', tags: ['test_user'] });
+    if (url.href === 'https://api.mercadopago.com/users/me') return Response.json({ id: 123, site_id: 'MLA', tags: ['test_user'] });
     if (url.href === 'https://api.mercadopago.com/checkout/preferences') {
       const body = JSON.parse(String(init?.body)); const id = body.external_reference;
       posts.set(id, (posts.get(id) ?? 0) + 1);

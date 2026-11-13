@@ -61,8 +61,8 @@ export class MercadoPagoTestProvider {
   /** Explicit diagnostics always perform a fresh authenticated read. */
   verifyConnection(): Promise<void> { return this.checkSeller(); }
   private async checkSeller(): Promise<void> {
-    // Official credentials guide uses this authenticated identity endpoint; never infer test mode from token prefixes.
-    const seller = await this.json('https://api.mercadolibre.com/users/me');
+    // Use the Mercado Pago User API, as in its official SDK; never infer test mode from token prefixes.
+    const seller = await this.json('https://api.mercadopago.com/users/me');
     if (!record(seller) || !identity(seller.id) || !Array.isArray(seller.tags)) throw Error('Seller environment verification failed');
     const actualSellerId = identity(seller.id);
     if (actualSellerId !== this.config.sellerId) throw new PaymentSellerError('seller_id_mismatch', this.config.sellerId, actualSellerId);

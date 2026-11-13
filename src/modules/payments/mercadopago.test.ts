@@ -1,9 +1,41 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MercadoPagoTestProvider, paymentConfig } from './mercadopago';
+import { MercadoPagoTestProvider, PaymentProviderError, paymentConfig } from './mercadopago';
 
 const env = { NODE_ENV: 'development', LOCAL_TEST_CHECKOUT_ENABLED: 'true', MERCADOPAGO_TEST_ENABLED: 'true', MERCADOPAGO_TEST_ACCESS_TOKEN: 'fixture-only', MERCADOPAGO_TEST_SELLER_ID: '123', MERCADOPAGO_TEST_RETURN_URL: 'https://owned.example.test/payment-return' };
 const order = { id: 'ca665af8-41b6-4ba4-bb75-54cf9c0f142e', currency: 'ARS', totalMinor: '12345' };
+
+test('both account environments verify through the Mercado Pago User API with a Bearer header', async () => {
+  for (const mode of ['test', 'production'] as const) {
+    let reads = 0;
+    const provider = new MercadoPagoTestProvider({ ...paymentConfig(env)!, mode }, async (url, init) => {
+      reads++;
+      assert.equal(String(url), 'https://api.mercadopago.com/users/me');
+      assert.equal(init?.method, 'GET'); assert.equal(init?.body, undefined); assert.equal(init?.redirect, 'error');
+      assert.equal(new Headers(init?.headers).get('authorization'), 'Bearer fixture-only');
+      return Response.json({ id: 123, site_id: 'MLA', tags: mode === 'test' ? ['test_user'] : [] });
+    });
+    await provider.verifySeller(); await provider.verifyConnection();
+    assert.equal(reads, 2);
+  }
+});
+
+test('a denied Mercado Pago identity lookup cannot start a payment or fall back to another host', async () => {
+  for (const mode of ['test', 'production'] as const) {
+    let requests = 0;
+    const provider = new MercadoPagoTestProvider({ ...paymentConfig(env)!, mode }, async (url, init) => {
+      requests++;
+      assert.equal(String(url), 'https://api.mercadopago.com/users/me'); assert.equal(init?.method, 'GET');
+      return Response.json({ message: 'private-provider-response' }, { status: 403 });
+    });
+    await assert.rejects(provider.verifyConnection(), error => {
+      assert.ok(error instanceof PaymentProviderError); assert.equal(error.httpStatus, 403);
+      assert.equal(error.message.includes('private-provider-response'), false); return true;
+    });
+    await assert.rejects(provider.start(order));
+    assert.equal(requests, 1);
+  }
+});
 
 test('preference validity is bounded by the reservation and return is requested for approved payments', async () => {
   let posted: Record<string, unknown> = {};

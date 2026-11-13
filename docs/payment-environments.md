@@ -32,6 +32,8 @@ El panel solo recibe estado de configuración, vendedor y URL de notificaciones.
 
 **Verificar conexión** hace una lectura autenticada nueva del vendedor, sin crear un pago. Guardar un entorno habilitado también verifica vendedor, país MLA y tipo de cuenta. El prefijo del token no determina el entorno. Las credenciales reales requieren `NODE_ENV=production`; las de prueba funcionan en ese mismo despliegue.
 
+La identidad se consulta en `GET https://api.mercadopago.com/users/me`, con el token en el header `Authorization`, siguiendo el [cliente oficial de usuarios de Mercado Pago](https://github.com/mercadopago/sdk-go/blob/main/pkg/user/client.go). Se usa ese mismo host para las dos cuentas: la API de Mercado Libre tiene permisos propios y un rechazo allí no demuestra que el token sea inválido para Mercado Pago. No se omiten validaciones de identidad o entorno cuando la API rechaza la consulta.
+
 Si falla esa verificación, el panel informa la causa y confirma que no cambió la configuración. Un error posterior o una respuesta perdida durante el guardado conserva la advertencia de resultado desconocido. Para diagnosticar desde la terminal, sin base de datos ni cambios de ajustes:
 
 ```sh
