@@ -18,7 +18,7 @@ export class InformationController {
     @Inject(STORE_INFORMATION) private readonly information: Pick<StoreInformationReader, 'get'>,
   ) {}
 
-  @Get(Object.values(pagePaths).filter(path => path !== '/envios-y-reembolsos').map(path => path.slice(1)))
+  @Get(Object.values(pagePaths).filter(path => !['/envios-y-reembolsos', '/seguimiento'].includes(path)).map(path => path.slice(1)))
   @Header('Cache-Control', 'no-store')
   @Header('X-Content-Type-Options', 'nosniff')
   @Header('Content-Security-Policy', "default-src 'none'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")

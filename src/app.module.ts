@@ -10,6 +10,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { ShippingModule } from './modules/shipping/shipping.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { OrderEmailsModule } from './modules/order-emails/order-emails.module';
+import { OrderTrackingModule } from './modules/order-tracking/order-tracking.module';
 import { MediaModule } from './modules/media/media.module';
 import { PresentationModule } from './presentation/presentation.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
@@ -20,7 +21,7 @@ if (!process.env.DB_HOST && process.env.NODE_ENV === 'production') {
 
 @Module({
   imports: [
-    IdentityModule, CatalogModule, SettingsModule, ShippingModule, OrdersModule, OrderEmailsModule, MediaModule,
+    IdentityModule, CatalogModule, SettingsModule, ShippingModule, OrdersModule, OrderEmailsModule, OrderTrackingModule, MediaModule,
     ...(process.env.DB_HOST ? [TypeOrmModule.forRootAsync({
       useFactory: databaseOptions,
       dataSourceFactory: async options => new StrictDataSource(options as DataSourceOptions),

@@ -23,6 +23,10 @@ export function configureHttp(app: NestExpressApplication): void {
   app.use(async (request: { method: string; path: string }, response: { locals: Record<string, unknown>; status(code: number): { send(body: string): void }; setHeader(name: string, value: string): void; redirect(code: number, path: string): void }, next: (error?: unknown) => void) => {
     try {
       const path = decodeURIComponent(request.path).toLowerCase().replace(/\/$/, '') || '/';
+      if (path === '/seguimiento' || /^\/api\/v1\/order-tracking(\/|$)/.test(path)) {
+        response.setHeader('Cache-Control', 'private, no-store'); response.setHeader('Referrer-Policy', 'no-referrer');
+        response.setHeader('X-Robots-Tag', 'noindex, nofollow'); response.setHeader('X-Content-Type-Options', 'nosniff');
+      }
       if (/^\/api\/v1\/(checkout|payments|admin\/settings\/payments)(\/|$)/.test(path)) response.setHeader('Cache-Control', 'private, no-store');
       const publicPage = ['GET', 'HEAD'].includes(request.method) && (publicPages.has(path) || /^\/(productos|categorias)\/[^/]+$/.test(path));
       const commerce = /^\/api\/v1\/(catalog\/(products|categories|facets|cart)(\/|$)|checkout(\/|$)|shipping(\/|$))/.test(path);
@@ -58,7 +62,7 @@ export function configureHttp(app: NestExpressApplication): void {
     admin_product_images: partial('admin/views/admin-product-images.hbs'),
   });
   app.engine('hbs', engine.__express);
-  app.setBaseViewsDir(['cart', 'catalog', 'products', 'home', 'information', 'admin', 'checkout'].map(feature => join(__dirname, feature, 'views')));
+  app.setBaseViewsDir(['cart', 'catalog', 'products', 'home', 'information', 'admin', 'checkout', 'tracking'].map(feature => join(__dirname, feature, 'views')));
   app.setViewEngine('hbs'); app.set('view options', { layout: false });
   configureStaticAssets(app);
 }

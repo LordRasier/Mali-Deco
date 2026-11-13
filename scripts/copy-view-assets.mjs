@@ -28,6 +28,7 @@ const assets = [
   'presentation/admin/views/admin-content-editor.hbs', 'presentation/admin/public/content-preview.css', 'presentation/information/views/partials/body.hbs',
   'presentation/admin/public/generated/admin.js', 'presentation/admin/public/generated/admin.css',
   'presentation/checkout/views/checkout.hbs', 'presentation/checkout/public/checkout.css',
+  'presentation/tracking/views/tracking.hbs', 'presentation/tracking/public/tracking.css', 'presentation/tracking/public/tracking.js',
   'presentation/admin/views/admin-products-list.hbs', 'presentation/admin/views/admin-product-form.hbs', 'presentation/admin/views/admin-product-detail.hbs',
   'presentation/admin/views/admin-settings.hbs', 'presentation/admin/views/admin-orders-list.hbs', 'presentation/admin/views/admin-order-detail.hbs',
   'presentation/admin/views/admin-product-images.hbs',

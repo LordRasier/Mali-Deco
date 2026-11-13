@@ -33,10 +33,11 @@ import { ContentChoicesController } from './admin/content/content-choices.contro
 import { PaymentsModule } from '../modules/payments/payments.module';
 import { CheckoutAccess } from '../modules/payments/checkout-access';
 import { PaymentSettings } from '../modules/payments/payment-settings';
+import { TrackingPageController } from './tracking/tracking-page.controller';
 
 @Module({
   imports: [IdentityModule, CatalogModule, AdminPresentationModule, SettingsModule, PaymentsModule],
-  controllers: [MvcHomeController, MvcCatalogController, MvcProductController, MvcCartController, ShippingReturnsController, InformationController, DiscoveryController, CategoryController, ContentPreviewController, ContentChoicesController],
+  controllers: [MvcHomeController, MvcCatalogController, MvcProductController, MvcCartController, ShippingReturnsController, InformationController, TrackingPageController, DiscoveryController, CategoryController, ContentPreviewController, ContentChoicesController],
 })
 export class PresentationModule {
   /** One immutable rendering configuration per application; request/Host data never selects routes or mode. */

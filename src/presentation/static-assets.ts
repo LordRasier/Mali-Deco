@@ -11,6 +11,7 @@ const groups = [
         'OFL-Manrope.txt', 'OFL-NunitoSans.txt', 'OFL-Outfit.txt', 'OFL-Lora.txt', 'OFL-LibreBaskerville.txt', 'OFL-CormorantGaramond.txt', 'OFL-Bitter.txt', 'OFL-IBMPlexMono.txt'].map(file => `fonts/${file}`)] },
   { prefix: '/assets/admin', roots: ['admin/public'], files: ['admin.css', 'generated/admin.js', 'generated/admin.css', 'content-preview.css'] },
   { prefix: '/assets/checkout', roots: ['checkout/public'], files: ['checkout.css'] },
+  { prefix: '/assets/tracking', roots: ['tracking/public'], files: ['tracking.css', 'tracking.js'] },
   { prefix: '/storefront', roots: ['home/public/generated/storefront'],
     files: ['florero-ondas.webp', 'hero-3d-objects-960.webp', 'hero-3d-objects.webp', 'maceta-geometrica.webp', 'organizador-arco.webp'] },
 ] as const;

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mis pedidos · {{brand}}</title><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+  <link rel="icon" type="image/png" href="/api/v1/catalog/branding/icon">
+  <link rel="stylesheet" href="/assets/storefront/cart.css"><link rel="stylesheet" href="/assets/storefront/shell.css">
+  <link rel="stylesheet" href="/api/v1/catalog/theme.css"><link rel="stylesheet" href="/assets/tracking/tracking.css">
+  <script type="module" src="/assets/tracking/tracking.js"></script>
+</head>
+<body class="tracking-page">
+  <a class="skip-link" href="#main">Ir al contenido</a>
+  <header class="tracking-header"><a class="tracking-brand" href="/" aria-label="{{brand}}"><img src="/api/v1/catalog/branding/logo" alt=""><span>{{brand}}</span></a><a href="/catalogo">Volver a la tienda <span aria-hidden="true">↗</span></a></header>
+  <main id="main" class="tracking-main" data-tracking>
+    <div class="tracking-intro"><p class="tracking-eyebrow">DE NUESTRAS MANOS A TU CASA</p><h1>Seguí tus pedidos.</h1><p>La preparación, el pago y el envío, en un solo lugar.</p></div>
+    <p class="tracking-feedback" data-feedback role="status" aria-live="polite">Cargando tu acceso…</p>
+    <section class="tracking-access" data-access hidden aria-labelledby="access-title">
+      <div class="tracking-form-card"><span class="tracking-mail-icon" aria-hidden="true">✉</span><h2 id="access-title">Entrá con tu correo</h2><p>Usá la misma dirección con la que hiciste la compra. Te enviamos un enlace privado para ver tus pedidos.</p>
+        <form data-request-form><label for="tracking-email">Correo de la compra</label><input id="tracking-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="tu@email.com" required><button type="submit" data-request-button>Enviarme el enlace <span aria-hidden="true">→</span></button></form>
+        <p class="tracking-note">Sin contraseña ni cuenta. Guardá el correo: podés volver a usar el enlace durante 90 días.</p>
+      </div>
+      <aside class="tracking-explainer"><p class="tracking-eyebrow">CADA PASO, A LA VISTA</p><h2>Sabé cómo va<br> tu compra.</h2><ol><li><span aria-hidden="true">01</span><div><h3>Recibimos tu pedido</h3><p>Consultá los artículos y el estado del pago.</p></div></li><li><span aria-hidden="true">02</span><div><h3>Preparamos tus piezas</h3><p>Seguí el avance hasta el despacho.</p></div></li><li><span aria-hidden="true">03</span><div><h3>Camino a tu casa</h3><p>Encontrá el código y el enlace del transportista.</p></div></li></ol></aside>
+    </section>
+    <section data-orders-panel hidden aria-labelledby="orders-title"><div class="tracking-toolbar"><div><h2 id="orders-title" tabindex="-1">Mis pedidos</h2><p data-account></p></div><div class="tracking-tools"><button type="button" data-refresh>Actualizar</button><button type="button" class="tracking-quiet" data-logout>Cerrar acceso</button></div></div><div data-order-list class="tracking-list"></div><nav class="tracking-pagination" aria-label="Páginas de pedidos" data-pagination hidden><button type="button" data-previous>← Anteriores</button><span data-page></span><button type="button" data-next>Siguientes →</button></nav><p class="tracking-note">Los estados reflejan las actualizaciones de la tienda. El transportista muestra el recorrido del paquete en su propio enlace.</p></section>
+    <noscript><p>Activá JavaScript para solicitar tu enlace privado y consultar tus pedidos.</p></noscript>
+  </main>
+  {{> site_footer}}
+</body></html>
