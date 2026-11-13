@@ -4,6 +4,11 @@ export type PaymentOrder = { id: string; currency: string; totalMinor: string; p
 export type ReconciledPayment = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'partially_refunded' | 'in_mediation' | 'refunded' | 'charged_back';
 export type VerifiedPayment = { status: ReconciledPayment; paymentId: string };
 export type PaymentConfig = { token: string; sellerId: string; returnUrl: string; notificationUrl?: string; mode?: 'test' | 'production' };
+export class PaymentProviderError extends Error {
+  constructor(readonly code: 'http_error' | 'connection_failed' | 'invalid_response', readonly httpStatus?: number) {
+    super('Payment provider unavailable');
+  }
+}
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const identity = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v > 0 ? String(v) : typeof v === 'string' && /^[1-9]\d{0,15}$/.test(v) ? v : '';
 
@@ -38,9 +43,12 @@ export class MercadoPagoTestProvider {
   constructor(private readonly config: PaymentConfig, private readonly request: typeof fetch = fetch) {}
   get sellerId(): string { return this.config.sellerId; }
   private async json(url: string, body?: object): Promise<unknown> {
-    const response = await this.request(url, { method: body ? 'POST' : 'GET', redirect: 'error', signal: AbortSignal.timeout(10000), headers: { Authorization: `Bearer ${this.config.token}`, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
-    if (!response.ok) throw Error('Payment provider unavailable');
-    return response.json();
+    let response: Response;
+    try { response = await this.request(url, { method: body ? 'POST' : 'GET', redirect: 'error', signal: AbortSignal.timeout(10000), headers: { Authorization: `Bearer ${this.config.token}`, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) }); }
+    catch { throw new PaymentProviderError('connection_failed'); }
+    if (!response.ok) throw new PaymentProviderError('http_error', response.status);
+    try { return await response.json(); }
+    catch { throw new PaymentProviderError('invalid_response'); }
   }
   verifySeller(): Promise<void> {
     if (!this.verification) this.verification = this.checkSeller().catch(error => { this.verification = undefined; throw error; });

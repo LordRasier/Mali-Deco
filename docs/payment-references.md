@@ -14,4 +14,6 @@ npm run payments:sync-references
 
 El comando utiliza las credenciales existentes de cada entorno y vendedor. Consulta Mercado Pago mediante GET y agrega solamente un evento con el número verificado cuando el estado coincide con el del pedido. No modifica estados, genera cobros, reenvía correos ni adjunta documentos. Puede repetirse: omite referencias ya registradas. Informa los casos omitidos o fallidos sin imprimir credenciales ni datos de clientes.
 
+Los pedidos de prueba se verifican con `MERCADOPAGO_TEST_*` aunque el selector del administrador esté en producción; no es necesario cambiar ese selector. Si falla un pedido, una segunda tabla identifica su entorno, la etapa, el código y una descripción segura del error (por ejemplo, `provider_http_401`, `payment_amount_mismatch` o una variable faltante). No imprime claves, respuestas completas de la API ni consultas SQL. El comando carga `.env` en su propio proceso; la configuración que usa PM2 puede ser distinta.
+
 Este cambio no requiere migración. Los comprobantes adjuntos del administrador mantienen su acceso privado; la factura fiscal y su eventual publicación al comprador son un flujo separado.
