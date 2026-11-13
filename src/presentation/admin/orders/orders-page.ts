@@ -3,6 +3,7 @@ import { orderStates } from '../../../modules/orders/services/order-state';
 import { orderDate, orderMoney, orderStatusLabel } from '../shared/order-format';
 import { orderEmailsView } from './order-emails-view';
 import type { EmailDelivery } from '../../../modules/order-emails/email-outbox';
+import type { EmailMode } from '../../../modules/order-emails/email-config';
 
 type Summary = { id: string; createdAt: string; currency: string; totalMinor: string; testLocal: boolean; orderStatus: string; paymentStatus: string; fulfillmentStatus: string; shippingStatus: string;
   contact?: { name: string; email?: string; phone?: string; document?: string }; destination?: { city: string; state?: string }; itemCount?: number };
@@ -14,7 +15,7 @@ type Detail = Summary & {
   revision?: number; managedPayment?: boolean; managementAvailable?: boolean; trackingNumber?: string; trackingUrl?: string; internalNote?: string; updatedAt?: string;
   attachments?: { id: string; name: string; size: number; createdAt: string; actor: string }[];
   events?: { id: string; source: string; actor: string; detail: string; createdAt: string }[];
-  emails?: EmailDelivery[]; emailSettings?: { label: string; notice: string };
+  emails?: EmailDelivery[]; emailSettings?: { mode?: EmailMode; label: string; notice: string };
 };
 type ReadOrders = {
   list(query: Record<string, unknown>): Promise<{ items: Summary[]; page: number; limit: number; total: number; stats?: { awaitingPayment: number; toPrepare: number; inTransit: number } }>;
@@ -58,7 +59,7 @@ function detail(order: Detail) {
     attachments: (order.attachments ?? []).map(file => ({ ...file, date: orderDate(file.createdAt), sizeLabel: Math.max(1, Math.ceil(file.size / 1024)) + ' KB', url: '/api/v1/admin/orders/' + encodeURIComponent(order.id) + '/attachments/' + encodeURIComponent(file.id) })),
     events: (order.events ?? []).map(history),
     emailSettings: order.emailSettings || { label: 'Desactivado', notice: 'El envío de correos está desactivado.' },
-    emailPreviews: orderEmailsView(order.id, order.events ?? [], order.emails),
+    emailPreviews: orderEmailsView(order.id, order.events ?? [], order.emails, order.emailSettings?.mode),
     lines: order.lines.map(line => ({ name: line.name, variant: line.variantName, quantity: line.quantity, price: orderMoney(line.unitPriceMinor, line.currency), total: orderMoney(line.lineTotalMinor, line.currency) })) };
 }
 

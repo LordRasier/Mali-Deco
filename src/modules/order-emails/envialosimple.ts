@@ -21,6 +21,18 @@ export class EnvialoSimple {
       return object(await response.json());
     } catch (error) {
       if (error instanceof EmailSendError) throw error;
+      // GET diagnostics can identify a failure without implying that an email was sent.
+      // Keep only allowlisted categories; fetch errors may contain credentials or URLs.
+      if (!body) {
+        const failure = error as { name?: string; cause?: { code?: string } } | null;
+        const code = failure?.cause?.code;
+        const reason = failure?.name === 'SyntaxError' ? 'provider_invalid_response'
+          : failure?.name === 'TimeoutError' || failure?.name === 'AbortError' || ['ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT'].includes(code ?? '') ? 'provider_timeout'
+          : ['ENOTFOUND', 'EAI_AGAIN'].includes(code ?? '') ? 'provider_dns_error'
+          : ['CERT_HAS_EXPIRED', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY', 'ERR_TLS_CERT_ALTNAME_INVALID', 'SELF_SIGNED_CERT_IN_CHAIN'].includes(code ?? '') ? 'provider_tls_error'
+          : 'provider_network_error';
+        throw new EmailSendError(reason);
+      }
       // A timeout, broken connection or malformed success response may have happened AFTER acceptance.
       // Never automatically replay the POST: this API does not document an idempotency key.
       throw new EmailSendError('provider_response_unknown', true);

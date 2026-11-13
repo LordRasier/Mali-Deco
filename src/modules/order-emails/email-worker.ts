@@ -5,6 +5,7 @@ import { emailConfig, emailReadiness, validEmail, type EmailConfig } from './ema
 import { emailLabels, type EmailKind, type EmailOrder } from './order-email-model';
 import { buildEmailMessage } from './email-message';
 import { EmailSendError, EnvialoSimple } from './envialosimple';
+import { verifyEmailSender } from './email-diagnostics';
 
 type QueueRow = { id: string; orderId: string; stage: EmailKind; mode: string; payload: string };
 export class EmailWorker implements OnModuleInit, OnModuleDestroy {
@@ -45,11 +46,9 @@ export class EmailWorker implements OnModuleInit, OnModuleDestroy {
     const db = this.db!;
     // Verification failure happens before claiming/sending; queued messages remain safe to retry.
     if (Date.now() >= this.verifiedUntil) {
-      const domain = this.config.from.split('@')[1].toLowerCase();
-      try {
-        if (!(await this.provider.domains()).some(d => d.name.toLowerCase() === domain && d.status === 'verified')) throw Error('Sender domain is not verified');
-      } catch {
-        await db.query(`UPDATE order_email_outbox SET error_code = 'provider_unavailable', updated_at = UTC_TIMESTAMP(6) WHERE id = ? AND status = 'queued'`, [row.id]);
+      const check = await verifyEmailSender(this.config, this.provider);
+      if (!check.ok) {
+        await db.query(`UPDATE order_email_outbox SET error_code = ?, updated_at = UTC_TIMESTAMP(6) WHERE id = ? AND status = 'queued'`, [check.code, row.id]);
         throw Error('Email provider unavailable');
       }
       this.verifiedUntil = Date.now() + 300000;

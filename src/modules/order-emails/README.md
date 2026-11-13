@@ -22,6 +22,7 @@ El worker consulta la cola cada 15 segundos. Antes del POST reclama la fila con 
 | --- | --- |
 | No enviado | No existe un aviso en la cola para esa etapa. |
 | En cola | Aviso persistido, aún no despachado. |
+| Pausado | Sigue en cola, pero pertenece a otro modo o los envíos están desactivados. No se cambia su destinatario ni se convierte en un envío real. |
 | Enviando | Un proceso reclamó el aviso. |
 | Aceptado | La API devolvió un identificador que quedó guardado. |
 | Enviado | El proveedor informa `sent`; se conserva la fecha del evento. No implica lectura. |
@@ -31,6 +32,8 @@ El worker consulta la cola cada 15 segundos. Antes del POST reclama la fila con 
 | Omitido | Pedido de prueba en modo live, cancelado o pago ya no aprobado. |
 
 Se consulta el detalle de los correos aceptados cada dos minutos, sin necesitar un túnel ni un webhook público. Las consultas GET se pueden repetir; un POST con resultado incierto **nunca se repite automáticamente**. También se detienen los rechazos conocidos: revisar remitente, créditos, exclusiones y destinatario antes de decidir un reenvío. No se garantiza exactly-once externo porque el proveedor no documenta una clave de idempotencia. Para casos inciertos consultar EnvíaloSimple usando pedido/etapa y `user_variables.notification_id`; no cambiar manualmente la fila a `queued` sin verificar que el mensaje no fue aceptado.
+
+`npm run emails:check` muestra los totales de la cola por modo/estado y avisa si quedaron mensajes de otro modo. La validación de la API distingue HTTP 401/403/429, DNS, TLS, timeout, respuestas inválidas y dominio ausente/no verificado; no imprime la clave ni respuestas crudas del proveedor. Solo hace lecturas: no envía correos ni modifica la cola. Una configuración completa no prueba la conexión ni la entrega. Los tres ejemplos de `emails:test` tampoco prueban que un pedido haya pasado por el worker: son envíos independientes con datos ficticios.
 
 El identificador de la respuesta de envío aún debe validarse con una llamada real de esta cuenta: la documentación de envío no incluye un ejemplo de respuesta de éxito. Un formato desconocido queda en «Revisar», nunca como éxito ni se reenvía. Se implementaron las formas `id` y `payload.id`/`payload[0].id`; un ensayo real permitirá ajustar el contrato si fuera necesario.
 
