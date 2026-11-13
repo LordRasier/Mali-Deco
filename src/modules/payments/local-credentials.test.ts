@@ -21,3 +21,21 @@ test('explicit private payment file loads only missing secrets in development an
     assert.equal(env.MERCADOPAGO_TEST_WEBHOOK_SECRET, undefined); // Never fall back to the live secret.
   } finally {unlinkSync(file);rmdirSync(folder);}
 });
+
+test('credential diagnostics expose precedence and conflicts without revealing values or paths', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'mali-payment-sources-')), file = join(folder, 'fixture.env');
+  writeFileSync(file, 'MERCADOPAGO_ACCESS_TOKEN=private-token\nMERCADOPAGO_TEST_ACCESS_TOKEN=test-private-token\nMERCADOPAGO_WEBHOOK_SECRET=same-private-secret\n');
+  try {
+    for (const existing of ['exported-token', '']) {
+      const env = { MERCADOPAGO_ENV_FILE: file, MERCADOPAGO_ACCESS_TOKEN: existing, MERCADOPAGO_WEBHOOK_SECRET: 'same-private-secret' };
+      const sources = loadLocalPaymentCredentials(env);
+      assert.equal(env.MERCADOPAGO_ACCESS_TOKEN, existing);
+      assert.deepEqual(sources.find(item => item.key === 'MERCADOPAGO_ACCESS_TOKEN'), { key: 'MERCADOPAGO_ACCESS_TOKEN', source: 'environment', privateFileConflict: true });
+      assert.deepEqual(sources.find(item => item.key === 'MERCADOPAGO_TEST_ACCESS_TOKEN'), { key: 'MERCADOPAGO_TEST_ACCESS_TOKEN', source: 'private_file', privateFileConflict: false });
+      assert.deepEqual(sources.find(item => item.key === 'MERCADOPAGO_WEBHOOK_SECRET'), { key: 'MERCADOPAGO_WEBHOOK_SECRET', source: 'environment', privateFileConflict: false });
+      assert.deepEqual(sources.find(item => item.key === 'MERCADOPAGO_TEST_WEBHOOK_SECRET'), { key: 'MERCADOPAGO_TEST_WEBHOOK_SECRET', source: 'missing', privateFileConflict: false });
+      for (const secret of ['private-token', 'exported-token', 'test-private-token', 'same-private-secret', file]) assert.equal(JSON.stringify(sources).includes(secret), false);
+    }
+    assert.ok(loadLocalPaymentCredentials({}).every(item => item.source === 'missing' && !item.privateFileConflict));
+  } finally { unlinkSync(file); rmdirSync(folder); }
+});

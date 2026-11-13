@@ -40,9 +40,13 @@ Si falla esa verificación, el panel informa la causa y confirma que no cambió 
 npm run payments:check -- production
 # O bien, para la cuenta de prueba:
 npm run payments:check -- test
+# Comparar ambas cuentas desde el mismo servidor, sin cambiar el modo guardado:
+npm run payments:check -- all
 ```
 
 El comando carga `.env` y `MERCADOPAGO_ENV_FILE`, usa solamente consultas GET e informa códigos seguros. Si el ID configurado no coincide con la cuenta autenticada, muestra ambos IDs para corregir `MERCADOPAGO_SELLER_ID` (o su equivalente de prueba). Debe ser el ID del usuario vendedor, no el Client ID de la aplicación. Nunca imprime tokens ni respuestas completas del proveedor.
+
+El diagnóstico v2 muestra el origen de cada Access Token (`entorno/.env` o archivo privado) y si una clave distinta del archivo está siendo ignorada por precedencia. No cambia esa precedencia ni muestra valores, prefijos o huellas de las claves. También informa el endpoint consultado, HTTP, códigos de error reconocidos mediante una lista fija y el `x-request-id` si tiene formato UUID. Un 403 por sí solo no distingue una falta de permisos de un rechazo de políticas: se conserva el bloqueo de activación hasta verificar correctamente la cuenta. El código `PA_UNAUTHORIZED_RESULT_FROM_POLICIES` requiere revisar la cuenta/aplicación con Mercado Pago; no se intenta evadirlo cambiando de red o saltando la verificación.
 
 ## Migración y puesta en marcha
 
