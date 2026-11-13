@@ -9,6 +9,10 @@ export class PaymentProviderError extends Error {
     super('Payment provider unavailable');
   }
 }
+export class PaymentSellerError extends Error {
+  constructor(readonly code: 'seller_id_mismatch' | 'seller_environment_mismatch' | 'seller_country_mismatch',
+    readonly expectedSellerId: string, readonly actualSellerId: string) { super('Seller environment verification failed'); }
+}
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const identity = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v > 0 ? String(v) : typeof v === 'string' && /^[1-9]\d{0,15}$/.test(v) ? v : '';
 
@@ -59,7 +63,11 @@ export class MercadoPagoTestProvider {
   private async checkSeller(): Promise<void> {
     // Official credentials guide uses this authenticated identity endpoint; never infer test mode from token prefixes.
     const seller = await this.json('https://api.mercadolibre.com/users/me');
-    if (!record(seller) || identity(seller.id) !== this.config.sellerId || seller.site_id !== 'MLA' || !Array.isArray(seller.tags) || seller.tags.includes('test_user') !== (this.config.mode !== 'production')) throw Error('Seller environment verification failed');
+    if (!record(seller) || !identity(seller.id) || !Array.isArray(seller.tags)) throw Error('Seller environment verification failed');
+    const actualSellerId = identity(seller.id);
+    if (actualSellerId !== this.config.sellerId) throw new PaymentSellerError('seller_id_mismatch', this.config.sellerId, actualSellerId);
+    if (seller.site_id !== 'MLA') throw new PaymentSellerError('seller_country_mismatch', this.config.sellerId, actualSellerId);
+    if (seller.tags.includes('test_user') !== (this.config.mode !== 'production')) throw new PaymentSellerError('seller_environment_mismatch', this.config.sellerId, actualSellerId);
     this.verified = true;
   }
   private amount(order: PaymentOrder): number {

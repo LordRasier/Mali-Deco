@@ -32,6 +32,16 @@ El panel solo recibe estado de configuración, vendedor y URL de notificaciones.
 
 **Verificar conexión** hace una lectura autenticada nueva del vendedor, sin crear un pago. Guardar un entorno habilitado también verifica vendedor, país MLA y tipo de cuenta. El prefijo del token no determina el entorno. Las credenciales reales requieren `NODE_ENV=production`; las de prueba funcionan en ese mismo despliegue.
 
+Si falla esa verificación, el panel informa la causa y confirma que no cambió la configuración. Un error posterior o una respuesta perdida durante el guardado conserva la advertencia de resultado desconocido. Para diagnosticar desde la terminal, sin base de datos ni cambios de ajustes:
+
+```sh
+npm run payments:check -- production
+# O bien, para la cuenta de prueba:
+npm run payments:check -- test
+```
+
+El comando carga `.env` y `MERCADOPAGO_ENV_FILE`, usa solamente consultas GET e informa códigos seguros. Si el ID configurado no coincide con la cuenta autenticada, muestra ambos IDs para corregir `MERCADOPAGO_SELLER_ID` (o su equivalente de prueba). Debe ser el ID del usuario vendedor, no el Client ID de la aplicación. Nunca imprime tokens ni respuestas completas del proveedor.
+
 ## Migración y puesta en marcha
 
 Antes de iniciar la versión nueva, ejecutar con la cuenta de mantenimiento:

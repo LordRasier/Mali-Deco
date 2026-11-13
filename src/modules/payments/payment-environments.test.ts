@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHmac } from 'node:crypto';
+import { ServiceUnavailableException } from '@nestjs/common';
 import type { DataSource } from 'typeorm';
 import { PaymentRegistry } from './payment-registry';
 import { PaymentSettings } from './payment-settings';
@@ -40,6 +41,60 @@ test('registry keeps credentials private, never falls back between environments,
   const wrong = registryFixture(); wrong.wrongSeller(); await assert.rejects(wrong.registry.verify('test'), { status: 503 });
   const kind = registryFixture(); kind.wrongLive(); await assert.rejects(kind.registry.verify('production'), { status: 503 });
   assert.equal(kind.posts(), 0);
+});
+
+test('verification reports a safe seller mismatch and never starts a settings transaction', async () => {
+  const f = registryFixture(); f.wrongSeller();
+  let transactions = 0;
+  const db = { isInitialized: true, transaction: async () => { transactions++; } } as unknown as DataSource;
+  const settings = new PaymentSettings(db, f.registry);
+  await assert.rejects(settings.set({ enabled: true, mode: 'production', revision: 0 }, 'owner-1'), error => {
+    assert.ok(error instanceof ServiceUnavailableException);
+    const body = error.getResponse();
+    assert.equal(error.getStatus(), 503);
+    assert.deepEqual(body, { code: 'PAYMENT_VERIFICATION_FAILED', reason: 'seller_id_mismatch',
+      message: 'El ID de vendedor configurado no coincide con la cuenta autenticada. Usá el ID de usuario, no el de la aplicación.',
+      mode: 'production', writeOccurred: false, missing: [], expectedSellerId: '123', actualSellerId: '999' });
+    assert.equal(JSON.stringify(body).includes(env.MERCADOPAGO_ACCESS_TOKEN), false);
+    return true;
+  });
+  assert.equal(transactions, 0); assert.equal(f.calls(), 1); assert.equal(f.posts(), 0);
+});
+
+test('verification separates environment, country and incomplete configuration failures', async () => {
+  const kind = registryFixture(); kind.wrongLive();
+  const country = new PaymentRegistry(env, async () => Response.json({ id: 123, site_id: 'MLB', tags: [] }));
+  let calls = 0;
+  const incomplete = new PaymentRegistry({ ...env, MERCADOPAGO_ACCESS_TOKEN: undefined }, async () => { calls++; throw Error('unexpected'); });
+  for (const [registry, reason] of [[kind.registry, 'seller_environment_mismatch'], [country, 'seller_country_mismatch'], [incomplete, 'configuration_incomplete']] as const) {
+    await assert.rejects(registry.verify('production'), error => {
+      assert.ok(error instanceof ServiceUnavailableException);
+      const body = error.getResponse() as { reason: string; writeOccurred: boolean; missing: string[] };
+      assert.equal(body.reason, reason); assert.equal(body.writeOccurred, false);
+      if (reason === 'configuration_incomplete') assert.deepEqual(body.missing, ['MERCADOPAGO_ACCESS_TOKEN']);
+      return true;
+    });
+  }
+  assert.equal(calls, 0); assert.equal(kind.posts(), 0);
+});
+
+test('verification returns safe provider codes without leaking remote bodies or network errors', async () => {
+  const secret = 'synthetic-private-detail';
+  const cases: [typeof fetch, string][] = [
+    [async () => Response.json({ message: secret }, { status: 401 }), 'provider_http_401'],
+    [async () => { throw Error(secret); }, 'provider_connection_failed'],
+    [async () => new Response(secret), 'provider_invalid_response'],
+  ];
+  for (const [remote, reason] of cases) {
+    const registry = new PaymentRegistry(env, remote);
+    await assert.rejects(registry.verify('production'), error => {
+      assert.ok(error instanceof ServiceUnavailableException);
+      const body = error.getResponse() as { reason: string; writeOccurred: boolean };
+      assert.equal(body.reason, reason); assert.equal(body.writeOccurred, false);
+      for (const value of [secret, env.MERCADOPAGO_ACCESS_TOKEN, env.MERCADOPAGO_WEBHOOK_SECRET]) assert.equal(JSON.stringify(body).includes(value), false);
+      return true;
+    });
+  }
 });
 
 test('settings require complete verified credentials, audit changes and reject a stale revision', async () => {

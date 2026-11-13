@@ -1,6 +1,7 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { isIP } from 'node:net';
-import { MercadoPagoTestProvider, type PaymentConfig } from './mercadopago';
+import { MercadoPagoTestProvider, PaymentSellerError, type PaymentConfig } from './mercadopago';
+import { paymentFailure } from './payment-diagnostics';
 
 export type PaymentMode = 'test' | 'production';
 export type PaymentContext = { mode: PaymentMode; sellerId: string; revision: number };
@@ -44,8 +45,17 @@ export class PaymentRegistry {
     return this.env[mode === 'test' ? 'MERCADOPAGO_TEST_WEBHOOK_SECRET' : 'MERCADOPAGO_WEBHOOK_SECRET']!;
   }
   async verify(mode: PaymentMode) {
-    try { await this.get(mode).verifyConnection(); }
-    catch { throw new ServiceUnavailableException('No se pudo verificar el vendedor de Mercado Pago. Revisá las credenciales del entorno seleccionado.'); }
+    const description = this.describe(mode);
+    try {
+      if (!description.configured) throw Error('Payment configuration incomplete');
+      await this.get(mode).verifyConnection();
+    } catch (error) {
+      const detail = paymentFailure(error, 'seller');
+      // This verification precedes the settings transaction and never creates a payment.
+      throw new ServiceUnavailableException({ code: 'PAYMENT_VERIFICATION_FAILED', reason: detail.code, message: detail.message,
+        mode, writeOccurred: false, missing: description.missing,
+        ...(error instanceof PaymentSellerError ? { expectedSellerId: error.expectedSellerId, actualSellerId: error.actualSellerId } : {}) });
+    }
     return { ...this.describe(mode), verified: true };
   }
 }

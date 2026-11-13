@@ -1,4 +1,4 @@
-import { PaymentProviderError } from './mercadopago';
+import { PaymentProviderError, PaymentSellerError } from './mercadopago';
 import type { PaymentMode } from './payment-registry';
 
 export type PaymentSyncStage = 'database' | 'configuration' | 'seller' | 'payments' | 'record';
@@ -16,6 +16,12 @@ const known: Record<string, [string, string]> = {
 };
 /** Only fixed descriptions and allowlisted codes; never forward tokens, SQL or upstream bodies. */
 export function paymentFailure(error: unknown, stage: PaymentSyncStage): Pick<PaymentSyncIssue, 'code' | 'message'> {
+  if (error instanceof PaymentSellerError) {
+    const messages = { seller_id_mismatch: 'El ID de vendedor configurado no coincide con la cuenta autenticada. Usá el ID de usuario, no el de la aplicación.',
+      seller_environment_mismatch: 'La credencial pertenece a un tipo de cuenta distinto del entorno seleccionado (prueba o producción).',
+      seller_country_mismatch: 'La cuenta autenticada no corresponde a Argentina (MLA).' };
+    return { code: error.code, message: messages[error.code] };
+  }
   if (error instanceof PaymentProviderError) {
     if (error.code === 'http_error') {
       const status = error.httpStatus;

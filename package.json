@@ -37,6 +37,7 @@
     "migration:order-emails:local-root": "node --env-file=.env --import ./scripts/migration-local-root.mjs --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/order-emails-data-source.ts",
     "emails:check": "node --env-file=.env --import tsx scripts/check-order-emails.ts",
     "payments:sync-references": "node --env-file=.env --import tsx scripts/sync-payment-references.ts",
+    "payments:check": "node --env-file=.env --import tsx scripts/check-payments.ts",
     "migration:order-tracking": "node --env-file=.env --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/order-tracking-data-source.ts",
     "migration:order-tracking:local-root": "node --env-file=.env --import ./scripts/migration-local-root.mjs --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/order-tracking-data-source.ts",
     "migration:header-brand": "node --env-file=.env --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/header-brand-data-source.ts",
