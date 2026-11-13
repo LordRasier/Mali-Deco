@@ -2,11 +2,17 @@ import 'reflect-metadata';
 import { StrictDataSource } from '../src/infrastructure/database/strict-data-source';
 import { databaseOptions } from '../src/infrastructure/database/database-options';
 import { PaymentRegistry } from '../src/modules/payments/payment-registry';
+import { loadLocalPaymentCredentials } from '../src/modules/payments/local-credentials';
 import { syncPaymentReferences } from '../src/modules/payments/sync-payment-references';
 import type { PaymentSyncIssue } from '../src/modules/payments/payment-diagnostics';
 
 async function main() {
   if (process.argv.length > 2) throw Error('Unexpected arguments');
+  try { loadLocalPaymentCredentials(process.env); }
+  catch {
+    console.error('No se pudo cargar el archivo indicado en MERCADOPAGO_ENV_FILE. Revisá la ruta y los permisos del usuario que ejecuta este comando.');
+    process.exitCode = 1; return;
+  }
   const db = new StrictDataSource(databaseOptions());
   try {
     await db.initialize();
