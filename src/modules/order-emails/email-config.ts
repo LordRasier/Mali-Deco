@@ -18,8 +18,11 @@ export function emailConfig(env: Env = process.env): EmailConfig {
   return { mode: mode as EmailMode, apiKey, from, replyTo, testTo, siteUrl: site?.origin ?? '' };
 }
 export function loadLocalEmailCredentials(env: Env) {
-  if (env.NODE_ENV !== 'development' || !env.ENVIALOSIMPLE_API_KEY_FILE || env.ENVIALOSIMPLE_API_KEY) return;
-  const key = readFileSync(env.ENVIALOSIMPLE_API_KEY_FILE, 'utf8').trim();
+  // Explicit private files work in every deployment; a nonempty process key wins.
+  if (!env.ENVIALOSIMPLE_API_KEY_FILE || env.ENVIALOSIMPLE_API_KEY) return;
+  let key: string;
+  try { key = readFileSync(env.ENVIALOSIMPLE_API_KEY_FILE, 'utf8').trim(); }
+  catch { throw new Error('Unable to load EnvialoSimple API key file'); }
   if (!key || /\s/.test(key)) throw Error('Invalid EnvíaloSimple API key file');
   env.ENVIALOSIMPLE_API_KEY = key;
 }

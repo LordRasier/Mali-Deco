@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { DataSource, EntityManager } from 'typeorm';
-import { emailConfig, emailReadiness, publicEmailConfig, loadLocalEmailCredentials } from './email-config';
+import { emailConfig, emailReadiness, publicEmailConfig } from './email-config';
 import { enqueueOrderEmails } from './email-outbox';
 import { EmailSendError, EnvialoSimple, type EmailMessage } from './envialosimple';
 import { EmailWorker } from './email-worker';
@@ -22,8 +22,6 @@ test('email configuration is off by default, keeps secrets server-side and gates
   assert.equal(emailReadiness(emailConfig({ ORDER_EMAIL_MODE: 'test', ENVIALOSIMPLE_API_KEY: 'secret' })), 'Falta indicar el email de prueba');
   assert.doesNotMatch(JSON.stringify(publicEmailConfig(config)), /secret-unit-test|apiKey/);
   for (const env of [{ ORDER_EMAIL_MODE: 'yes' }, { ORDER_EMAIL_FROM: 'a@b.com\r\nBcc:evil@evil.com' }, { ORDER_EMAIL_SITE_URL: 'http://mali-store.com.ar' }]) assert.throws(() => emailConfig(env));
-  const production = { NODE_ENV: 'production', ENVIALOSIMPLE_API_KEY_FILE: './does-not-exist' };
-  assert.doesNotThrow(() => loadLocalEmailCredentials(production));
 });
 
 test('only relevant transitions enqueue immutable safe order data, with a unique stage guard', async () => {
