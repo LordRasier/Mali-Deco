@@ -20,6 +20,7 @@ test('queued mail from another mode is visibly paused without changing recorded 
   assert.equal(paused.deliveryStatus, 'queued');
   assert.equal(paused.deliveryAt, '2026-11-13T00:35:00.000Z');
   assert.equal(orderEmailsView('order', [], [queued], 'test')[0].statusLabel, 'En cola');
+  assert.equal(orderEmailsView('order', [], [queued], 'live', true)[0].statusLabel, 'En cola');
   assert.equal(orderEmailsView('order', [], [queued])[0].statusLabel, 'En cola');
   assert.match(orderEmailsView('order', [], [queued], 'disabled')[0].error, /desactivado/);
   assert.match(orderEmailsView('order', [], [{ ...queued, mode: 'live' }], 'test')[0].error, /ventas reales/);
@@ -47,6 +48,7 @@ test('verification distinguishes rejected credentials, domain status and malform
     [Response.json({ error: 'PRIVATE-API-KEY' }, { status: 401 }), 'provider_http_401'],
     [Response.json({}, { status: 403 }), 'provider_http_403'],
     [Response.json({}, { status: 429 }), 'provider_http_429'],
+    [Response.json({}, { status: 404 }), 'provider_domains_unavailable'],
     [Response.json({}, { status: 503 }), 'provider_http_503'],
     [Response.json({ payload: [] }), 'provider_domain_missing'],
     [Response.json({ payload: [{ name: 'mali-store.com.ar', status: 'paused' }] }), 'provider_domain_unverified'],
@@ -78,17 +80,14 @@ test('GET connection diagnostics distinguish DNS, timeout and TLS while POST rem
   }
 });
 
-test('a live worker never sends queued test mail and retains a safe preflight failure for active mail', async () => {
-  let mode = 'test', providerCalls = 0, sends = 0, storedCode = '';
+test('a live worker without a test recipient does not attempt test mail or contact the provider', async () => {
+  let providerCalls = 0, sends = 0;
   const db = { isInitialized: true, query: async (sql: string, params: unknown[] = []) => {
-    if (sql.startsWith('SELECT')) return sql.includes("status = 'queued'") && params[0] === mode ? [{ id: 'notification', orderId: 'order', mode, stage: 'confirmed' }] : [];
-    if (sql.includes('SET error_code = ?')) { storedCode = String(params[0]); return { affectedRows: 1 }; }
+    if (sql.startsWith('SELECT')) { if (sql.includes("status = 'queued'")) assert.deepEqual(params, ['live', 0]); return []; }
     if (sql.includes("SET status = 'uncertain'") || sql.includes("SET status = 'unconfirmed'")) return { affectedRows: 0 };
     throw Error('An ineligible message must not be claimed or sent');
   } } as unknown as DataSource;
   const provider = { domains: async () => { providerCalls++; throw new EmailSendError('provider_http_401'); }, send: async () => { sends++; return 'mail'; } } as unknown as EnvialoSimple;
   const worker = new EmailWorker(db, config, provider);
   await worker.tick(); assert.equal(providerCalls, 0); assert.equal(sends, 0);
-  mode = 'live'; await worker.tick(); assert.equal(providerCalls, 1); assert.equal(sends, 0); assert.equal(storedCode, 'provider_http_401');
-  assert.match(orderEmailsView('order', [], [{ ...queued, mode, errorCode: storedCode }], 'live')[0].error, /HTTP 401/);
 });

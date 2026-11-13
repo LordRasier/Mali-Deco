@@ -4,6 +4,8 @@ import { EmailSendError, EnvialoSimple } from './envialosimple';
 const explanations: Record<string, string> = {
   provider_http_401: 'EnvíaloSimple rechazó la autenticación (HTTP 401). Revisá la clave API transaccional cargada en este proceso.',
   provider_http_403: 'EnvíaloSimple denegó el acceso (HTTP 403). Revisá los permisos y la cuenta asociados a la clave API.',
+  provider_http_404: 'La API no encontró el recurso solicitado (HTTP 404). Este resultado no confirma ni invalida la clave.',
+  provider_domains_unavailable: 'La consulta GET /domains respondió 404. No se pudo comprobar el dominio; esto no demuestra que /mail/send esté fallando. No se envió ningún correo.',
   provider_http_429: 'EnvíaloSimple limitó las consultas (HTTP 429). Esperá antes de volver a verificar.',
   provider_dns_error: 'El servidor no pudo resolver api.envialosimple.email. Revisá su conexión y DNS.',
   provider_tls_error: 'Falló la validación del certificado HTTPS. Revisá la fecha del servidor y los certificados de confianza.',
@@ -32,7 +34,7 @@ export async function verifyEmailSender(config: EmailConfig, provider: Pick<Envi
     const code = domain ? 'provider_domain_unverified' : 'provider_domain_missing';
     return { ok: false, code, message: emailProviderExplanation(code) };
   } catch (error) {
-    const candidate = error instanceof EmailSendError ? error.code : '';
+    const candidate = error instanceof EmailSendError ? error.code === 'provider_http_404' ? 'provider_domains_unavailable' : error.code : '';
     const code = Object.hasOwn(explanations, candidate) || /^provider_http_[1-5]\d{2}$/.test(candidate) ? candidate : 'provider_unavailable';
     return { ok: false, code, message: emailProviderExplanation(code) };
   }

@@ -10,6 +10,7 @@ const statuses: Record<string, [string, string]> = {
 };
 const reasons: Record<string, string> = {
   test_order_in_live: 'Pedido de prueba: no se envía a clientes.', invalid_recipient: 'El destinatario no es válido para un envío real.',
+  test_queue_order_mismatch: 'El aviso es de prueba, pero el pedido pertenece a ventas reales. Requiere revisión.',
   order_no_longer_eligible: 'Se canceló el pedido o el pago dejó de estar aprobado.', message_preparation_failed: 'No se pudo preparar el contenido del correo.',
   provider_response_unknown: 'La API no confirmó el resultado. Revisar EnvíaloSimple antes de reenviar.',
   provider_receipt_unknown: 'La API respondió sin un identificador reconocible. Revisar EnvíaloSimple.',
@@ -18,14 +19,15 @@ const reasons: Record<string, string> = {
   provider_rejected: 'El servidor de destino rechazó el correo.', provider_failed: 'El proveedor no pudo entregar el correo.', provider_excluded: 'El destinatario está excluido en EnvíaloSimple.',
   provider_unavailable: 'No se pudo validar la conexión con EnvíaloSimple. El aviso sigue en cola.',
 };
-export function orderEmailsView(id: string, events: readonly EmailEvent[], deliveries: readonly EmailDelivery[] = [], activeMode?: EmailMode) {
+export function orderEmailsView(id: string, events: readonly EmailEvent[], deliveries: readonly EmailDelivery[] = [], activeMode?: EmailMode, testOrderCanSend = false) {
   return emailStages(events).map(({ kind, label, occurredAt }) => {
     const delivery = deliveries.find(d => d.stage === kind);
     const status = delivery?.status || 'not_sent';
-    const paused = status === 'queued' && activeMode !== undefined && activeMode !== delivery?.mode;
+    const testAllowed = activeMode === 'live' && delivery?.mode === 'test' && testOrderCanSend;
+    const paused = status === 'queued' && activeMode !== undefined && activeMode !== delivery?.mode && !testAllowed;
     const [statusLabel, statusTone] = paused ? ['Pausado', 'warning'] : statuses[status] || ['No enviado', occurredAt ? 'warning' : 'neutral'];
     const pauseReason = activeMode === 'disabled' ? 'El envío de correos está desactivado.'
-      : delivery?.mode === 'test' ? 'Pausado por cambio de modo: este aviso pertenece a pruebas y el proceso está en live. No se envía automáticamente a clientes.'
+      : delivery?.mode === 'test' ? 'Este aviso pertenece a pruebas. En live solo se procesan pedidos de prueba con ORDER_EMAIL_TEST_TO configurado.'
       : 'Pausado por cambio de modo: este aviso pertenece a ventas reales y el proceso está en test.';
     const deliveryError = delivery?.errorCode ? reasons[delivery.errorCode] || emailProviderExplanation(delivery.errorCode) : '';
     const date = status === 'sent' || status === 'failed' || status === 'uncertain' || status === 'skipped' || status === 'unconfirmed'

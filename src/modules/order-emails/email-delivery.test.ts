@@ -37,7 +37,7 @@ test('only relevant transitions enqueue immutable safe order data, with a unique
   assert.doesNotMatch(String(writes[0][5]), /PRIVATE|document|phone|testLocal/);
   assert.ok(queries.filter(q => q.startsWith('INSERT')).every(q => /ON DUPLICATE KEY UPDATE id = id/.test(q)));
   await enqueueOrderEmails(tx, saved.id, change, { ...config, mode: 'live' });
-  assert.equal(writes[2][4], 'skipped'); assert.equal(writes[2][6], 'test_order_in_live');
+  assert.equal(writes[2][3], 'test'); assert.equal(writes[2][4], 'queued'); assert.equal(writes[2][6], null);
 });
 
 test('outbox migration enforces database deduplication and retains delivery evidence on rollback', async () => {

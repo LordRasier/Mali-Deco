@@ -20,11 +20,13 @@ export async function enqueueOrderEmails(tx: Pick<EntityManager, 'query'>, id: s
       pickupPoint: saved.shipping.pickupPoint ? { description: saved.shipping.pickupPoint.description } : null },
     lines: saved.lines.map((l: EmailOrder['lines'][number]) => ({ name: l.name, variantName: l.variantName, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, lineTotalMinor: l.lineTotalMinor })),
     trackingNumber: row.trackingNumber || '', trackingUrl: row.trackingUrl || '' };
-  const skipped = config.mode === 'live' && saved.testLocal === true;
+  // A test purchase remains a test notification even while real sales use live email.
+  // Without ORDER_EMAIL_TEST_TO it waits in the test queue; never fall back to the buyer.
+  const mode = saved.testLocal === true ? 'test' : config.mode;
   for (const stage of stages) await tx.query(`INSERT INTO order_email_outbox
     (id, order_id, stage, mode, status, payload, error_code, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(6), UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE id = id`,
-  [randomUUID(), id, stage.kind, config.mode, skipped ? 'skipped' : 'queued', JSON.stringify(order), skipped ? 'test_order_in_live' : null]);
+  [randomUUID(), id, stage.kind, mode, 'queued', JSON.stringify(order), null]);
 }
 
 export type EmailDelivery = { stage: string; status: string; mode: string; recipient: string; providerId: string | null; providerStatus: string | null;

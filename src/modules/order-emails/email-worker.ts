@@ -5,14 +5,12 @@ import { emailConfig, emailReadiness, validEmail, type EmailConfig } from './ema
 import { emailLabels, type EmailKind, type EmailOrder } from './order-email-model';
 import { buildEmailMessage } from './email-message';
 import { EmailSendError, EnvialoSimple } from './envialosimple';
-import { verifyEmailSender } from './email-diagnostics';
 
 type QueueRow = { id: string; orderId: string; stage: EmailKind; mode: string; payload: string };
 export class EmailWorker implements OnModuleInit, OnModuleDestroy {
   private timer?: ReturnType<typeof setInterval>;
   private running = false;
   private warned = false;
-  private verifiedUntil = 0;
   private readonly logger = new Logger('OrderEmails');
   constructor(private readonly db?: DataSource, private readonly config: EmailConfig = emailConfig(),
     private readonly provider = new EnvialoSimple(config), private readonly build = buildEmailMessage) {}
@@ -31,7 +29,9 @@ export class EmailWorker implements OnModuleInit, OnModuleDestroy {
         WHERE status = 'sending' AND updated_at < DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 5 MINUTE)`);
       await this.reconcile();
       const [row]: QueueRow[] = await this.db.query(`SELECT id, order_id AS orderId, stage, mode, payload FROM order_email_outbox
-        WHERE status = 'queued' AND mode = ? ORDER BY created_at, id LIMIT 1`, [this.config.mode]);
+        WHERE status = 'queued' AND (mode = ? OR (? = 1 AND mode = 'test' AND EXISTS
+          (SELECT 1 FROM checkout_orders o WHERE o.id = order_email_outbox.order_id AND o.payment_mode = 'test')))
+        ORDER BY created_at, id LIMIT 1`, [this.config.mode, this.config.mode === 'live' && !!this.config.testTo ? 1 : 0]);
       if (row) await this.dispatch(row);
       this.warned = false;
     } catch {
@@ -44,29 +44,25 @@ export class EmailWorker implements OnModuleInit, OnModuleDestroy {
   }
   private async dispatch(row: QueueRow) {
     const db = this.db!;
-    // Verification failure happens before claiming/sending; queued messages remain safe to retry.
-    if (Date.now() >= this.verifiedUntil) {
-      const check = await verifyEmailSender(this.config, this.provider);
-      if (!check.ok) {
-        await db.query(`UPDATE order_email_outbox SET error_code = ?, updated_at = UTC_TIMESTAMP(6) WHERE id = ? AND status = 'queued'`, [check.code, row.id]);
-        throw Error('Email provider unavailable');
-      }
-      this.verifiedUntil = Date.now() + 300000;
-    }
+    if (row.mode !== this.config.mode && !(this.config.mode === 'live' && row.mode === 'test' && this.config.testTo)) return;
+    const sendingConfig: EmailConfig = row.mode === 'test' ? { ...this.config, mode: 'test' } : this.config;
+    // /mail/send authenticates the key and authorizes the sender domain itself.
+    // Do not gate delivery on the separate /domains diagnostic, which may return 404.
     const claimed = await db.query(`UPDATE order_email_outbox SET status = 'sending', error_code = NULL, attempts = attempts + 1, updated_at = UTC_TIMESTAMP(6)
-      WHERE id = ? AND status = 'queued' AND mode = ?`, [row.id, this.config.mode]);
+      WHERE id = ? AND status = 'queued' AND mode = ?`, [row.id, row.mode]);
     if (Number(claimed.affectedRows) !== 1) return;
     let message;
     try {
       const order = JSON.parse(row.payload) as EmailOrder;
-      const recipient = this.config.mode === 'test' ? this.config.testTo : order.contact.email;
+      const recipient = sendingConfig.mode === 'test' ? sendingConfig.testTo : order.contact.email;
       if (!validEmail(recipient) || /@(?:.*\.)?(?:example\.(?:com|org|net|test|invalid)|[^@]+\.(?:test|invalid|localhost))$/i.test(recipient)) {
         await this.finish(row.id, 'failed', 'invalid_recipient'); return;
       }
       const [current] = await db.query('SELECT payment_status AS paymentStatus, order_status AS orderStatus, payment_mode AS paymentMode FROM checkout_orders WHERE id = ?', [row.orderId]);
-      if (this.config.mode === 'live' && current?.paymentMode === 'test') { await this.finish(row.id, 'skipped', 'test_order_in_live'); return; }
+      if (sendingConfig.mode === 'live' && current?.paymentMode === 'test') { await this.finish(row.id, 'skipped', 'test_order_in_live'); return; }
+      if (this.config.mode === 'live' && row.mode === 'test' && current?.paymentMode !== 'test') { await this.finish(row.id, 'skipped', 'test_queue_order_mismatch'); return; }
       if (!current || current.paymentStatus !== 'approved' || current.orderStatus === 'cancelled') { await this.finish(row.id, 'skipped', 'order_no_longer_eligible'); return; }
-      message = await this.build(db, this.config, row.id, row.stage, order, recipient);
+      message = await this.build(db, sendingConfig, row.id, row.stage, order, recipient);
       await db.query(`UPDATE order_email_outbox SET recipient = ? WHERE id = ? AND status = 'sending'`, [recipient, row.id]);
     } catch { await this.finish(row.id, 'failed', 'message_preparation_failed'); return; }
     let providerId: string;
@@ -86,7 +82,9 @@ export class EmailWorker implements OnModuleInit, OnModuleDestroy {
   private async reconcile() {
     const db = this.db!;
     const rows: { id: string; orderId: string; stage: EmailKind; providerId: string }[] = await db.query(`SELECT id, order_id AS orderId, stage, provider_id AS providerId FROM order_email_outbox
-      WHERE status = 'accepted' AND mode = ? AND next_check_at <= UTC_TIMESTAMP(6) ORDER BY next_check_at LIMIT 5`, [this.config.mode]);
+      WHERE status = 'accepted' AND (mode = ? OR (? = 1 AND mode = 'test' AND EXISTS
+        (SELECT 1 FROM checkout_orders o WHERE o.id = order_email_outbox.order_id AND o.payment_mode = 'test')))
+      AND next_check_at <= UTC_TIMESTAMP(6) ORDER BY next_check_at LIMIT 5`, [this.config.mode, this.config.mode === 'live' ? 1 : 0]);
     for (const row of rows) {
       // Claim this poll, and bound retries to the provider's retention window (24h on the free plan).
       await db.query('UPDATE order_email_outbox SET next_check_at = DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 2 MINUTE) WHERE id = ?', [row.id]);

@@ -35,8 +35,6 @@ async function main() {
     await db.initialize();
     await db.query('SELECT id FROM order_email_outbox LIMIT 0');
     const provider = new EnvialoSimple(config);
-    const domain = config.from.split('@')[1].toLowerCase();
-    if (!(await provider.domains()).some(d => d.name.toLowerCase() === domain && d.status === 'verified')) throw Error('El dominio del remitente no está verificado.');
     const batch: Batch = { id: randomUUID(), to: config.testTo, from: config.from, createdAt: new Date().toISOString(),
       items: emailKinds.map(stage => ({ stage, id: randomUUID(), status: 'prepared' })) };
     const order = { ...exampleEmailOrder, id: batch.id, createdAt: batch.createdAt, contact: { name: 'Kellian', email: config.testTo }, trackingUrl: '' };

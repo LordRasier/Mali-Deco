@@ -36,5 +36,6 @@ export function emailReadiness(config = emailConfig()) {
 export function publicEmailConfig(config = emailConfig()) {
   const unavailable = emailReadiness(config);
   return { mode: config.mode, label: config.mode === 'test' ? 'Pruebas' : config.mode === 'live' ? 'EnvíaloSimple' : 'Desactivado',
-    notice: unavailable ? unavailable + '.' : (config.mode === 'test' ? `Los correos de prueba se envían a ${config.testTo}.` : `Envíos automáticos desde ${config.from}.`), from: config.from };
+    notice: unavailable ? unavailable + '.' : (config.mode === 'test' ? `Los correos de prueba se envían a ${config.testTo}.` : `Envíos automáticos desde ${config.from}.` + (config.testTo ? ` Los pedidos de prueba se envían a ${config.testTo} con asunto [PRUEBA].` : ' Configurá ORDER_EMAIL_TEST_TO para recibir los correos de pedidos de prueba.')),
+    testOrdersEnabled: config.mode !== 'disabled' && !!config.testTo, from: config.from };
 }
