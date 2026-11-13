@@ -51,6 +51,10 @@ export class OrderManagement {
       if (!row) throw new NotFoundException('Order not found');
       if (Number(row.revision) !== b.revision) throw new ConflictException({ code: 'ORDER_CHANGED', message: 'Order changed; reload before saving' });
       const previous = statuses(row);
+      if (row.orderStatus === 'cancelled' && b.orderStatus !== 'cancelled') {
+        const [reservation] = await tx.query('SELECT state FROM checkout_order_reservations WHERE order_id = ?', [id]);
+        if (reservation?.state === 'released') throw new ConflictException('La reserva venció y el stock fue liberado. Creá una nueva compra.');
+      }
       if (row.paymentMode === 'test' && (b.orderStatus === 'completed' || b.shippingStatus !== 'not_started' || b.trackingNumber || b.trackingUrl)) throw new BadRequestException('Los pedidos de prueba no permiten despachos ni seguimiento real.');
       validateTransition(previous, b);
       if (b.paymentStatus !== previous.paymentStatus) {

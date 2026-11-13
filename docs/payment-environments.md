@@ -73,7 +73,7 @@ El proxy debe preservar el Host público configurado. Sesiones y mutaciones exig
 
 `node scripts/test-payment-environments.mjs --local-root` ejecuta HTTP real contra MariaDB local en un esquema temporal propio que se elimina al terminar. Todas las respuestas de Mercado Pago y cotización son sintéticas. Prueba permisos/CSRF, secretos ausentes, aislamiento de stock, cotización obsoleta, pedidos concurrentes, selección de credenciales, callbacks por entorno, desactivación y preferencias inciertas.
 
-La validación local no certifica la configuración de Nginx, TLS, credenciales ni entrega efectiva de webhooks de producción. La reserva de stock real sigue ocurriendo al crear el pedido y no tiene liberación automática por abandono; esta política de inventario preexistente requiere seguimiento operativo. Tampoco se incorporaron reembolsos automáticos ni creación de envíos en la API del transportista.
+La validación local no certifica la configuración de Nginx, TLS, credenciales ni entrega efectiva de webhooks de producción. Los pedidos nuevos cuentan con reservas y liberación condicionada a evidencia de ausencia de pago activo; los históricos requieren seguimiento operativo. Consultar [pago, recuperación y reservas](checkout-pay-and-recovery.md), incluida su migración obligatoria. No se incorporaron reembolsos automáticos ni creación de envíos en la API del transportista.
 
 ### Revisión del 12 de noviembre de 2026
 

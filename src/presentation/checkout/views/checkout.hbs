@@ -19,7 +19,7 @@
   <main id="main" class="cart-page checkout-page" tabindex="-1" data-cart-mode="api" data-product-base="{{routes.product}}">
     <nav class="breadcrumb" aria-label="Ubicación"><a href="{{routes.home}}">Inicio</a> / <a href="{{routes.cart}}">Carrito</a> / Checkout</nav>
     {{#if ready}}
-    <section data-checkout-root data-new-orders-enabled="{{newOrdersEnabled}}" data-test-mode="{{testMode}}">
+    <section data-checkout-root data-new-orders-enabled="{{newOrdersEnabled}}" data-payment-available="{{paymentAvailable}}" data-test-mode="{{testMode}}">
       <header class="checkout-heading">
         <div><p class="eyebrow">UN PASO MÁS</p><h1>Finalizar pedido</h1><p>Completa tus datos y revisa la entrega.</p></div>
         {{#if testMode}}<span class="checkout-test-badge">PRUEBA · Solo propietario</span>{{/if}}
@@ -38,15 +38,15 @@
         <button type="button" data-checkout-retry hidden>Reintentar el mismo intento</button>
         <button type="button" data-checkout-check hidden>Consultar estado del intento</button>
       </div>
-      <section data-checkout-order tabindex="-1" class="checkout-section checkout-success" role="status" hidden>
-        <p class="eyebrow" data-checkout-order-mode>PEDIDO REGISTRADO</p><h2>Pedido recibido</h2><p data-checkout-order-reference></p><p data-checkout-order-total></p>
+      <section data-checkout-order tabindex="-1" class="checkout-section" role="status" hidden>
+        <p class="eyebrow" data-checkout-order-mode>ESTADO DEL PAGO</p><h2 data-checkout-order-title>Continuar tu compra</h2><p data-checkout-order-reference></p><p data-checkout-order-total></p>
         <p data-checkout-order-payment-status>Puedes consultarlo en administración. Pago no iniciado. Envío no iniciado.</p>
         <div data-checkout-payment-box hidden>
           <h3>Mercado Pago</h3>
-          <p data-checkout-payment-help>El pago se abre en otra pestaña. Conservá esta página para consultar el resultado.</p>
+          <p data-checkout-payment-help>Completá el pago en Mercado Pago. Al volver verificaremos el resultado.</p>
           <p data-checkout-payment-message aria-live="polite"></p>
-          <button type="button" data-checkout-payment-start>Preparar pago</button>
-          <a data-checkout-payment-link target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" hidden>Abrir Mercado Pago</a>
+          <button type="button" data-checkout-payment-start>Reintentar pago</button>
+          <a data-checkout-payment-link rel="noopener noreferrer" referrerpolicy="no-referrer" hidden>Continuar en Mercado Pago</a>
           <button type="button" data-checkout-payment-refresh>Consultar pago</button>
         </div>
         <button type="button" data-checkout-new-order hidden>Iniciar otra compra</button>
@@ -94,19 +94,19 @@
               <section class="checkout-section" aria-labelledby="checkout-payment-title">
                 <h2 id="checkout-payment-title"><span class="checkout-step" aria-hidden="true">03</span> Método de pago</h2>
                 <label class="checkout-payment" for="checkout-mercadopago">
-                  <input id="checkout-mercadopago" type="radio" data-checkout-payment disabled aria-describedby="checkout-payment-notice">
-                  <span><strong>Mercado Pago</strong><small>{{#if paymentAvailable}}Disponible después de registrar el pedido{{else}}Próximamente disponible{{/if}}</small></span>
+                  <input id="checkout-mercadopago" type="radio" name="payment-method" value="mercadopago" data-checkout-payment {{#if paymentAvailable}}checked{{else}}disabled{{/if}} aria-describedby="checkout-payment-notice">
+                  <span><strong>Mercado Pago</strong><small>{{#if paymentAvailable}}Elegí tarjeta, cuotas u otros medios en Mercado Pago{{else}}No disponible en este momento{{/if}}</small></span>
                   <span class="checkout-payment-badge">{{#if paymentAvailable}}{{#if testMode}}Prueba{{else}}Disponible{{/if}}{{else}}No activo{{/if}}</span>
                 </label>
-                <p id="checkout-payment-notice" class="checkout-helper">{{#if paymentAvailable}}Después de registrar el pedido podrás pagar con Mercado Pago. {{#if testMode}}Usá solo cuentas y tarjetas de prueba.{{/if}}{{else}}Los nuevos pagos no están disponibles en este momento.{{/if}}</p>
+                <p id="checkout-payment-notice" class="checkout-helper">{{#if paymentAvailable}}Al pulsar Pagar guardarás tu pedido y continuarás en Mercado Pago. {{#if testMode}}Usá solo cuentas y tarjetas de prueba.{{/if}}{{else}}Los nuevos pagos no están disponibles en este momento.{{/if}}</p>
               </section>
             </div>
             <aside class="checkout-section checkout-summary" aria-labelledby="checkout-summary-title">
-              <div class="checkout-summary-heading"><h2 id="checkout-summary-title">Tu pedido</h2><a href="{{routes.cart}}">Editar carrito</a></div><ul data-checkout-lines class="checkout-summary-lines"></ul>
+              <div class="checkout-summary-heading"><h2 id="checkout-summary-title">Tu pedido</h2><a href="{{routes.cart}}" data-checkout-edit-cart>Editar carrito</a></div><ul data-checkout-lines class="checkout-summary-lines"></ul><ul data-checkout-confirmed-lines class="checkout-summary-lines" hidden></ul>
               <p data-checkout-unresolved role="status" hidden>Esperá a que se verifique el carrito.</p>
               <dl data-checkout-totals></dl><p data-checkout-shipping-total></p><p data-checkout-grand-total></p><p data-checkout-total-message></p>
               <p class="checkout-helper">Revisa tus datos y el total antes de confirmar. El envío es una estimación.</p>
-              <button type="submit" data-checkout-submit disabled>Registrar pedido</button>
+              <button type="submit" data-checkout-submit disabled>Pagar</button>
               {{#if testMode}}<p class="checkout-submit-note">Pedido de prueba · Sin despacho real</p>{{/if}}
             </aside>
           </div>

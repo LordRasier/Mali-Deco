@@ -5,18 +5,19 @@ export type DestinationResult = {status:'resolved';candidate:Destination}|{statu
 export type ShippingOption = { id: string; carrierName: string; serviceName: string; serviceCode: string; amountMinor: string; currency: string; pickupPoints?: { id: number; description: string }[] };
 export type Quote = { quoteId: string; validUntil: number; options: ShippingOption[] };
 export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'partially_refunded' | 'in_mediation' | 'refunded' | 'charged_back';
-export type PaymentResult = { status: 'disabled' | 'not_started' | 'uncertain' | PaymentStatus } | { status: 'ready'; url: string };
-export type Order = { id: string; orderStatus: 'received' | 'confirmed' | 'completed' | 'cancelled'; paymentStatus: 'not_started' | PaymentStatus; fulfillmentStatus: 'not_started' | 'preparing' | 'ready'; shippingStatus:'not_started' | 'ready_to_ship' | 'shipped' | 'delivered' | 'returned'; testLocal: boolean; currency: string; totalMinor: string; paymentAvailable?: true };
+export type PaymentResult = { status: 'disabled' | 'not_started' | 'uncertain' | 'expired' | 'review' | PaymentStatus } | { status: 'ready'; url: string };
+export type CheckoutDetails = { contact: OrderInput['contact']; address: OrderInput['address']; postalCode: string; delivery: string; lines: { name: string; variantName: string; quantity: number; unitPriceMinor: string; lineTotalMinor: string; currency: string }[] };
+export type Order = { id: string; orderStatus: 'received' | 'confirmed' | 'completed' | 'cancelled'; paymentStatus: 'not_started' | PaymentStatus; fulfillmentStatus: 'not_started' | 'preparing' | 'ready'; shippingStatus:'not_started' | 'ready_to_ship' | 'shipped' | 'delivered' | 'returned'; testLocal: boolean; currency: string; totalMinor: string; paymentAvailable?: true; checkout?: CheckoutDetails };
 export type OrderInput = { quoteId: string; optionId: string; pickupPointId: number | null; contact: { name: string; email: string; phone: string; document?: string }; address: { street: string; number: string; unit: string } };
 export class CheckoutError extends Error { constructor(public status: number, public code?: string) { super(`Checkout request failed (${status})`); } }
 async function post(url: string, body: unknown, headers: Record<string, string> = {}, signal?: AbortSignal): Promise<unknown> {
   const response = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body), signal });
   if (!response.ok) {
     let code: string | undefined;
-    if (response.status === 409 || response.status === 403 || response.status === 400) {
+    {
       try {
         const body: unknown = await response.json();
-        if (body && typeof body === 'object' && !Array.isArray(body) && 'code' in body && (body.code === 'STOCK_UNAVAILABLE' || body.code === 'QUOTE_CHANGED' || body.code === 'INVALID_DESTINATION' || body.code === 'CHECKOUT_SESSION_INVALID' || body.code === 'CHECKOUT_SESSION_CONFLICT')) code = body.code;
+        if (body && typeof body === 'object' && !Array.isArray(body) && 'code' in body && (body.code === 'PAYMENT_NOT_STARTED' || body.code === 'STOCK_UNAVAILABLE' || body.code === 'QUOTE_CHANGED' || body.code === 'INVALID_DESTINATION' || body.code === 'CHECKOUT_SESSION_INVALID' || body.code === 'CHECKOUT_SESSION_CONFLICT')) code = body.code;
       } catch { /* An invalid response is not a confirmed rejection. */ }
     }
     throw new CheckoutError(response.status, code);
@@ -28,7 +29,16 @@ const text = (v:unknown, max=255): v is string => typeof v === 'string' && v.len
 const money = (v:unknown): v is string => typeof v === 'string' && /^(0|[1-9]\d{0,15})$/.test(v) && BigInt(v) <= BigInt(Number.MAX_SAFE_INTEGER);
 const currency = (v:unknown): v is string => typeof v === 'string' && /^[A-Z]{3}$/.test(v);
 const token = (v:unknown): string => { if (!object(v) || !text(v.csrf,1024)) throw new Error('Invalid session response'); return v.csrf; };
-function validateOrder(v:unknown): Order { if (!object(v) || !text(v.id,128) || !['received', 'confirmed', 'completed', 'cancelled'].includes(String(v.orderStatus)) || !['not_started', 'pending', 'approved', 'rejected', 'cancelled', 'partially_refunded', 'in_mediation', 'refunded', 'charged_back'].includes(String(v.paymentStatus)) || (v.paymentAvailable !== undefined && v.paymentAvailable !== true) || !['not_started', 'preparing', 'ready'].includes(String(v.fulfillmentStatus)) || !['not_started', 'ready_to_ship', 'shipped', 'delivered', 'returned'].includes(String(v.shippingStatus)) || typeof v.testLocal !== 'boolean' || !currency(v.currency) || !money(v.totalMinor)) throw new Error('Invalid order response'); return v as Order; }
+function validateOrder(v:unknown): Order { if (!object(v) || !text(v.id,128) || !['received', 'confirmed', 'completed', 'cancelled'].includes(String(v.orderStatus)) || !['not_started', 'pending', 'approved', 'rejected', 'cancelled', 'partially_refunded', 'in_mediation', 'refunded', 'charged_back'].includes(String(v.paymentStatus)) || (v.paymentAvailable !== undefined && v.paymentAvailable !== true) || !['not_started', 'preparing', 'ready'].includes(String(v.fulfillmentStatus)) || !['not_started', 'ready_to_ship', 'shipped', 'delivered', 'returned'].includes(String(v.shippingStatus)) || typeof v.testLocal !== 'boolean' || !currency(v.currency) || !money(v.totalMinor)) throw new Error('Invalid order response');
+  if (v.checkout !== undefined) validateDetails(v.checkout);
+  return v as Order;
+}
+function validateDetails(value: unknown): asserts value is CheckoutDetails {
+  if (!object(value) || !object(value.contact) || !object(value.address) || typeof value.postalCode !== 'string' || !/^\d{4}$/.test(value.postalCode) || !text(value.delivery, 520)) throw Error('Invalid checkout details');
+  const c = value.contact, a = value.address;
+  if (!text(c.name) || !text(c.email,254) || !text(c.phone,64) || (c.document !== undefined && (typeof c.document !== 'string' || c.document.length > 32)) || !text(a.street) || !text(a.number,64) || typeof a.unit !== 'string' || a.unit.length > 255) throw Error('Invalid checkout details');
+  if (!Array.isArray(value.lines) || !value.lines.length || value.lines.length > 100 || value.lines.some(line => !object(line) || !text(line.name) || !text(line.variantName) || !Number.isSafeInteger(line.quantity) || Number(line.quantity) < 1 || Number(line.quantity) > 999 || !money(line.unitPriceMinor) || !money(line.lineTotalMinor) || !currency(line.currency))) throw Error('Invalid checkout items');
+}
 
 function validatePayment(value: unknown): PaymentResult {
   if (!object(value)) throw Error('Invalid payment response');
@@ -37,7 +47,7 @@ function validatePayment(value: unknown): PaymentResult {
     if (url.origin !== 'https://www.mercadopago.com.ar' || url.username || url.password || url.pathname !== '/checkout/v1/redirect' || url.hash || [...url.searchParams.keys()].length !== 1 || !/^[a-zA-Z0-9-]{1,128}$/.test(url.searchParams.get('pref_id') ?? '')) throw Error('Invalid payment redirect');
     return { status: 'ready', url: url.href };
   }
-  if (typeof value.status !== 'string' || !['disabled', 'not_started', 'uncertain', 'pending', 'approved', 'rejected', 'cancelled', 'partially_refunded', 'in_mediation', 'refunded', 'charged_back'].includes(value.status)) throw Error('Invalid payment response');
+  if (typeof value.status !== 'string' || !['disabled', 'not_started', 'uncertain', 'expired', 'review', 'pending', 'approved', 'rejected', 'cancelled', 'partially_refunded', 'in_mediation', 'refunded', 'charged_back'].includes(value.status)) throw Error('Invalid payment response');
   return { status: value.status as Exclude<PaymentResult['status'], 'ready'> };
 }
 export async function startPayment(csrf: string, orderId: string): Promise<PaymentResult> { return validatePayment(await post('/api/v1/checkout/payments/start', { orderId }, { 'X-CSRF-Token': csrf })); }

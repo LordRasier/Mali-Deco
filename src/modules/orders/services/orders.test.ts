@@ -47,13 +47,14 @@ test('optional DNI/CUIL preserves old request hashes and accepts only bounded nu
   assert.throws(() => parseOrder({ ...body, contact: { ...body.contact, document: '12345678', extra: true } }), { status: 400 });
 });
 
-test('document is saved in the order, included in replay identity and excluded from recovery responses', async () => {
+test('document is saved in replay identity and restored only for the owning session', async () => {
   const f = fake(), input = { ...body, contact: { ...body.contact, document: '00123456' } };
   const first = await f.service.create('session', key, input);
   assert.equal((first.contact as { document?: string }).document, '00123456');
   assert.deepEqual(await f.service.create('session', key, input), first);
   await assert.rejects(f.service.create('session', key, { ...input, contact: { ...input.contact, document: '12345678' } }), { status: 409 });
-  assert.doesNotMatch(JSON.stringify(await f.service.findAttempt('session', key)), /00123456|document/);
+  assert.match(JSON.stringify(await f.service.findAttempt('session', key)), /00123456/);
+  assert.doesNotMatch(JSON.stringify(await f.service.findAttempt('other', key)), /00123456|document/);
 });
 function fake(salePriceMinor?: string) {
   let stored: { quoteId: unknown; keyHash: unknown; bodyHash: unknown; snapshot: unknown; orderStatus: string; paymentStatus: string; fulfillmentStatus: string; shippingStatus: string } | undefined; let sessionAvailable = true; let quoteAvailable = true; let catalog = { ...row }; let inserts = 0;
@@ -116,11 +117,12 @@ test('guard delegates authentication and limits roles', async () => {
 });
 
 
-test('attempt lookup is scoped to a live session and contains no personal data', async () => {
+test('attempt lookup restores checkout details only within the original live session', async () => {
   const f = fake(); assert.deepEqual(await f.service.findAttempt('session', key), { status: 'unknown' });
   await f.service.create('session', key, body);
   const found = await f.service.findAttempt('session', key);
-  assert.equal(found.status, 'completed'); assert.equal(JSON.stringify(found).includes('example.com'), false);
+  assert.equal(found.status, 'completed');
+  if (found.status === 'completed') { assert.deepEqual(found.order.checkout.contact, body.contact); assert.deepEqual(found.order.checkout.address, body.address); }
   assert.deepEqual(await f.service.findAttempt('other', key), { status: 'unknown' });
   await assert.rejects(() => f.service.create('other', key, body), { status: 409 }); assert.equal(f.inserts(), 1);
   f.expireSession(); await assert.rejects(() => f.service.create('session', key, body), { status: 409 });

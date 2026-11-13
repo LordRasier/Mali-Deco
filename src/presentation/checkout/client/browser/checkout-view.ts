@@ -8,7 +8,7 @@ import { pairKey } from '../../../shared/cart/cart-resolution';
 import { bulkWarnings } from '../../../shared/cart/inventory';
 
 type Action = 'setContact' | 'setAddress' | 'placeOrder' | 'requestQuote' | 'findDestination' | 'setPostalCode' | 'selectDestination' | 'selectOption' | 'selectPoint' | 'retryAttempt' | 'checkPending' | 'discardSession';
-type Actions = { [K in Action]: (...args: Parameters<CheckoutStore[K]>) => unknown } & { changeQuantity?(productId: string, variantId: string, difference: number | null): unknown; startPayment?(): unknown; refreshPayment?(): unknown; startNewOrder?(): boolean };
+type Actions = { [K in Action]: (...args: Parameters<CheckoutStore[K]>) => unknown } & { selectPayment?(method: 'mercadopago' | ''): unknown; changeQuantity?(productId: string, variantId: string, difference: number | null): unknown; startPayment?(): unknown; refreshPayment?(): unknown; startNewOrder?(): boolean };
 
 /** Update stable form controls in place. Only read-only lists and option memberships are replaced. */
 export function createCheckoutView(root: HTMLElement, recoveryAvailable = checkoutRecoveryAvailable) {
@@ -16,6 +16,7 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
   const listeners: (() => void)[] = [], radioListeners: (() => void)[] = [];
   let actions: Actions | undefined, optionKey = '', candidateKey = '', pointKey = '', totalsKey = '', focused = 0, focusedOrder = '';
   let focusedPayment = 0;
+  let confirmedLinesKey = '';
   const rows = new Map<string, ReturnType<typeof checkoutLine>>();
   let warningNode: HTMLElement | undefined;
   const node = <T extends HTMLElement = HTMLElement>(name: string): T => {
@@ -60,11 +61,14 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
   function bind(next: Actions) {
     if (actions) throw new Error('Checkout view already bound');
     actions = next;
+    const method = root.querySelector<HTMLInputElement>('[data-checkout-payment]');
+    if (method) listen(method, 'change', () => actions?.selectPayment?.(method.checked ? 'mercadopago' : ''));
     listen(button('new-order'), 'click', () => { if (!button('new-order').disabled && actions?.startNewOrder?.()) { resetDraft(); input('name').focus(); } });
     listen(button('payment-start'), 'click', () => { if (!button('payment-start').disabled) actions?.startPayment?.(); });
     listen(button('payment-refresh'), 'click', () => { if (!button('payment-refresh').disabled) actions?.refreshPayment?.(); });
     for (const name of ['name', 'email', 'phone', 'document']) listen(input(name), 'input', () => { actions?.setContact(contact()); });
     for (const name of ['street', 'number', 'unit']) listen(input(name), 'input', () => { actions?.setAddress(address()); });
+    listen(node('form'), 'change', () => { actions?.setContact(contact()); actions?.setAddress(address()); });
     listen(input('postal'), 'input', () => { actions?.setPostalCode(input('postal').value); });
     listen(node('candidates'), 'change', () => { actions?.selectDestination(node<HTMLSelectElement>('candidates').value); });
     listen(node('point'), 'change', () => { actions?.selectPoint(node<HTMLSelectElement>('point').value); });
@@ -91,7 +95,8 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
     for (const [name, value] of Object.entries({ ...state.contact, ...state.address })) renderValue(name, value);
     renderValue('postal', shipping.postalCode);
     node<HTMLFieldSetElement>('fields').disabled = locked;
-    node('form').hidden = !!state.order || !cart.ready || !cart.items.length;
+    const paid = state.order?.paymentStatus === 'approved' && state.order.orderStatus !== 'cancelled' && state.payment?.status !== 'review';
+    node('form').hidden = state.order ? paid || !state.order.paymentAvailable : !cart.ready || !cart.items.length;
     node('loading').hidden = !!state.order || cart.ready;
     node('empty').hidden = !!state.order || !cart.ready || !!cart.items.length;
     node('error-box').hidden = !state.error; node('error').textContent = state.error;
@@ -104,6 +109,7 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
     node('reset-box').hidden = !showReset; button('reset').hidden = !showReset || !recoveryAvailable();
     button('reset').disabled = state.quoteBusy; node('reset-unavailable').hidden = !showReset || recoveryAvailable();
     node('order').hidden = !state.order;
+    node('order').className = paid ? 'checkout-section checkout-success' : 'checkout-section';
     node('order-reference').textContent = state.order ? `Referencia: ${state.order.id}` : '';
     node('order-total').textContent = state.order ? `Total: ${formatPrice(BigInt(state.order.totalMinor), state.order.currency)}` : '';
     const paymentStatus = state.payment?.status ?? state.order?.paymentStatus ?? 'not_started';
@@ -112,11 +118,18 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
     node('order-payment-status').textContent = `Pago: ${labels[state.order?.paymentStatus ?? 'not_started']}. Envío: ${shippingLabels[state.order?.shippingStatus ?? 'not_started']}.`;
     node('payment-box').hidden = !state.order?.paymentAvailable;
     const orderMode = root.querySelector<HTMLElement>('[data-checkout-order-mode]');
-    if (orderMode) orderMode.textContent = state.order?.testLocal ? 'PEDIDO DE PRUEBA' : 'PEDIDO REGISTRADO';
+    if (orderMode) orderMode.textContent = state.order?.testLocal ? 'PEDIDO DE PRUEBA' : 'ESTADO DEL PAGO';
+    const orderTitle = root.querySelector<HTMLElement>('[data-checkout-order-title]');
+    if (orderTitle) orderTitle.textContent = paid ? state.order?.orderStatus === 'cancelled' ? 'Pago recibido; pedido en revisión' : 'Pago aprobado' : paymentStatus === 'pending' ? 'Pago pendiente de confirmación' : paymentStatus === 'expired' ? 'La reserva venció' : 'Continuar tu compra';
     const paymentHelp = root.querySelector<HTMLElement>('[data-checkout-payment-help]');
-    if (paymentHelp) paymentHelp.textContent = state.order?.testLocal ? 'Usá únicamente cuentas y tarjetas de prueba. Conservá esta página para consultar el resultado.' : 'El pago se abre en otra pestaña. Conservá esta página para consultar el resultado.';
-    node('payment-message').textContent = paymentStatus === 'uncertain' ? 'Inicio de pago incierto. No crees otro pedido ni otro pago. Consulta el resultado o solicita revisión al administrador.' : paymentStatus === 'ready' ? 'Pago preparado. Abrir o volver desde Mercado Pago no confirma el pago; consulta el resultado aquí.' : paymentStatus === 'disabled' ? 'El pago no está disponible.' : paymentStatus === 'not_started' ? 'El pedido está registrado; el pago aún no se inició.' : `Resultado verificado por el servidor: ${labels[paymentStatus] ?? 'No disponible'}.`;
-    button('payment-start').hidden = paymentStatus !== 'not_started';
+    if (paymentHelp) paymentHelp.textContent = state.order?.testLocal ? 'Usá únicamente cuentas y tarjetas de prueba.' : 'Al volver de Mercado Pago verificaremos el resultado de tu pago.';
+    node('payment-message').textContent = paymentStatus === 'uncertain' ? 'El resultado es incierto. Consultá el estado antes de volver a pagar; conservamos tu pedido.' : paymentStatus === 'ready' ? 'Tu pedido está guardado. Podés continuar el pago en Mercado Pago.' : paymentStatus === 'expired' ? 'La reserva venció. Iniciá otra compra para actualizar precios, envío y disponibilidad.' : paymentStatus === 'disabled' ? 'El pago no está disponible.' : paymentStatus === 'not_started' ? 'Tus datos están guardados. Podés reintentar el pago con este pedido.' : paymentStatus === 'rejected' || paymentStatus === 'cancelled' ? 'El pago no se completó. Podés reintentar con este mismo pedido.' : `Resultado verificado por el servidor: ${labels[paymentStatus] ?? 'No disponible'}.`;
+    button('payment-start').hidden = !['not_started', 'rejected', 'cancelled'].includes(paymentStatus) || state.order?.orderStatus === 'cancelled';
+    if (paymentStatus === 'review') {
+      if (orderTitle) orderTitle.textContent = 'Necesitamos revisar tu pago';
+      node('order-payment-status').textContent = 'Hay un movimiento de pago sobre un pedido cancelado.';
+      node('payment-message').textContent = 'Contactá a la tienda con esta referencia para resolverlo. No vuelvas a pagar este pedido.';
+    }
     button('payment-start').disabled = state.sending;
     button('payment-refresh').disabled = state.sending;
     const link = node<HTMLAnchorElement>('payment-link');
@@ -135,7 +148,7 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
       too_many: 'Hay demasiadas localidades para este código postal.', unavailable: 'La consulta de localidades no está disponible. Intentá nuevamente.',
       needs_lookup: 'Volvé a buscar la localidad para continuar.', loading: 'Buscando localidades…',
     };
-    node('destination-message').textContent = messages[shipping.lookup.status] ?? '';
+    node('destination-message').textContent = state.order?.checkout?.delivery ?? messages[shipping.lookup.status] ?? '';
     const deliveryDisabled = locked || cart.unresolved;
     input('postal').disabled = deliveryDisabled; node<HTMLSelectElement>('candidates').disabled = deliveryDisabled;
     // Keep explicit lookup reachable after eventless autofill; ShippingSession validates before HTTP.
@@ -175,7 +188,7 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
     if (removedFocus) { if (rows.size) rows.values().next().value?.focus(); else node('empty').focus(); }
     if (!warningNode) { warningNode = element('p'); warningNode.className = 'checkout-bulk-warning'; warningNode.setAttribute('role', 'status'); node('lines').after(warningNode); }
     warningNode.textContent = [cart.mutationError, cart.stockShortage ? 'La cantidad supera el stock disponible. Reduzca las unidades o elimine el artículo.' : '', ...bulkWarnings(cart.items).map(warning => warning.text)].filter(Boolean).join(' ');
-    warningNode.hidden = !warningNode.textContent;
+    warningNode.hidden = !!state.order || !warningNode.textContent;
     node('unresolved').hidden = !cart.unresolved;
     const nextTotals = JSON.stringify(Object.entries(cart.totals).map(([currency, value]) => [currency, value.toString()]).sort());
     if (nextTotals !== totalsKey) {
@@ -188,9 +201,26 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
     node('shipping-total').textContent = shippingIncluded ? `Entrega: ${formatPrice(BigInt(selected!.amountMinor), selected!.currency)}` : '';
     node('grand-total').textContent = shippingIncluded ? `Total estimado: ${formatPrice(cart.totals[selected!.currency] + BigInt(selected!.amountMinor), selected!.currency)}` : '';
     node('total-message').textContent = selected && !shippingIncluded && !cart.unresolved ? !pickupReady ? 'Elegí un punto de retiro para calcular el total.' : 'No se puede sumar el envío a los subtotales en distintas monedas.' : '';
-    button('submit').disabled = locked || !cart.ready || !cart.items.length || !shippingIncluded || !validQuote || state.quoteBusy;
-    button('submit').textContent = state.sending ? 'Enviando…' : root.dataset.testMode === 'true' ? 'Registrar pedido de prueba' : 'Registrar pedido';
-    if (root.dataset.newOrdersEnabled === 'false') { button('submit').disabled = true; button('quote').disabled = true; }
+    const method = root.querySelector<HTMLInputElement>('[data-checkout-payment]');
+    if (method) { method.checked = state.paymentMethod === 'mercadopago'; method.disabled = locked || root.dataset.paymentAvailable !== 'true'; }
+    const complete = [input('name').value, input('phone').value, input('street').value, input('number').value].every(v => !!v.trim()) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input('email').value) && (!input('document').value || /^(?:[0-9]{7,8}|[0-9]{11})$/.test(input('document').value));
+    button('submit').disabled = locked || !cart.ready || !cart.items.length || !shippingIncluded || !validQuote || state.quoteBusy || !complete || (!!method && state.paymentMethod !== 'mercadopago');
+    button('submit').hidden = !!state.order;
+    button('submit').textContent = state.sending ? 'Procesando…' : shippingIncluded ? `Pagar ${formatPrice(cart.totals[selected!.currency] + BigInt(selected!.amountMinor), selected!.currency)}` : 'Pagar';
+    if (root.dataset?.newOrdersEnabled === 'false' || root.dataset?.paymentAvailable === 'false') { button('submit').disabled = true; button('quote').disabled = true; }
+    const savedLines = root.querySelector<HTMLElement>('[data-checkout-confirmed-lines]'), editCart = root.querySelector<HTMLElement>('[data-checkout-edit-cart]');
+    if (editCart) editCart.hidden = !!state.order;
+    if (savedLines) {
+      savedLines.hidden = !state.order?.checkout;
+      const key = JSON.stringify(state.order?.checkout?.lines);
+      if (key !== confirmedLinesKey) { confirmedLinesKey = key; savedLines.replaceChildren(...(state.order?.checkout?.lines ?? []).map(line => element('li', `${line.quantity} × ${line.name} · ${line.variantName} — ${formatPrice(BigInt(line.lineTotalMinor), line.currency)}`))); }
+    }
+    node('lines').hidden = !!state.order;
+    if (state.order) {
+      node('totals').hidden = true; node('unresolved').hidden = true; node('shipping-total').textContent = state.order.checkout?.delivery ?? ''; node('total-message').textContent = '';
+      node('grand-total').textContent = `Total: ${formatPrice(BigInt(state.order.totalMinor), state.order.currency)}`;
+      node('expired').hidden = true; button('quote').hidden = true; node('options-box').hidden = true; node('point-box').hidden = true;
+    } else button('quote').hidden = false;
     if (state.focusRequest && state.focusRequest !== focused) {
       focused = state.focusRequest;
       if (state.error) node('error').focus(); else if (state.pending) node('pending').focus();

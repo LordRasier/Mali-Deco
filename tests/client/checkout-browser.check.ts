@@ -79,6 +79,11 @@ test('payment panel exposes prepared links and reports uncertain/verified result
   view.render({ ...state, payment: { status: 'uncertain' } }, shipping, cart);
   assert.equal(d.get('payment-link').hidden, true); assert.equal(d.get('payment-start').hidden, true);
   assert.match(d.get('payment-message').textContent, /incierto/);
+  assert.equal(d.get('form').hidden, false); assert.doesNotMatch(d.get('order').className, /checkout-success/);
+  view.render({ ...state, payment: { status: 'review' }, order: { ...state.order!, paymentStatus: 'approved' } }, shipping, cart);
+  assert.equal(d.get('form').hidden, false); assert.doesNotMatch(d.get('order').className, /checkout-success/);
+  assert.equal(d.get('new-order').hidden, true); assert.equal(d.get('payment-start').hidden, true);
+  assert.match(d.get('payment-message').textContent, /No vuelvas a pagar/);
   view.render({ ...state, payment: { status: 'approved' } }, shipping, cart);
   assert.match(d.get('payment-message').textContent, /verificado/); assert.equal(d.get('payment-link').hidden, true);
   view.dispose();
@@ -94,6 +99,8 @@ test('new purchase is explicit, unavailable for pending payments and resets the 
   assert.equal(d.get('new-order').hidden, true); assert.equal(d.get('new-order').disabled, true);
   d.get('new-order').dispatchEvent(new Event('click')); assert.equal(calls, 0);
   view.render({ ...state, order: { ...state.order!, paymentStatus: 'rejected' } }, shipping, cart);
+  assert.equal(d.get('new-order').hidden, true);
+  view.render({ ...state, payment: { status: 'expired' } }, shipping, cart);
   assert.equal(d.get('new-order').hidden, false);
   d.get('name').value = 'Private draft';
   d.get('new-order').dispatchEvent(new Event('click'));

@@ -1,6 +1,6 @@
 import { isIP } from 'node:net';
 
-export type PaymentOrder = { id: string; currency: string; totalMinor: string };
+export type PaymentOrder = { id: string; currency: string; totalMinor: string; paymentExpiresAt?: Date | string | null };
 export type ReconciledPayment = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'partially_refunded' | 'in_mediation' | 'refunded' | 'charged_back';
 export type PaymentConfig = { token: string; sellerId: string; returnUrl: string; notificationUrl?: string; mode?: 'test' | 'production' };
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -60,14 +60,25 @@ export class MercadoPagoTestProvider {
   }
   async start(order: PaymentOrder): Promise<{ preferenceId: string; url: string }> {
     const amount = this.amount(order);
+    const expiresAt = order.paymentExpiresAt ? new Date(order.paymentExpiresAt).getTime() : undefined;
+    if (expiresAt !== undefined && (!Number.isFinite(expiresAt) || expiresAt <= Date.now())) throw Error('Expired payment reservation');
     const value = await this.json('https://api.mercadopago.com/checkout/preferences', {
       items: [{ id: order.id, title: this.config.mode === 'production' ? 'Pedido de la tienda' : 'Pedido de prueba', quantity: 1, currency_id: 'ARS', unit_price: amount }],
       external_reference: order.id,
+      auto_return: 'approved',
+      ...(expiresAt === undefined ? {} : { expires: true, expiration_date_from: new Date().toISOString(), expiration_date_to: new Date(expiresAt).toISOString() }),
       ...(this.config.notificationUrl ? { notification_url: this.config.notificationUrl } : {}),
       back_urls: { success: this.config.returnUrl, pending: this.config.returnUrl, failure: this.config.returnUrl },
     });
     if (!record(value) || typeof value.id !== 'string' || !/^[a-zA-Z0-9-]{1,128}$/.test(value.id) || identity(value.collector_id) !== this.config.sellerId || value.external_reference !== order.id) throw Error('Invalid preference response');
     return { preferenceId: value.id, url: checkoutUrl(value.init_point, value.id) };
+  }
+  async preferenceExpired(preferenceId: string, order: PaymentOrder, deadline: number): Promise<boolean> {
+    if (!/^[a-zA-Z0-9-]{1,128}$/.test(preferenceId) || !Number.isFinite(deadline)) throw Error('Invalid preference');
+    const value = await this.json(`https://api.mercadopago.com/checkout/preferences/${preferenceId}`);
+    if (!record(value) || value.id !== preferenceId || identity(value.collector_id) !== this.sellerId || value.external_reference !== order.id) throw Error('Untrusted preference');
+    const end = typeof value.expiration_date_to === 'string' ? Date.parse(value.expiration_date_to) : NaN;
+    return value.preference_expired === true && Number.isFinite(end) && end <= deadline && end <= Date.now();
   }
   async notificationOrder(paymentId: string): Promise<string> {
     if (!this.verified || !identity(paymentId)) throw Error('Invalid payment notification');

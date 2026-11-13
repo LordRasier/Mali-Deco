@@ -19,6 +19,7 @@ import { CheckoutQuoteController } from '../../src/modules/checkout/http/checkou
 import { CheckoutOrderController } from '../../src/modules/checkout/http/checkout-order.controller';
 import { OrdersService } from '../../src/modules/orders/services/orders.service';
 import { OrderManagement } from '../../src/modules/orders/services/order-management';
+import { OrderReservationWorker } from '../../src/modules/checkout/services/order-reservations';
 import { IdentityService } from '../../src/modules/identity/services/identity-service';
 import type { IdentityStore, StoredSession } from '../../src/modules/identity/persistence/identity-store';
 import { OwnerGuard } from '../../src/modules/identity/http/owner.guard';
@@ -32,12 +33,20 @@ test('payment environments with real isolated MariaDB and HTTP, synthetic provid
   const db = new StrictDataSource({ type: 'mariadb', host: connection.host, port: connection.port, username: connection.user, password: connection.password, database, timezone: 'Z', synchronize: false, migrations: [resolve(__dirname, '../../src/infrastructure/database/migrations/*.ts')], extra: { connectionLimit: 8 } });
   const origin = 'https://store.example.test', env = { NODE_ENV: 'production', PUBLIC_SITE_URL: origin, MERCADOPAGO_ACCESS_TOKEN: 'live-fixture', MERCADOPAGO_SELLER_ID: '123', MERCADOPAGO_WEBHOOK_SECRET: 'live-secret-fixture', MERCADOPAGO_TEST_ACCESS_TOKEN: 'test-fixture', MERCADOPAGO_TEST_SELLER_ID: '456', MERCADOPAGO_TEST_WEBHOOK_SECRET: 'test-secret-fixture' };
   const paymentPosts: { id: string; live: boolean }[] = [], approved = new Set<string>(), uncertain = new Set<string>();
+  const paymentStates = new Map<string, string | null>(), expiredPreferences = new Set<string>(), providerFailures = new Set<string>();
   const registry = new PaymentRegistry(env, async (url, init) => {
     const u = new URL(String(url)), live = new Headers(init?.headers).get('authorization') === 'Bearer live-fixture', seller = live ? 123 : 456;
     if (u.pathname === '/users/me') return Response.json({ id: seller, site_id: 'MLA', tags: live ? [] : ['test_user'] });
     if (u.pathname === '/checkout/preferences') { const body = JSON.parse(String(init?.body)), id = body.external_reference; paymentPosts.push({ id, live }); if (uncertain.has(id)) throw Error('Synthetic lost response'); return Response.json({ id: seller + '-' + id, collector_id: seller, external_reference: id, init_point: `https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=${seller}-${id}` }); }
+    if (u.pathname.startsWith('/checkout/preferences/')) {
+      const pref = u.pathname.split('/').pop()!, id = pref.slice(String(seller).length + 1);
+      if (providerFailures.has(id)) throw Error('Synthetic provider outage');
+      return Response.json({ id: pref, collector_id: seller, external_reference: id, preference_expired: expiredPreferences.has(id), expiration_date_to: new Date(0).toISOString() });
+    }
     const id = u.searchParams.get('external_reference') ?? paymentPosts.find(p => p.live === live)?.id;
-    const payment = { id: live ? 987 : 654, collector_id: seller, live_mode: live, external_reference: id, currency_id: 'ARS', transaction_amount: 2.5, status: approved.has(id!) ? 'approved' : 'pending' };
+    if (providerFailures.has(id!)) throw Error('Synthetic provider outage');
+    if (paymentStates.has(id!) && paymentStates.get(id!) === null) return Response.json({ results: [], paging: { total: 0 } });
+    const payment = { id: live ? 987 : 654, collector_id: seller, live_mode: live, external_reference: id, currency_id: 'ARS', transaction_amount: 2.5, status: approved.has(id!) ? 'approved' : paymentStates.get(id!) ?? 'pending' };
     return Response.json(u.pathname.endsWith('/search') ? { results: [payment], paging: { total: 1 } } : payment);
   });
   const token = issueSecret(), adminCsrf = issueSecret();
@@ -113,6 +122,57 @@ test('payment environments with real isolated MariaDB and HTTP, synthetic provid
     });
     await t.test('all settings changes keep an audit record without credentials', async () => {
       const events = await db.query('SELECT detail FROM payment_settings_events ORDER BY created_at'); assert.equal(events.length, 4); assert.doesNotMatch(JSON.stringify(events), /fixture|token|secret/);
+    });
+    const reservations = new OrderReservationWorker(db, registry);
+    const reserve = async () => { const r = await create(await quote()); assert.equal(r.status, 200); return (await r.json()).id as string; };
+    const age = (id: string, minutes = 46) => db.query('UPDATE checkout_order_reservations SET expires_at = DATE_SUB(UTC_TIMESTAMP(6), INTERVAL ? MINUTE) WHERE order_id = ?', [minutes - 30, id]);
+    const reservation = async (id: string) => (await db.query('SELECT state FROM checkout_order_reservations WHERE order_id = ?', [id]))[0].state;
+    await t.test('unstarted reservations expire, concurrent reviewers return stock exactly once and payment cannot restart', async () => {
+      const before = await stock(), id = await reserve(); assert.equal(await stock(), before - 2);
+      await reservations.review(id); assert.equal(await reservation(id), 'held');
+      await age(id, 31); await Promise.all([reservations.review(id), reservations.review(id)]);
+      assert.equal(await stock(), before); assert.equal(await reservation(id), 'released');
+      const pay = await request('/checkout/payments/start', { orderId: id }); assert.equal((await pay.json()).status, 'expired');
+      assert.equal(paymentPosts.some(p => p.id === id), false);
+    });
+    await t.test('expired preferences require grace, provider expiry proof and no active payment before release', async () => {
+      for (const status of [null, 'rejected', 'cancelled']) {
+        const before = await stock(), id = await reserve(); paymentStates.set(id, status);
+        assert.equal((await request('/checkout/payments/start', { orderId: id })).status, 200);
+        await age(id, 31); expiredPreferences.add(id); await reservations.review(id); assert.equal(await reservation(id), 'held');
+        await age(id); expiredPreferences.delete(id); await reservations.review(id); assert.equal(await reservation(id), 'held');
+        expiredPreferences.add(id); await reservations.review(id); await reservations.review(id);
+        assert.equal(await reservation(id), 'released'); assert.equal(await stock(), before);
+      }
+    });
+    await t.test('pending, approved, uncertain and unavailable provider results retain stock', async () => {
+      for (const outcome of ['pending', 'approved', 'uncertain', 'unavailable']) {
+        const before = await stock(), id = await reserve();
+        if (outcome === 'uncertain') uncertain.add(id);
+        await request('/checkout/payments/start', { orderId: id }); await age(id); expiredPreferences.add(id);
+        if (outcome === 'approved') approved.add(id);
+        if (outcome === 'unavailable') providerFailures.add(id);
+        if (outcome === 'unavailable') await assert.rejects(reservations.review(id)); else await reservations.review(id);
+        assert.equal(await stock(), before - 2); assert.equal(await reservation(id), 'held');
+        if (outcome === 'approved') { await reservations.review(id); assert.equal(await reservation(id), 'consumed'); }
+      }
+    });
+    await t.test('rejected payment retries reuse preference; pending and approved payments never expose another pay link', async () => {
+      const id = await reserve(); paymentStates.set(id, 'rejected');
+      await request('/checkout/payments/start', { orderId: id });
+      assert.equal((await (await request('/checkout/payments/start', { orderId: id })).json()).status, 'ready');
+      paymentStates.set(id, 'pending'); assert.equal((await (await request('/checkout/payments/start', { orderId: id })).json()).status, 'pending');
+      approved.add(id); assert.equal((await (await request('/checkout/payments/start', { orderId: id })).json()).status, 'approved');
+      assert.equal(paymentPosts.filter(p => p.id === id).length, 1);
+    });
+    await t.test('late approval after release remains cancelled for manual review and cannot reopen without reserving again', async () => {
+      const before = await stock(), id = await reserve(); paymentStates.set(id, null);
+      await request('/checkout/payments/start', { orderId: id }); await age(id); expiredPreferences.add(id); await reservations.review(id);
+      assert.equal(await stock(), before); paymentStates.delete(id); approved.add(id);
+      assert.equal((await (await request('/checkout/payments/refresh', { orderId: id })).json()).status, 'review');
+      const detail = await orders.detail(id); assert.equal(detail.orderStatus, 'cancelled');
+      await assert.rejects(new OrderManagement(db).update(id, { revision: detail.revision, orderStatus: 'received', paymentStatus: 'approved', fulfillmentStatus: 'not_started', shippingStatus: 'not_started', trackingNumber: '', trackingUrl: '', internalNote: '', reason: 'Fixture' }, 'owner'), { status: 409 });
+      await reservations.review(id); assert.equal(await stock(), before); assert.equal(await reservation(id), 'released');
     });
   } finally {
     await app.close(); if (db.isInitialized) await db.destroy();

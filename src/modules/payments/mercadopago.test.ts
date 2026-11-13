@@ -4,6 +4,29 @@ import { MercadoPagoTestProvider, paymentConfig } from './mercadopago';
 
 const env = { NODE_ENV: 'development', LOCAL_TEST_CHECKOUT_ENABLED: 'true', MERCADOPAGO_TEST_ENABLED: 'true', MERCADOPAGO_TEST_ACCESS_TOKEN: 'fixture-only', MERCADOPAGO_TEST_SELLER_ID: '123', MERCADOPAGO_TEST_RETURN_URL: 'https://owned.example.test/payment-return' };
 const order = { id: 'ca665af8-41b6-4ba4-bb75-54cf9c0f142e', currency: 'ARS', totalMinor: '12345' };
+
+test('preference validity is bounded by the reservation and return is requested for approved payments', async () => {
+  let posted: Record<string, unknown> = {};
+  const provider = new MercadoPagoTestProvider(paymentConfig(env)!, async (url, init) => {
+    if (String(url).endsWith('/users/me')) return Response.json({ id: 123, site_id: 'MLA', tags: ['test_user'] });
+    posted = JSON.parse(String(init?.body));
+    return Response.json({ id: '123-pref', collector_id: 123, external_reference: order.id, init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=123-pref' });
+  });
+  const deadline = new Date(Date.now() + 1800000); await provider.verifySeller(); await provider.start({ ...order, paymentExpiresAt: deadline });
+  assert.equal(posted.expires, true); assert.equal(posted.expiration_date_to, deadline.toISOString()); assert.equal(posted.auto_return, 'approved');
+  await assert.rejects(provider.start({ ...order, paymentExpiresAt: new Date(0) }));
+});
+
+test('expiry proof requires the matching collector, order, deadline and expired flag', async () => {
+  const deadline = Date.now() - 1000;
+  const valid = { id: '123-pref', collector_id: 123, external_reference: order.id, preference_expired: true, expiration_date_to: new Date(deadline).toISOString() };
+  for (const changes of [{}, { collector_id: 999 }, { external_reference: 'other' }, { id: 'wrong' }, { preference_expired: false }, { expiration_date_to: new Date(Date.now() + 60000).toISOString() }]) {
+    const provider = new MercadoPagoTestProvider(paymentConfig(env)!, async url => Response.json(String(url).endsWith('/users/me') ? { id: 123, site_id: 'MLA', tags: ['test_user'] } : { ...valid, ...changes }));
+    await provider.verifySeller();
+    if ('collector_id' in changes || 'external_reference' in changes || 'id' in changes) await assert.rejects(provider.preferenceExpired('123-pref', order, deadline));
+    else assert.equal(await provider.preferenceExpired('123-pref', order, deadline), !Object.keys(changes).length);
+  }
+});
 test('payment activation is explicit, development only and requires a public HTTPS return', () => {
   assert.equal(paymentConfig({}), null);
   for (const change of [{ NODE_ENV: 'production' }, { MERCADOPAGO_TEST_RETURN_URL: 'http://127.0.0.1:3000' }, { MERCADOPAGO_TEST_ACCESS_TOKEN: '' }, { MERCADOPAGO_TEST_ENABLED: 'false' }]) assert.equal(paymentConfig({ ...env, ...change }), null);

@@ -19,11 +19,12 @@ export type CheckoutSnapshot = {
   contact: OrderInput['contact']; address: OrderInput['address']; canRetry: boolean; locked: boolean;
   payment?: client.PaymentResult;
   paymentFocus?: number;
+  paymentMethod?: 'mercadopago' | '';
 };
 type Line = { productId: string; variantId: string; quantity: number };
 export const canStartNewOrder = (state: CheckoutSnapshot) => state.loaded && !state.sending && !!state.order
-  && state.payment?.status !== 'uncertain'
-  && (!state.order.paymentAvailable || ['approved', 'rejected', 'cancelled', 'partially_refunded', 'refunded', 'charged_back'].includes(state.order.paymentStatus));
+  && state.payment?.status !== 'uncertain' && state.payment?.status !== 'review'
+  && (!state.order.paymentAvailable || state.payment?.status === 'expired' || ['approved', 'partially_refunded', 'refunded', 'charged_back'].includes(state.order.paymentStatus));
 const pendingKey = 'checkout-local-pending-v1';
 const storageError = 'No está disponible el almacenamiento de sesión. No se puede iniciar un pedido de forma segura.';
 const browserRuntime: CheckoutRuntime = {
@@ -33,13 +34,14 @@ const browserRuntime: CheckoutRuntime = {
 
 /** Renderer-neutral owner. Start only after mounting; stop retains the opaque pending key,
  * but drops private retry data. Neither mounting nor restarting sends any order request. */
-export function createCheckoutStore(shipping: CheckoutShippingPort, options: { runtime?: CheckoutRuntime; transport?: CheckoutTransport } = {}) {
+export function createCheckoutStore(shipping: CheckoutShippingPort, options: { runtime?: CheckoutRuntime; transport?: CheckoutTransport; paymentEnabled?: boolean; recoverOnStart?: boolean; navigate?: (url: string) => void } = {}) {
   const runtime = options.runtime ?? browserRuntime, transport = options.transport ?? client;
   const listeners = new Set<() => void>();
   const serverSnapshot: CheckoutSnapshot = {
     quote: null, expired: false, option: '', point: '', quoteBusy: false, sending: false, error: '', invalidSession: false,
     order: null, pending: null, loaded: false, focusRequest: 0, contact: { name: '', email: '', phone: '', document: '' },
     address: { street: '', number: '', unit: '' }, canRetry: false, locked: false,
+    paymentMethod: options.paymentEnabled ? 'mercadopago' : '',
   };
   let state = serverSnapshot, active = false, disposed = false, generation = 0, revision = 0;
   let paymentFocus = 0;
@@ -166,6 +168,7 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
   }
   async function submit(input: OrderInput, key: string) {
     const epoch = generation, previousAttempt = !!attemptCsrf;
+    let pay = false;
     let started = previousAttempt;
     publish({ sending: true, error: '' });
     if (!current(epoch)) return;
@@ -178,6 +181,7 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
       if (!order.paymentAvailable) clearAttempt();
       else { attempt = null; attemptCsrf = null; }
       publish({ order, pending: order.paymentAvailable ? key : null, canRetry: false });
+      pay = !!options.paymentEnabled && !!order.paymentAvailable;
     } catch (cause) {
       if (!current(epoch)) return;
       const stock = !previousAttempt && cause instanceof client.CheckoutError && cause.status === 409 && cause.code === 'STOCK_UNAVAILABLE';
@@ -190,6 +194,7 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
         critical(stock ? 'La cantidad supera el stock disponible. Revise las cantidades y consulte el envío nuevamente.' : changedQuote ? 'La cotización cambió o venció. Consultá las opciones nuevamente.' : !started ? 'No pudimos iniciar la sesión. Intentá nuevamente.' : 'El pedido fue rechazado. Revisá los datos e intentá nuevamente.', { pending: null, canRetry: false });
       } else critical('No pudimos confirmar el resultado del pedido. No inicies otro: reintentá este mismo intento.');
     } finally { if (current(epoch)) publish({ sending: false }); }
+    if (pay && current(epoch)) await paymentAction('startPayment', true);
   }
   /** Recheck persistence before a new attempt or reset, including changes made by another view. */
   function pendingFromStorage() {
@@ -200,6 +205,7 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
     } catch { critical(storageError); return true; }
   }
   async function placeOrder() {
+    if (options.paymentEnabled && state.paymentMethod !== 'mercadopago') return;
     if (!active || !state.loaded || state.locked || state.quoteBusy || attempt || !cartReady || unresolved || !lines.length) return;
     const quote = state.quote;
     if (!quote || quoteCart !== cartKey || quoteDestination !== destinationKey() || !state.option) return;
@@ -223,6 +229,7 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
   async function checkPending() {
     if (!active || !state.pending || state.sending || resetting) return;
     const epoch = generation, key = state.pending;
+    let refresh = false;
     publish({ sending: true, error: '' });
     if (!current(epoch)) return;
     try {
@@ -233,11 +240,17 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
       if (result.status === 'completed') {
         if (!result.order.paymentAvailable) clearAttempt();
         publish({ order: result.order, pending: result.order.paymentAvailable ? key : null, canRetry: false });
+        if (result.order.checkout) {
+          publish({ contact: { ...result.order.checkout.contact }, address: { ...result.order.checkout.address } });
+          shipping.setPostalCode(result.order.checkout.postalCode);
+        }
+        refresh = !!options.recoverOnStart && !!result.order.paymentAvailable;
       }
       else critical('El resultado todavía no está disponible. El intento sigue pendiente; no inicies otro pedido.');
     } catch {
       if (current(epoch)) critical('No pudimos recuperar el estado con la sesión original. El intento sigue pendiente; consultá al administrador.');
     } finally { if (current(epoch)) publish({ sending: false }); }
+    if (refresh && current(epoch)) await paymentAction('refreshPayment');
   }
   async function discardSession() {
     if (!active || !state.loaded || !state.invalidSession || state.locked || attempt || state.quoteBusy || !transport.checkoutRecoveryAvailable()) return;
@@ -256,7 +269,7 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
       if (active) publish({ quoteBusy: false });
     }
   }
-  async function paymentAction(kind: 'startPayment' | 'refreshPayment') {
+  async function paymentAction(kind: 'startPayment' | 'refreshPayment', redirect = false) {
     if (!active || state.sending || !state.order?.paymentAvailable || !state.pending || !transport[kind]) return;
     const epoch = generation, order = state.order;
     publish({ sending: true, error: '' });
@@ -268,7 +281,14 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
       const status = payment.status;
       const paymentStatus = status === 'pending' || status === 'approved' || status === 'rejected' || status === 'cancelled' || status === 'partially_refunded' || status === 'in_mediation' || status === 'refunded' || status === 'charged_back' ? status : order.paymentStatus;
       publish({ payment, order: { ...order, paymentStatus }, ...(kind === 'startPayment' && status === 'ready' ? { paymentFocus: ++paymentFocus } : {}) });
-    } catch { if (current(epoch)) critical('No se pudo verificar el pago. Conserva este pedido y consulta nuevamente; no crees otro.', kind === 'startPayment' ? { payment: { status: 'uncertain' } } : {}); }
+      if (redirect && current(epoch) && payment.status === 'ready') {
+        try { options.navigate?.(payment.url); }
+        catch { critical('No pudimos abrir Mercado Pago. Podés continuar el pago con el enlace de este pedido.'); }
+      }
+    } catch (cause) { if (current(epoch)) {
+      const safe = kind === 'startPayment' && cause instanceof client.CheckoutError && cause.code === 'PAYMENT_NOT_STARTED';
+      critical(safe ? 'No pudimos preparar el pago. Tus datos están guardados; reintentá con este mismo pedido.' : 'No pudimos confirmar el estado del pago. Consultá el estado antes de volver a pagar.', kind === 'startPayment' ? { payment: { status: safe ? 'not_started' : 'uncertain' } } : {});
+    } }
     finally { if (current(epoch)) publish({ sending: false }); }
   }
   function startNewOrder() {
@@ -304,6 +324,7 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
     try { pending = runtime.storage().getItem(pendingKey) || pending; } catch { error = storageError; }
     publish({ loaded: true, pending, error, quoteBusy: resetting, focusRequest: pending || error ? state.focusRequest + 1 : state.focusRequest });
     restoreCartDelivery();
+    if (pending && options.recoverOnStart && current(epoch)) void checkPending();
     return () => { if (current(epoch)) stop(); };
   }
   const editable = () => active && !state.locked && !resetting;
@@ -312,7 +333,8 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
     getSnapshot: () => state, getServerSnapshot: () => serverSnapshot,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     syncCart, requestQuote, placeOrder, retryAttempt, checkPending, discardSession, beginCartEdit, endCartEdit, startNewOrder,
-    startPayment: () => paymentAction('startPayment'), refreshPayment: () => paymentAction('refreshPayment'),
+    startPayment: () => paymentAction('startPayment', true), refreshPayment: () => paymentAction('refreshPayment'),
+    selectPayment(method: 'mercadopago' | '') { if (editable() && options.paymentEnabled) publish({ paymentMethod: method }); },
     setContact(value: OrderInput['contact']) { if (editable()) publish({ contact: { ...value } }); },
     setAddress(value: OrderInput['address']) { if (editable()) publish({ address: { ...value } }); },
     selectOption(option: string) { if (editable()) publish({ option, point: '' }); },

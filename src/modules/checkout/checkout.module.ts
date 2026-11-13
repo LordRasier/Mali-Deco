@@ -12,11 +12,13 @@ import { PaymentController } from '../payments/payment-controller';
 import { PaymentsModule } from '../payments/payments.module';
 import { PaymentRegistry } from '../payments/payment-registry';
 import { PaymentWebhook, PaymentWebhookController } from '../payments/payment-webhook';
+import { OrderReservationWorker } from './services/order-reservations';
 
 @Module({
   imports: [ShippingModule, OrdersModule, PaymentsModule],
   controllers: [SessionController, CheckoutQuoteController, CheckoutOrderController, PaymentController, PaymentWebhookController],
   providers: [
+    { provide: OrderReservationWorker, useFactory: (registry: PaymentRegistry, db?: DataSource) => new OrderReservationWorker(db, registry), inject: [PaymentRegistry, { token: DataSource, optional: true }] },
     { provide: PaymentWebhook, useFactory: (registry: PaymentRegistry, db?: DataSource) => new PaymentWebhook(db, registry), inject: [PaymentRegistry, { token: DataSource, optional: true }] },
     { provide: PaymentService, useFactory: (registry: PaymentRegistry, db?: DataSource) => new PaymentService(db, registry), inject: [PaymentRegistry, { token: DataSource, optional: true }] },
     { provide: SessionService, useFactory: (db?: DataSource) => new SessionService(db, process.env, Date.now, true), inject: [{ token: DataSource, optional: true }] },

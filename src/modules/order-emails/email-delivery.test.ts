@@ -52,6 +52,13 @@ test('outbox migration enforces database deduplication and retains delivery evid
   assert.ok(!sql.some(q => q.startsWith('DROP')));
 });
 
+test('late approval on a cancelled order does not queue a purchase or dispatch promise', async () => {
+  const writes: string[] = [];
+  const tx = { query: async (sql: string) => { if (sql.startsWith('SELECT')) return [{ orderStatus: 'cancelled' }]; writes.push(sql); return []; } } as unknown as Pick<EntityManager, 'query'>;
+  await enqueueOrderEmails(tx, exampleEmailOrder.id, change, config);
+  assert.deepEqual(writes, []);
+});
+
 test('provider uses the official authenticated endpoint, refuses redirects and records a receipt', async () => {
   let call: { url: string; init?: RequestInit } | undefined;
   const provider = new EnvialoSimple(config, async (url, init) => { call = { url: String(url), init }; return Response.json({ id: 'mail_123' }); });

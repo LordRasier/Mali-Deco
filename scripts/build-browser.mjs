@@ -18,7 +18,8 @@ for (const [input, metadata] of Object.entries(result.metafile.inputs)) {
 for (const output of Object.values(result.metafile.outputs)) if (output.imports.length) throw new Error('Browser bundle must be self-contained');
 // Includes the shared material/property selectors on cards and product detail.
 // Includes sharing and the pure discount renderer/arithmetic (~1.2 KB additional); no SDKs or server dependencies.
-if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 108000) throw new Error('Unexpected browser output size');
+// Checkout now restores a server-owned draft and coordinates payment/return states (~3 KB above the previous ceiling).
+if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 112000) throw new Error('Unexpected browser output size');
 const file = result.outputFiles[0];
 if (/process\.env|sourceMappingURL|__webpack_require__/.test(file.text)) throw new Error('Unexpected runtime or environment dependency');
 const destination = resolve(root, 'src/presentation/cart/public/generated/cart.js');

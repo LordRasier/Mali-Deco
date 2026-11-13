@@ -11,7 +11,7 @@ type Options = {
 
 /** Shares the cart owners. A valid cart preference may refresh a quote; orders always require submission. */
 export function mountCheckout(root: HTMLElement, options: Options) {
-  const store = options.store ?? createCheckoutStore(options.shippingSession), view = createCheckoutView(root);
+  const store = options.store ?? createCheckoutStore(options.shippingSession, { paymentEnabled: root.dataset.paymentAvailable === 'true', recoverOnStart: true, navigate: url => window.location.assign(url) }), view = createCheckoutView(root);
   const lifecycle = options.lifecycle ?? window, subscriptions: (() => void)[] = [];
   let active = false, disposed = false, generation = 0, stopStore: (() => void) | undefined, wasLocked = false;
   const render = () => {

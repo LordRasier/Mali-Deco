@@ -32,7 +32,7 @@ export class PaymentWebhook {
       await provider.verifySeller();
       const id = await provider.notificationOrder(paymentId);
       return await this.db.transaction(async tx => {
-        const [order] = await tx.query(`SELECT id, currency, total_minor AS totalMinor, payment_status AS paymentStatus, payment_mode AS paymentMode, payment_seller_id AS sellerId FROM checkout_orders WHERE id = ? FOR UPDATE`, [id]);
+        const [order] = await tx.query(`SELECT id, currency, total_minor AS totalMinor, order_status AS orderStatus, payment_status AS paymentStatus, payment_mode AS paymentMode, payment_seller_id AS sellerId FROM checkout_orders WHERE id = ? FOR UPDATE`, [id]);
         if (!order) return { received: true };
         if (registry && (order.paymentMode !== mode || order.sellerId !== provider.sellerId)) return { received: true };
         const [start] = await tx.query('SELECT seller_id AS sellerId, payment_mode AS paymentMode FROM checkout_payment_starts WHERE order_id = ?', [id]);
@@ -41,7 +41,7 @@ export class PaymentWebhook {
         const next = await provider.reconcile({ ...order, totalMinor: String(order.totalMinor) });
         if (next && paymentCanAdvance(order.paymentStatus, next)) {
           await tx.query('UPDATE checkout_orders SET payment_status = ?, revision = revision + 1, updated_at = UTC_TIMESTAMP(6) WHERE id = ?', [next, id]);
-          await recordOrderEvent(tx, id, 'mercadopago', 'Mercado Pago', { paymentId, changes: { paymentStatus: { from: order.paymentStatus, to: next } } });
+          await recordOrderEvent(tx, id, 'mercadopago', 'Mercado Pago', { paymentId, ...(order.orderStatus === 'cancelled' ? { reason: 'Pago recibido sobre un pedido cancelado. Requiere revision antes de preparar o reembolsar.' } : {}), changes: { paymentStatus: { from: order.paymentStatus, to: next } } });
         }
         return { received: true };
       });

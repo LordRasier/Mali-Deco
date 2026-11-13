@@ -44,7 +44,9 @@
     "migration:content:local-root": "node --env-file=.env --import ./scripts/migration-local-root.mjs --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/content-data-source.ts",
     "migration:payments": "node --env-file=.env --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/payments-data-source.ts",
     "migration:payments:local-root": "node --env-file=.env --import ./scripts/migration-local-root.mjs --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/payments-data-source.ts",
-    "test:payments:environments": "node scripts/test-payment-environments.mjs"
+    "test:payments:environments": "node scripts/test-payment-environments.mjs",
+    "migration:checkout": "node --env-file=.env --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/checkout-data-source.ts",
+    "migration:checkout:local-root": "node --env-file=.env --import ./scripts/migration-local-root.mjs --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/checkout-data-source.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

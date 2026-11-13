@@ -38,6 +38,43 @@ test('an in-flight quantity mutation invalidates submission and retains delivery
 const quote: Quote = { quoteId: 'q', validUntil: 2000, options: [{ id: 'o', carrierName: 'C', serviceName: 'S', serviceCode: 'home', amountMinor: '100', currency: 'ARS' }] };
 const order: Order = { id: 'order', totalMinor: '100', currency: 'ARS', orderStatus: 'received', paymentStatus: 'not_started', fulfillmentStatus: 'not_started', shippingStatus: 'not_started', testLocal: true };
 
+test('one pay action creates once, starts once and navigates only after a prepared preference', async () => {
+  const navigations: string[] = [], response = deferred<Order>();
+  const url = 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=123-pref';
+  const f = fixture({ createOrder: () => response.promise, startPayment: async () => ({ status: 'ready', url }) }, { paymentEnabled: true, navigate: value => navigations.push(value) });
+  await f.ready(); f.store.selectPayment(''); await f.store.placeOrder();
+  assert.equal(f.calls.filter(c => c.name === 'createOrder').length, 0);
+  f.store.selectPayment('mercadopago');
+  const first = f.store.placeOrder(); await settled(); await f.store.placeOrder();
+  assert.equal(navigations.length, 0); response.resolve({ ...order, paymentAvailable: true }); await first;
+  assert.equal(f.calls.filter(c => c.name === 'createOrder').length, 1);
+  assert.equal(f.calls.filter(c => c.name === 'startPayment').length, 1);
+  assert.deepEqual(navigations, [url]); f.store.dispose();
+});
+
+test('preference failure keeps the same order and contact; safe retries never create another order', async () => {
+  let starts = 0;
+  const f = fixture({ createOrder: async () => ({ ...order, paymentAvailable: true }), startPayment: async () => { if (++starts === 1) throw new CheckoutError(503, 'PAYMENT_NOT_STARTED'); return { status: 'uncertain' }; } }, { paymentEnabled: true });
+  await f.ready(); f.store.setContact({ name: 'Buyer', email: 'buyer@example.test', phone: '000' }); await f.store.placeOrder();
+  assert.equal(f.store.getSnapshot().payment?.status, 'not_started'); assert.equal(f.store.getSnapshot().contact.name, 'Buyer');
+  assert.equal(f.store.startNewOrder(), false); await f.store.startPayment();
+  assert.equal(f.store.getSnapshot().payment?.status, 'uncertain'); assert.equal(f.store.startNewOrder(), false);
+  assert.equal(f.calls.filter(c => c.name === 'createOrder').length, 1); assert.deepEqual([...f.storage.values()], ['key']); f.store.dispose();
+});
+
+test('return/reload restores server checkout data and checks payment without creating or redirecting', async () => {
+  const checkout = { contact: { name: 'Recovered', email: 'buyer@example.test', phone: '000', document: '00123456' }, address: { street: 'Street', number: '2', unit: '' }, postalCode: '7600', delivery: 'Carrier / home', lines: [] };
+  for (const status of ['approved', 'pending', 'rejected', 'uncertain', 'expired'] as const) {
+    const navigations: string[] = [];
+    const f = fixture({ checkOrderAttempt: async () => ({ status: 'completed', order: { ...order, paymentAvailable: true, checkout } }), refreshPayment: async () => ({ status }) }, { paymentEnabled: true, recoverOnStart: true, navigate: url => navigations.push(url) });
+    f.storage.set('checkout-local-pending-v1', 'key'); f.start(); await settled();
+    assert.equal(f.store.getSnapshot().payment?.status, status); assert.deepEqual(f.store.getSnapshot().contact, checkout.contact);
+    assert.deepEqual(f.store.getSnapshot().address, checkout.address); assert.deepEqual(navigations, []);
+    assert.equal(f.calls.some(c => c.name === 'createOrder' || c.name === 'startPayment'), false);
+    assert.deepEqual([...f.storage.values()], ['key']); f.store.dispose();
+  }
+});
+
 test('payment-enabled orders retain only their opaque recovery key and payment start is explicit', async () => {
   let starts = 0;
   const f = fixture({ createOrder: async () => ({ ...order, paymentAvailable: true }), startPayment: async () => { starts++; return { status: 'uncertain' }; }, refreshPayment: async () => ({ status: 'approved' }) });
@@ -81,7 +118,7 @@ test('new purchase cannot discard a pending payment, uncertain outcome or anothe
   }
 });
 function deferred<T>() { let resolve!: (v: T) => void, reject!: (e: unknown) => void; const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
-function fixture(overrides: Partial<CheckoutTransport> = {}) {
+function fixture(overrides: Partial<CheckoutTransport> = {}, options: Pick<NonNullable<Parameters<typeof createCheckoutStore>[1]>, 'paymentEnabled' | 'recoverOnStart' | 'navigate'> = {}) {
   const calls: { name: string; args: unknown[] }[] = [], storage = new Map<string, string>(), listeners = new Set<() => void>(), timers = new Map<number, () => void>();
   let now = 1000, timer = 0;
   let shipping: ShippingSnapshot = { mode: 'api', cartKey: null, postalCode: '1000', candidateId: 'city', lookup: { status: 'resolved', candidates: [{ id: 'city', label: 'City' }] }, quote: null, selection: null, loading: false, error: false, expired: false, estimateEnabled: true };
@@ -106,7 +143,7 @@ function fixture(overrides: Partial<CheckoutTransport> = {}) {
     const fn = transport[key];
     (transport as Record<string, unknown>)[key] = (...args: unknown[]) => { calls.push({ name: key, args }); return (fn as (...values: unknown[]) => unknown)(...args); };
   }
-  const store = createCheckoutStore(port, { runtime, transport });
+  const store = createCheckoutStore(port, { runtime, transport, ...options });
   const start = () => { const stop = store.start(); store.syncCart(lines, false, true, 'ARS:100'); return stop; };
   const ready = async () => { start(); await store.requestQuote(); store.selectOption('o'); };
   return { store, start, ready, calls, storage, runtime, transport, change, timers, advance(value: number) { now = value; for (const [id, fn] of [...timers]) { timers.delete(id); fn(); } } };

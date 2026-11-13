@@ -8,7 +8,9 @@ export async function enqueueOrderEmails(tx: Pick<EntityManager, 'query'>, id: s
   if (config.mode === 'disabled') return;
   const stages = emailStages([{ detail: JSON.stringify(detail), createdAt: new Date() }]).filter(s => s.occurredAt);
   if (!stages.length) return;
-  const [row] = await tx.query('SELECT snapshot, tracking_number AS trackingNumber, tracking_url AS trackingUrl FROM checkout_orders WHERE id = ?', [id]);
+  const [row] = await tx.query('SELECT snapshot, order_status AS orderStatus, tracking_number AS trackingNumber, tracking_url AS trackingUrl FROM checkout_orders WHERE id = ?', [id]);
+  // Late approval after reservation release needs operator review, not a fulfillment promise.
+  if (row.orderStatus === 'cancelled') return;
   const saved = JSON.parse(row.snapshot).result;
   // Explicit projection keeps phone, document, payment credentials and internal notes out of the queue and provider.
   const order: EmailOrder = { id: saved.id, createdAt: saved.createdAt, currency: saved.currency, totalMinor: saved.totalMinor,

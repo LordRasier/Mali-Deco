@@ -24,12 +24,21 @@ function fixture(fail = false, pause = false) {
 test('disabled payment service does no database or provider work', async () => {
   assert.deepEqual(await new PaymentService().start('session', orderId), { status: 'disabled' });
 });
+
+test('seller verification failure is explicitly safe to retry before any preference POST', async () => {
+  const f = fixture(); f.provider.verifySeller = async () => { throw Error('offline'); };
+  await assert.rejects(f.service.start('session', orderId), (error: unknown) => {
+    assert.equal((error as { getResponse(): { code: string } }).getResponse().code, 'PAYMENT_NOT_STARTED'); return true;
+  });
+  assert.equal(f.starts(), 0); f.provider.verifySeller = async () => {};
+  assert.equal((await f.service.start('session', orderId)).status, 'ready'); assert.equal(f.starts(), 1);
+});
 test('payment ownership precedes provider calls and concurrent starts create once', async () => {
   const f = fixture();
   await assert.rejects(() => f.service.start('other', orderId)); assert.equal(f.starts(), 0);
   await Promise.all([f.service.start('session', orderId), f.service.start('session', orderId)]);
   assert.equal(f.starts(), 1);
-  assert.equal((await f.service.start('session', orderId)).status, 'ready');
+  assert.equal((await f.service.start('session', orderId)).status, 'approved');
 });
 test('a lost preference response stays uncertain across retries and does not create again', async () => {
   const f = fixture(true);

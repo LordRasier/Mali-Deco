@@ -7,6 +7,7 @@ import { stockUnavailable, validStock } from '../../catalog/models/inventory';
 import { statusColumns, statuses } from './order-state';
 import { listOrders, orderDetail } from './orders-query';
 import type { PaymentContext } from '../../payments/payment-registry';
+import { reserveOrder, type ReservedItem } from '../../checkout/services/order-reservations';
 
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const keyValid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
@@ -84,6 +85,7 @@ export class OrdersService {
       } else if (body.pickupPointId !== null) return conflict();
       if (!(['country','postalCode','city','state'] as const).every(k => text(q.destination[k], 255))) return conflict();
       const seen = new Set<string>(); let total = money(option.amountMinor); let units = 0;
+      const reserved: ReservedItem[] = [];
       const lines: { name: string; variantName: string; quantity: number; unitPriceMinor: string; lineTotalMinor: string; currency: string }[] = [];
       if (q.lines.some(line => !line || !id(line.productId) || !id(line.variantId))) return conflict();
       const sorted = [...q.lines].sort((a, b) => pair(a) < pair(b) ? -1 : pair(a) > pair(b) ? 1 : 0);
@@ -112,6 +114,7 @@ export class OrdersService {
           const result = await tx.query(`UPDATE product_variants SET stock_quantity = stock_quantity - ?
             WHERE id = ? AND product_id = ? AND supply_mode = 'stock' AND archived_at IS NULL AND stock_quantity >= ?`, [line.quantity, line.variantId, line.productId, line.quantity]);
           if (result.affectedRows !== 1) stockUnavailable();
+          if (payment?.mode === 'production') reserved.push({ productId: line.productId, variantId: line.variantId, quantity: line.quantity });
           }
         }
         const unit = money(line.priceMinor); const lineTotal = unit * BigInt(line.quantity); total += lineTotal;
@@ -124,6 +127,7 @@ export class OrdersService {
         destination: { country: q.destination.country, postalCode: q.destination.postalCode, city: q.destination.city, state: q.destination.state, ...body.address },
         shipping: { carrierName: option.carrierName, serviceName: option.serviceName, amountMinor: money(option.amountMinor).toString(), currency: option.currency, pickupPoint }, lines };
       await tx.query('INSERT INTO checkout_orders (id, session_id, quote_id, idempotency_key_hash, body_hash, created_at, currency, total_minor, snapshot, payment_mode, payment_seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [orderId, sessionId, body.quoteId, keyHash, bodyHash, new Date(createdAt), option.currency, total.toString(), JSON.stringify({ result, quote: q, selection: { optionId: body.optionId, pickupPointId: body.pickupPointId } }), payment?.mode ?? 'test', payment?.sellerId ?? null]);
+      if (payment) await reserveOrder(tx, orderId, reserved);
       return result;
     }));
   }
@@ -135,7 +139,8 @@ export class OrdersService {
       const rows = await tx.query(`SELECT snapshot, ${statusColumns} FROM checkout_orders WHERE session_id = ? AND idempotency_key_hash = ?`, [sessionId, hash(idempotencyKey)]);
       if (!rows.length) return { status: 'unknown' as const };
       const o = { ...JSON.parse(rows[0].snapshot).result, ...statuses(rows[0]) };
-      return { status: 'completed' as const, order: { id: o.id, orderStatus: o.orderStatus, paymentStatus: o.paymentStatus, fulfillmentStatus: o.fulfillmentStatus, shippingStatus: o.shippingStatus, testLocal: o.testLocal, currency: o.currency, totalMinor: o.totalMinor } };
+      return { status: 'completed' as const, order: { id: o.id, orderStatus: o.orderStatus, paymentStatus: o.paymentStatus, fulfillmentStatus: o.fulfillmentStatus, shippingStatus: o.shippingStatus, testLocal: o.testLocal, currency: o.currency, totalMinor: o.totalMinor,
+        checkout: { contact: o.contact, address: { street: o.destination.street, number: o.destination.number, unit: o.destination.unit }, postalCode: o.destination.postalCode, delivery: o.shipping.carrierName + ' · ' + o.shipping.serviceName, lines: o.lines } } };
     }));
   }
   async list(query: Record<string, unknown>) {

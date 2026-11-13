@@ -22,6 +22,6 @@ export class MvcCheckoutController {
   @Header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
   returned(@Res() response: { type(value: string): { send(body: string): void } }) {
     // Provider query parameters never confirm a payment. A same-site navigation restores Strict cookies.
-    response.type('html').send('<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Volver a la tienda</title><h1>Consultá el estado de tu pedido</h1><p>Volvé a la pestaña de tu compra y seleccioná Consultar pago. El servidor verificará el resultado con Mercado Pago.</p><a href="/checkout">Volver al checkout</a></html>');
+    response.type('html').send('<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=/checkout"><title>Volver a la tienda</title><h1>Estamos verificando tu pago</h1><p>Vas a volver al checkout para consultar el resultado.</p><a href="/checkout">Volver al checkout</a></html>');
   }
 }
