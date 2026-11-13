@@ -96,3 +96,18 @@ test('no payment result is not reported as a pending payment', async () => {
   const provider = new MercadoPagoTestProvider(paymentConfig(env)!, async url => Response.json(String(url).endsWith('/users/me') ? { id: 123, site_id: 'MLA', tags: ['test_user'] } : { results: [], paging: { total: 0 } }));
   await provider.verifySeller(); assert.equal(await provider.reconcile(order), null);
 });
+
+test('the reference belongs to the selected verified payment, not the latest rejected attempt', async () => {
+  const common = { live_mode: false, collector_id: 123, external_reference: order.id, currency_id: 'ARS', transaction_amount: 123.45 };
+  let results = [{ ...common, id: '999', status: 'rejected' }, { ...common, id: '9007199254740993', status: 'approved' }];
+  const provider = new MercadoPagoTestProvider(paymentConfig(env)!, async url => Response.json(String(url).endsWith('/users/me')
+    ? { id: 123, site_id: 'MLA', tags: ['test_user'] } : { results, paging: { total: results.length } }));
+  await provider.verifySeller();
+  assert.deepEqual(await provider.reconcileDetails(order), { status: 'approved', paymentId: '9007199254740993' });
+  results = [{ ...common, id: '999', status: 'rejected' }, { ...common, id: '888', status: 'pending' }];
+  assert.deepEqual(await provider.reconcileDetails(order), { status: 'pending', paymentId: '888' });
+  results = [{ ...common, id: '999', status: 'approved' }, { ...common, id: '888', status: 'approved' }];
+  await assert.rejects(provider.reconcileDetails(order), /Multiple monetary outcomes/);
+  results = [{ ...common, id: '999', status: 'approved', collector_id: 999 }];
+  await assert.rejects(provider.reconcileDetails(order), /Untrusted payment/);
+});

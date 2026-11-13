@@ -33,7 +33,9 @@ if (root) {
     const toggle = element('span', '', 'tracking-disclosure'), toggleLabel = element('span', 'Ver detalle'), chevron = element('span', '', 'tracking-chevron'); chevron.setAttribute('aria-hidden', 'true'); toggle.append(toggleLabel, chevron);
     summary.append(heading, timeline, toggle);
     const details = element('div', '', 'tracking-details'), grid = element('div', '', 'tracking-detail-grid'), payment = element('section'), delivery = element('section');
-    payment.append(element('h3', 'Pago y preparación'), element('p', 'Pago: ' + order.payment), element('p', 'Preparación: ' + order.fulfillment), element('p', 'Comprador: ' + order.customer), element('p', order.email));
+    payment.append(element('h3', 'Pago y preparación'), element('p', 'Pago: ' + order.payment));
+    if (order.paymentId) payment.append(element('p', 'N.º de operación de Mercado Pago: ' + order.paymentId));
+    payment.append(element('p', 'Preparación: ' + order.fulfillment), element('p', 'Comprador: ' + order.customer), element('p', order.email));
     delivery.append(element('h3', 'Entrega'), element('p', order.delivery.carrier + ' · ' + order.delivery.service), element('p', order.shippingStatus), element('p', order.delivery.pickup || order.delivery.address), element('p', order.delivery.city));
     if (order.trackingNumber) delivery.append(element('p', 'Seguimiento: ' + order.trackingNumber));
     if (order.trackingUrl) {

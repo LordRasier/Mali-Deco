@@ -16,25 +16,35 @@ test('webhook authenticates the query ID and rejects altered, missing or duplica
 });
 function fixture() {
   let status = 'pending', next: 'pending' | 'approved' | 'refunded' | 'charged_back' = 'approved', events = 0, reads = 0, owned = true, fail = false;
+  let savedPayment: { paymentId?: string } = {};
   const query = async (sql: string, params: unknown[]) => {
+    if (sql.includes('AS paymentId FROM checkout_orders')) return [savedPayment];
     if (sql.includes('FROM checkout_orders')) return [{ id, currency: 'ARS', totalMinor: '12345', paymentStatus: status }];
     if (sql.includes('FROM checkout_payment_starts')) return owned ? [{ sellerId: '123' }] : [];
     if (sql.startsWith('UPDATE checkout_orders')) { status = String(params[0]); return { affectedRows: 1 }; }
-    if (sql.startsWith('INSERT INTO order_events')) { events++; return []; }
+    if (sql.startsWith('INSERT INTO order_events')) { events++; savedPayment = JSON.parse(String(params[4])); return []; }
     throw Error(sql);
   };
   let queue = Promise.resolve();
   const db = { isInitialized: true, transaction: <T>(fn: (tx: {query: typeof query}) => Promise<T>) => { const result = queue.then(() => fn({ query })); queue = result.then(() => {}, () => {}); return result; } } as unknown as DataSource;
-  const service = new PaymentWebhook(db, { sellerId: '123', verifySeller: async () => { reads++; }, notificationOrder: async () => id, reconcile: async () => { if (fail) throw Error('upstream'); return next; } }, secret);
-  return { service, status: () => status, events: () => events, reads: () => reads, set: (s: typeof next) => { next = s; }, unown: () => { owned = false; }, fail: () => { fail = true; } };
+  const service = new PaymentWebhook(db, { sellerId: '123', verifySeller: async () => { reads++; }, notificationOrder: async () => id, reconcileDetails: async () => { if (fail) throw Error('upstream'); return { status: next, paymentId: '987' }; } }, secret);
+  return { service, status: () => status, events: () => events, reads: () => reads, saved: () => savedPayment, clearReference: () => { savedPayment = {}; }, set: (s: typeof next) => { next = s; }, unown: () => { owned = false; }, fail: () => { fail = true; } };
 }
 test('signed S2S confirms without a customer session, deduplicates retries and preserves terminal outcomes', async () => {
   const f = fixture(); const receive = () => f.service.receive('456', requestId, sign());
   await Promise.all([receive(), receive()]); assert.equal(f.status(), 'approved'); assert.equal(f.events(), 1);
+  assert.equal(f.saved().paymentId, '987'); // The reconciled payment wins over notification ID 456.
   f.set('pending'); await receive(); assert.equal(f.status(), 'approved'); assert.equal(f.events(), 1);
   f.set('refunded'); await receive(); assert.equal(f.status(), 'refunded'); assert.equal(f.events(), 2);
   f.set('approved'); await receive(); assert.equal(f.status(), 'refunded');
   f.set('charged_back'); await receive(); assert.equal(f.status(), 'charged_back');
+});
+
+test('a repeated webhook repairs a missing reference without repeating the payment transition', async () => {
+  const f = fixture(); await f.service.receive('456', requestId, sign()); f.clearReference();
+  await f.service.receive('456', requestId, sign());
+  assert.deepEqual(f.saved(), { paymentId: '987', paymentStatus: 'approved' }); assert.equal(f.status(), 'approved');
+  await f.service.receive('456', requestId, sign()); assert.equal(f.events(), 2);
 });
 test('untrusted webhook does no external work; unrelated payments do not update orders; provider failures request retry', async () => {
   const f = fixture(); await assert.rejects(f.service.receive('456', requestId, 'invalid'), { status: 401 }); assert.equal(f.reads(), 0);

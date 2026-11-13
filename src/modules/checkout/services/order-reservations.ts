@@ -59,10 +59,10 @@ export class OrderReservationWorker implements OnModuleInit, OnModuleDestroy {
         const provider = this.registry.get(order.mode, order.sellerId);
         await provider.verifySeller();
         if (!await provider.preferenceExpired(start.preferenceId, order, new Date(reservation.expiresAt).getTime())) return;
-        const next = await provider.reconcile({ ...order, totalMinor: String(order.totalMinor) });
+        const payment = await provider.reconcileDetails({ ...order, totalMinor: String(order.totalMinor) }), next = payment?.status ?? null;
         if (next && paymentCanAdvance(order.paymentStatus, next)) {
           await tx.query('UPDATE checkout_orders SET payment_status = ?, revision = revision + 1, updated_at = UTC_TIMESTAMP(6) WHERE id = ?', [next, id]);
-          await recordOrderEvent(tx, id, 'mercadopago', 'Mercado Pago', { changes: { paymentStatus: { from: order.paymentStatus, to: next } } });
+          await recordOrderEvent(tx, id, 'mercadopago', 'Mercado Pago', { paymentId: payment!.paymentId, changes: { paymentStatus: { from: order.paymentStatus, to: next } } });
         }
         if (next !== null && !['rejected', 'cancelled'].includes(next)) return;
       } else if (!['not_started', 'rejected', 'cancelled'].includes(order.paymentStatus)) return;

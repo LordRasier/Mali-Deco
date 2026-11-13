@@ -1,7 +1,7 @@
 import { statuses, type OrderState } from '../orders/services/order-state';
 
 export type TrackingRow = OrderState & { id: string; createdAt: Date | string; updatedAt: Date | string; currency: string; totalMinor: string;
-  paymentMode: string; snapshot: string; trackingNumber: string; trackingUrl: string };
+  paymentMode: string; snapshot: string; trackingNumber: string; trackingUrl: string; paymentId?: string | null };
 const labels: Record<string, string> = { received: 'Recibido', confirmed: 'Confirmado', completed: 'Completado', cancelled: 'Cancelado',
   not_started: 'No iniciado', pending: 'Pendiente', approved: 'Aprobado', rejected: 'Rechazado', partially_refunded: 'Reembolso parcial',
   in_mediation: 'En revisión', refunded: 'Reembolsado', charged_back: 'Contracargo', preparing: 'En preparación', ready: 'Preparado',
@@ -22,7 +22,8 @@ export function trackingOrder(row: TrackingRow) {
   return { id: row.id, reference: row.id.slice(0, 8).toUpperCase(), createdAt: new Date(row.createdAt).toISOString(),
     updatedAt: new Date(row.updatedAt || row.createdAt).toISOString(), currency: row.currency, totalMinor: String(row.totalMinor), test: row.paymentMode === 'test',
     status: exception || (reached === 0 ? 'Esperando el pago' : steps[reached].label), exception, steps,
-    payment: labels[state.paymentStatus], fulfillment: labels[state.fulfillmentStatus], shippingStatus: labels[state.shippingStatus],
+    payment: labels[state.paymentStatus], paymentId: typeof row.paymentId === 'string' && /^[1-9]\d{0,15}$/.test(row.paymentId) ? row.paymentId : '',
+    fulfillment: labels[state.fulfillmentStatus], shippingStatus: labels[state.shippingStatus],
     customer: text(saved.contact?.name), email: text(saved.contact?.email, 254),
     delivery: { carrier: text(saved.shipping?.carrierName), service: text(saved.shipping?.serviceName), amountMinor: String(saved.shipping?.amountMinor ?? '0'),
       address: [saved.destination?.street, saved.destination?.number, saved.destination?.unit].filter(Boolean).map(v => text(v)).join(' '),

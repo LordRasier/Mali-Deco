@@ -2,6 +2,7 @@ import { isIP } from 'node:net';
 
 export type PaymentOrder = { id: string; currency: string; totalMinor: string; paymentExpiresAt?: Date | string | null };
 export type ReconciledPayment = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'partially_refunded' | 'in_mediation' | 'refunded' | 'charged_back';
+export type VerifiedPayment = { status: ReconciledPayment; paymentId: string };
 export type PaymentConfig = { token: string; sellerId: string; returnUrl: string; notificationUrl?: string; mode?: 'test' | 'production' };
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const identity = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v > 0 ? String(v) : typeof v === 'string' && /^[1-9]\d{0,15}$/.test(v) ? v : '';
@@ -89,10 +90,13 @@ export class MercadoPagoTestProvider {
     return value.external_reference;
   }
   async reconcile(order: PaymentOrder): Promise<ReconciledPayment | null> {
+    return (await this.reconcileDetails(order))?.status ?? null;
+  }
+  async reconcileDetails(order: PaymentOrder): Promise<VerifiedPayment | null> {
     this.amount(order);
     const value = await this.json(`https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&external_reference=${encodeURIComponent(order.id)}&limit=100`);
     if (!record(value) || !Array.isArray(value.results) || !record(value.paging) || value.paging.total !== value.results.length || value.results.length > 100) throw Error('Incomplete payment search');
-    const statuses: ReconciledPayment[] = [];
+    const payments: VerifiedPayment[] = [];
     for (const payment of value.results) {
       if (!record(payment) || !identity(payment.id) || typeof payment.live_mode !== 'boolean' || (this.config.mode === 'production' && !payment.live_mode) || identity(payment.collector_id) !== this.config.sellerId || payment.external_reference !== order.id || payment.currency_id !== order.currency) throw Error('Untrusted payment');
       const decimal = String(payment.transaction_amount);
@@ -100,14 +104,16 @@ export class MercadoPagoTestProvider {
       const [whole, fraction = ''] = decimal.split('.');
       if (BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0')) !== BigInt(order.totalMinor)) throw Error('Payment amount mismatch');
       const status = payment.status;
-      if (status === 'pending' || status === 'in_process' || status === 'authorized') statuses.push('pending');
-      else if (status === 'approved' && payment.status_detail === 'partially_refunded') statuses.push('partially_refunded');
-      else if (status === 'approved' || status === 'rejected' || status === 'cancelled' || status === 'in_mediation' || status === 'refunded' || status === 'charged_back') statuses.push(status);
+      let normalized: ReconciledPayment;
+      if (status === 'pending' || status === 'in_process' || status === 'authorized') normalized = 'pending';
+      else if (status === 'approved' && payment.status_detail === 'partially_refunded') normalized = 'partially_refunded';
+      else if (status === 'approved' || status === 'rejected' || status === 'cancelled' || status === 'in_mediation' || status === 'refunded' || status === 'charged_back') normalized = status;
       else throw Error('Unknown payment status');
+      payments.push({ status: normalized, paymentId: identity(payment.id) });
     }
     // Conflicting monetary outcomes need operator investigation, not an arbitrary winner.
     const monetary = ['approved', 'partially_refunded', 'in_mediation', 'refunded', 'charged_back'];
-    if (statuses.filter(status => monetary.includes(status)).length > 1) throw Error('Multiple monetary outcomes');
-    return statuses.find(status => monetary.includes(status)) ?? (statuses.includes('pending') ? 'pending' : statuses[0] ?? null);
+    if (payments.filter(payment => monetary.includes(payment.status)).length > 1) throw Error('Multiple monetary outcomes');
+    return payments.find(payment => monetary.includes(payment.status)) ?? payments.find(payment => payment.status === 'pending') ?? payments[0] ?? null;
   }
 }

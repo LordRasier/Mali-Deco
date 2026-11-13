@@ -4,10 +4,11 @@ import { checkoutUrl, type MercadoPagoTestProvider, type PaymentOrder, type Reco
 import { recordOrderEvent } from '../orders/services/order-management';
 import { paymentCanAdvance } from '../orders/services/order-state';
 import { PaymentRegistry, isPaymentMode, type PaymentMode } from './payment-registry';
+import { recordPaymentReference } from './payment-reference';
 
 export type PaymentResult = { status: 'disabled' | 'not_started' | 'uncertain' | 'expired' | 'review' | ReconciledPayment } | { status: 'ready'; url: string };
 type OrderRow = PaymentOrder & { paymentStatus: string; orderStatus: string; paymentMode?: PaymentMode; sellerId?: string; reservationState?: string };
-type Provider = Pick<MercadoPagoTestProvider, 'verifySeller' | 'start' | 'reconcile' | 'sellerId'>;
+type Provider = Pick<MercadoPagoTestProvider, 'verifySeller' | 'start' | 'reconcileDetails' | 'sellerId'>;
 type Authorize = (mode: PaymentMode) => Promise<void>;
 const terminal = ['approved', 'partially_refunded', 'in_mediation', 'refunded', 'charged_back'];
 const expired = (order: OrderRow) => order.reservationState === 'released' || !!order.paymentExpiresAt && new Date(order.paymentExpiresAt).getTime() <= Date.now();
@@ -96,16 +97,19 @@ export class PaymentService {
       // Serialize authoritative reads with S2S notifications, including dispute resolution.
       return await this.database().transaction(async tx => {
         const current = await this.owned(tx, sessionId, orderId);
-        const status = await provider.reconcile(current);
+        const payment = await provider.reconcileDetails(current), status = payment?.status ?? null;
         if (!status) {
           const latest = await tx.query('SELECT state, preference_id AS preferenceId, seller_id AS sellerId, payment_mode AS paymentMode FROM checkout_payment_starts WHERE order_id = ? FOR UPDATE', [orderId]);
           if (latest.length !== 1) throw new ServiceUnavailableException('Payment unavailable');
           return this.existing(current, latest[0], provider);
         }
-        if (!paymentCanAdvance(current.paymentStatus, status)) return paymentResult(current, current.paymentStatus as ReconciledPayment);
+        if (!paymentCanAdvance(current.paymentStatus, status)) {
+          if (payment && status === current.paymentStatus) await recordPaymentReference(tx, orderId, payment);
+          return paymentResult(current, current.paymentStatus as ReconciledPayment);
+        }
         if (current.paymentStatus !== status) {
           await tx.query('UPDATE checkout_orders SET payment_status = ?, revision = revision + 1, updated_at = UTC_TIMESTAMP(6) WHERE id = ?', [status, orderId]);
-          await recordOrderEvent(tx, orderId, 'mercadopago', 'Mercado Pago', { ...(current.orderStatus === 'cancelled' ? { reason: 'Pago recibido sobre un pedido cancelado. Requiere revision antes de preparar o reembolsar.' } : {}), changes: { paymentStatus: { from: current.paymentStatus, to: status } } });
+          await recordOrderEvent(tx, orderId, 'mercadopago', 'Mercado Pago', { paymentId: payment!.paymentId, ...(current.orderStatus === 'cancelled' ? { reason: 'Pago recibido sobre un pedido cancelado. Requiere revision antes de preparar o reembolsar.' } : {}), changes: { paymentStatus: { from: current.paymentStatus, to: status } } });
         }
         return paymentResult(current, status);
       });

@@ -6,6 +6,7 @@ import type { MercadoPagoTestProvider } from './mercadopago';
 import { paymentCanAdvance } from '../orders/services/order-state';
 import { recordOrderEvent } from '../orders/services/order-management';
 import { PaymentRegistry, isPaymentMode } from './payment-registry';
+import { recordPaymentReference } from './payment-reference';
 
 export function verifyWebhook(secret: string, dataId: unknown, requestId: unknown, signature: unknown, now = Date.now()): string {
   if (typeof dataId !== 'string' || !/^[1-9]\d{0,15}$/.test(dataId) || typeof requestId !== 'string' || !/^[\w-]{1,200}$/.test(requestId) || typeof signature !== 'string' || signature.length > 256) throw new UnauthorizedException();
@@ -18,7 +19,7 @@ export function verifyWebhook(secret: string, dataId: unknown, requestId: unknow
   if (!timingSafeEqual(expected, Buffer.from(v1[0][1], 'hex'))) throw new UnauthorizedException();
   return dataId;
 }
-type Provider = Pick<MercadoPagoTestProvider, 'verifySeller' | 'notificationOrder' | 'reconcile' | 'sellerId'>;
+type Provider = Pick<MercadoPagoTestProvider, 'verifySeller' | 'notificationOrder' | 'reconcileDetails' | 'sellerId'>;
 export class PaymentWebhook {
   constructor(private readonly db?: DataSource, private readonly provider?: Provider | PaymentRegistry, private readonly secret?: string) {}
   async receive(dataId: unknown, requestId: unknown, signature: unknown, mode: unknown = 'test') {
@@ -38,11 +39,11 @@ export class PaymentWebhook {
         const [start] = await tx.query('SELECT seller_id AS sellerId, payment_mode AS paymentMode FROM checkout_payment_starts WHERE order_id = ?', [id]);
         if (!start || String(start.sellerId) !== provider.sellerId || (registry && start.paymentMode !== mode)) return { received: true };
         // Serialize authoritative reads per order. A replay never reuses the notification's status.
-        const next = await provider.reconcile({ ...order, totalMinor: String(order.totalMinor) });
+        const payment = await provider.reconcileDetails({ ...order, totalMinor: String(order.totalMinor) }), next = payment?.status ?? null;
         if (next && paymentCanAdvance(order.paymentStatus, next)) {
           await tx.query('UPDATE checkout_orders SET payment_status = ?, revision = revision + 1, updated_at = UTC_TIMESTAMP(6) WHERE id = ?', [next, id]);
-          await recordOrderEvent(tx, id, 'mercadopago', 'Mercado Pago', { paymentId, ...(order.orderStatus === 'cancelled' ? { reason: 'Pago recibido sobre un pedido cancelado. Requiere revision antes de preparar o reembolsar.' } : {}), changes: { paymentStatus: { from: order.paymentStatus, to: next } } });
-        }
+          await recordOrderEvent(tx, id, 'mercadopago', 'Mercado Pago', { paymentId: payment!.paymentId, ...(order.orderStatus === 'cancelled' ? { reason: 'Pago recibido sobre un pedido cancelado. Requiere revision antes de preparar o reembolsar.' } : {}), changes: { paymentStatus: { from: order.paymentStatus, to: next } } });
+        } else if (payment && next === order.paymentStatus) await recordPaymentReference(tx, id, payment);
         return { received: true };
       });
     } catch { throw new ServiceUnavailableException('Payment verification unavailable'); }
