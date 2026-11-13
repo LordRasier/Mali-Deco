@@ -1,4 +1,5 @@
 import { parseLookup, type PostalCandidate } from '../shipping/postal-lookup';
+import type { CartLine } from '../catalog/storefront-types';
 
 export type Destination = PostalCandidate;
 export type DestinationResult = {status:'resolved';candidate:Destination}|{status:'ambiguous';candidates:Destination[]}|{status:'unavailable'|'invalid'|'not_found'|'too_many'};
@@ -7,7 +8,7 @@ export type Quote = { quoteId: string; validUntil: number; options: ShippingOpti
 export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'partially_refunded' | 'in_mediation' | 'refunded' | 'charged_back';
 export type PaymentResult = { status: 'disabled' | 'not_started' | 'uncertain' | 'expired' | 'review' | PaymentStatus } | { status: 'ready'; url: string };
 export type CheckoutDetails = { contact: OrderInput['contact']; address: OrderInput['address']; postalCode: string; delivery: string; lines: { name: string; variantName: string; quantity: number; unitPriceMinor: string; lineTotalMinor: string; currency: string }[] };
-export type Order = { id: string; orderStatus: 'received' | 'confirmed' | 'completed' | 'cancelled'; paymentStatus: 'not_started' | PaymentStatus; fulfillmentStatus: 'not_started' | 'preparing' | 'ready'; shippingStatus:'not_started' | 'ready_to_ship' | 'shipped' | 'delivered' | 'returned'; testLocal: boolean; currency: string; totalMinor: string; paymentAvailable?: true; checkout?: CheckoutDetails };
+export type Order = { id: string; orderStatus: 'received' | 'confirmed' | 'completed' | 'cancelled'; paymentStatus: 'not_started' | PaymentStatus; fulfillmentStatus: 'not_started' | 'preparing' | 'ready'; shippingStatus:'not_started' | 'ready_to_ship' | 'shipped' | 'delivered' | 'returned'; testLocal: boolean; currency: string; totalMinor: string; paymentAvailable?: true; checkout?: CheckoutDetails; cartLines?: CartLine[] };
 export type OrderInput = { quoteId: string; optionId: string; pickupPointId: number | null; contact: { name: string; email: string; phone: string; document?: string }; address: { street: string; number: string; unit: string } };
 export class CheckoutError extends Error { constructor(public status: number, public code?: string) { super(`Checkout request failed (${status})`); } }
 async function post(url: string, body: unknown, headers: Record<string, string> = {}, signal?: AbortSignal): Promise<unknown> {
@@ -31,6 +32,14 @@ const currency = (v:unknown): v is string => typeof v === 'string' && /^[A-Z]{3}
 const token = (v:unknown): string => { if (!object(v) || !text(v.csrf,1024)) throw new Error('Invalid session response'); return v.csrf; };
 function validateOrder(v:unknown): Order { if (!object(v) || !text(v.id,128) || !['received', 'confirmed', 'completed', 'cancelled'].includes(String(v.orderStatus)) || !['not_started', 'pending', 'approved', 'rejected', 'cancelled', 'partially_refunded', 'in_mediation', 'refunded', 'charged_back'].includes(String(v.paymentStatus)) || (v.paymentAvailable !== undefined && v.paymentAvailable !== true) || !['not_started', 'preparing', 'ready'].includes(String(v.fulfillmentStatus)) || !['not_started', 'ready_to_ship', 'shipped', 'delivered', 'returned'].includes(String(v.shippingStatus)) || typeof v.testLocal !== 'boolean' || !currency(v.currency) || !money(v.totalMinor)) throw new Error('Invalid order response');
   if (v.checkout !== undefined) validateDetails(v.checkout);
+  if (v.cartLines !== undefined) {
+    const pairs = new Set<string>();
+    if (!Array.isArray(v.cartLines) || !v.cartLines.length || v.cartLines.length > 100 || v.cartLines.some(line => {
+      if (!object(line) || !text(line.productId, 36) || !text(line.variantId, 36) || !Number.isSafeInteger(line.quantity) || Number(line.quantity) < 1 || Number(line.quantity) > 999) return true;
+      const pair = JSON.stringify([line.productId, line.variantId]);
+      if (pairs.has(pair)) return true; pairs.add(pair); return false;
+    })) throw Error('Invalid purchased items');
+  }
   return v as Order;
 }
 function validateDetails(value: unknown): asserts value is CheckoutDetails {

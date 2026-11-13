@@ -67,6 +67,31 @@ const shipping: ShippingSnapshot = { mode: 'api', cartKey: null, postalCode: '10
 const cart: CartView = { stockShortage: false, bulkWarnings: [], ready: true, status: 'idle', removedNotice: 0, storageUnavailable: false, storageTabOnly: false, unresolved: false, count: 1,
   items: [{ productId: 'p', variantId: 'v', quantity: 1, product: { id: 'p', name: '<img src=x>', slug: 'p', description: '', variants: [] }, variant: { id: 'v', name: 'V', priceMinor: 100, currency: 'ARS' } }], totals: { ARS: 100n } };
 
+test('checkout clears purchased quantities only after verified approval and only once through reentrant renders', async () => {
+  const d = dom(), session = new ShippingSession(async () => { throw Error('No network'); });
+  const base = createCheckoutStore(session), listeners = new Set<() => void>(), cartListeners = new Set<() => void>();
+  const purchased = [{ productId: 'p', variantId: 'v', quantity: 1 }];
+  const approved = { id: 'order', testLocal: false, orderStatus: 'confirmed' as const, paymentStatus: 'approved' as const, fulfillmentStatus: 'not_started' as const, shippingStatus: 'not_started' as const, currency: 'ARS', totalMinor: '100', cartLines: purchased };
+  let state: CheckoutSnapshot = { ...snapshot(), order: approved }, ready = false;
+  const calls: unknown[] = [], publish = () => { for (const listener of listeners) listener(); };
+  const store = { ...base, getSnapshot: () => state, start: () => () => {}, syncCart() {}, subscribe(fn: () => void) { listeners.add(fn); return () => { listeners.delete(fn); }; } };
+  const mount = mountCheckout(d.root, { store, shippingSession: session, lifecycle: new EventTarget(), setCartLocked() {},
+    cart: { getSnapshot: () => ({ ...cart, ready }), subscribe(fn) { cartListeners.add(fn); return () => { cartListeners.delete(fn); }; },
+      async completePurchase(id, lines) { calls.push([id, lines]); for (const fn of cartListeners) fn(); publish(); } } });
+  assert.deepEqual(calls, []); ready = true;
+  for (const paymentStatus of ['not_started', 'pending', 'rejected', 'cancelled', 'refunded', 'charged_back', 'in_mediation'] as const) {
+    state = { ...snapshot(), order: { ...approved, paymentStatus } }; publish();
+  }
+  for (const status of ['review', 'uncertain', 'pending'] as const) { state = { ...snapshot(), order: approved, payment: { status } }; publish(); }
+  state = { ...snapshot(), order: { ...approved, orderStatus: 'cancelled' } }; publish();
+  state = { ...snapshot(), sending: true, order: approved }; publish();
+  state = { ...snapshot(), loaded: false, order: approved }; publish();
+  assert.deepEqual(calls, []);
+  state = { ...snapshot(), order: approved, payment: { status: 'approved' } }; publish(); publish();
+  assert.deepEqual(calls, [['order', purchased]]);
+  mount.dispose(); session.dispose();
+});
+
 test('payment panel exposes prepared links and reports uncertain/verified results honestly', () => {
   const d = dom(), view = createCheckoutView(d.root);
   const state: CheckoutSnapshot = { ...snapshot(), order: { id: 'order', testLocal: true, orderStatus: 'received', paymentStatus: 'pending', fulfillmentStatus: 'not_started', shippingStatus: 'not_started', currency: 'ARS', totalMinor: '100', paymentAvailable: true } };

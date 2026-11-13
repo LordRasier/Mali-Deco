@@ -2,8 +2,9 @@ import type { CartView } from '../../../cart/client/state/cart-snapshot';
 import { cartShippingIdentity } from '../../../shipping/client/state/shipping-presentation';
 import { createCheckoutStore, type CheckoutShippingPort, type CheckoutStore } from '../state/checkout-store';
 import { createCheckoutView } from './checkout-view';
+import type { CartLine } from '../../../shared/catalog/storefront-types';
 
-type CartPort = { getSnapshot(): CartView; subscribe(listener: () => void): () => void; adjust?(productId: string, variantId: string, difference: number): Promise<unknown>; remove?(productId: string, variantId: string): Promise<unknown>; retry?(): void };
+type CartPort = { getSnapshot(): CartView; subscribe(listener: () => void): () => void; completePurchase?(orderId: string, purchased: CartLine[]): Promise<void>; adjust?(productId: string, variantId: string, difference: number): Promise<unknown>; remove?(productId: string, variantId: string): Promise<unknown>; retry?(): void };
 type Options = {
   cart: CartPort; shippingSession: CheckoutShippingPort; store?: CheckoutStore; lifecycle?: EventTarget;
   closeCart?: () => void; setCartLocked: (locked: boolean) => void;
@@ -13,6 +14,7 @@ type Options = {
 export function mountCheckout(root: HTMLElement, options: Options) {
   const store = options.store ?? createCheckoutStore(options.shippingSession, { paymentEnabled: root.dataset.paymentAvailable === 'true', recoverOnStart: true, navigate: url => window.location.assign(url) }), view = createCheckoutView(root);
   const lifecycle = options.lifecycle ?? window, subscriptions: (() => void)[] = [];
+  const reconciled = new Set<string>();
   let active = false, disposed = false, generation = 0, stopStore: (() => void) | undefined, wasLocked = false;
   const render = () => {
     if (!active) return;
@@ -21,6 +23,14 @@ export function mountCheckout(root: HTMLElement, options: Options) {
     if (state.locked && !wasLocked) options.closeCart?.();
     wasLocked = state.locked;
     view.render(state, options.shippingSession.getSnapshot(), options.cart.getSnapshot());
+    const order = state.order;
+    if (state.loaded && !state.sending && order?.paymentStatus === 'approved' && order.orderStatus !== 'cancelled' &&
+      (!state.payment || state.payment.status === 'approved') && order.cartLines?.length && options.cart.getSnapshot().ready &&
+      options.cart.completePurchase && !reconciled.has(order.id)) {
+      // Mark before calling: the cart publishes synchronously during the mutation.
+      reconciled.add(order.id);
+      void options.cart.completePurchase(order.id, order.cartLines);
+    }
   };
   const sync = () => {
     if (!active) return;
@@ -37,7 +47,7 @@ export function mountCheckout(root: HTMLElement, options: Options) {
   };
   const stop = () => {
     if (!active) return;
-    active = false; generation++;
+    active = false; generation++; reconciled.clear();
     for (const unsubscribe of subscriptions.splice(0)) unsubscribe();
     stopStore?.(); stopStore = undefined;
     view.resetDraft();

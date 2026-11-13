@@ -1,6 +1,6 @@
 import { addToCart, changeQuantity } from '../../../shared/cart/cart';
 import { pairKey, resolveCartPairs, type ResolvedPair } from '../../../shared/cart/cart-resolution';
-import type { CartSnapshot, CartStorageArea } from '../../../shared/cart/cart-storage';
+import { subtractPurchased, type CartSnapshot, type CartStorageArea } from '../../../shared/cart/cart-storage';
 import type { CartLine, StorefrontData } from '../../../shared/catalog/storefront-types';
 import { browserCartRuntime, type CartRuntime } from './cart-runtime';
 import { cartSnapshot, type CartFlags } from './cart-snapshot';
@@ -12,6 +12,7 @@ type Options = { runtime?: CartRuntime; resolve?: typeof resolveCartPairs };
 export function createCartStore(mode: StorefrontData['mode'], options: Options = {}) {
   const runtime = options.runtime ?? browserCartRuntime, resolve = options.resolve ?? resolveCartPairs;
   const key = `storefront-cart-v1-${mode}`, listeners = new Set<() => void>();
+  const completedPurchases = new Set<string>();
   let saved: CartSnapshot | null = null, cache = new Map<string, ResolvedPair>();
   let active = false, memoryOnly = false, generation = 0, revision = 0;
   let mutations = 0;
@@ -141,6 +142,24 @@ export function createCartStore(mode: StorefrontData['mode'], options: Options =
   return {
     start, getSnapshot: () => snapshot, getServerSnapshot: () => serverSnapshot,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    async completePurchase(orderId: string, purchased: CartLine[]) {
+      const lifecycle = generation;
+      if (!active || !saved || completedPurchases.has(orderId)) return;
+      beginMutation();
+      try {
+        await runtime.lock(key, () => {
+          if (!active || lifecycle !== generation || !saved || completedPurchases.has(orderId)) return;
+          const next = memoryOnly
+            ? { lines: subtractPurchased(saved.lines, purchased), version: `memory:${++revision}`, removed: 0 }
+            : runtime.completePurchase?.(key, orderId, purchased, area);
+          if (!next) throw new Error('La compra está confirmada, pero no se pudo actualizar el carrito. Recargá la página.');
+          completedPurchases.add(orderId); flags.mutationError = ''; adopt(next);
+          if (!memoryOnly) runtime.notify();
+        });
+      } catch (error) {
+        if (active && lifecycle === generation) { flags.mutationError = error instanceof Error ? error.message : 'No se pudo actualizar el carrito.'; publish(); }
+      } finally { endMutation(lifecycle); }
+    },
     /** Catalog actions verify availability before persistence and never hide failures from their caller. */
     async addVerified(productId: string, variantId: string, signal?: AbortSignal) {
       const lifecycle = generation;

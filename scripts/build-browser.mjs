@@ -19,7 +19,8 @@ for (const output of Object.values(result.metafile.outputs)) if (output.imports.
 // Includes the shared material/property selectors on cards and product detail.
 // Includes sharing and the pure discount renderer/arithmetic (~1.2 KB additional); no SDKs or server dependencies.
 // Checkout now restores a server-owned draft and coordinates payment/return states (~3 KB above the previous ceiling).
-if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 112000) throw new Error('Unexpected browser output size');
+// Verified purchase reconciliation includes a durable cart receipt; still no new dependencies.
+if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 115000) throw new Error('Unexpected browser output size');
 const file = result.outputFiles[0];
 if (/process\.env|sourceMappingURL|__webpack_require__/.test(file.text)) throw new Error('Unexpected runtime or environment dependency');
 const destination = resolve(root, 'src/presentation/cart/public/generated/cart.js');

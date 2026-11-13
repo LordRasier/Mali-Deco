@@ -37,6 +37,7 @@ const money = (v: unknown): bigint => {
 };
 const validCurrency = (v: unknown) => typeof v === 'string' && /^[A-Z]{3}$/.test(v);
 const pair = (v: Pick<QuoteLine, 'productId' | 'variantId'>) => JSON.stringify([v.productId, v.variantId]);
+const cartLines = (lines: QuoteLine[]) => lines.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity }));
 
 export class OrdersService {
   constructor(private readonly db?: DataSource) {}
@@ -57,7 +58,8 @@ export class OrdersService {
       const previous = await tx.query(`SELECT body_hash AS bodyHash, snapshot, ${statusColumns} FROM checkout_orders WHERE session_id = ? AND idempotency_key_hash = ?`, [sessionId, keyHash]);
       if (previous.length) {
         if (previous[0].bodyHash !== bodyHash) throw new ConflictException({ code: 'KEY_USED', message: 'Idempotency key already used' });
-        return { ...JSON.parse(previous[0].snapshot).result, ...statuses(previous[0]) };
+        const snapshot = JSON.parse(previous[0].snapshot);
+        return { ...snapshot.result, cartLines: snapshot.quote?.lines ? cartLines(snapshot.quote.lines) : undefined, ...statuses(previous[0]) };
       }
       if (payment) {
         // Lock the same configuration row as the admin writer. No mixed-mode order may commit.
@@ -125,7 +127,7 @@ export class OrdersService {
       if (payment && (total <= 0n || total > 999999999n)) throw new BadRequestException('El total excede el límite admitido por el pago.');
       const result = { id: orderId, createdAt, orderStatus: 'received', paymentStatus: 'not_started', fulfillmentStatus: 'not_started', shippingStatus: 'not_started', testLocal: payment?.mode !== 'production', paymentMode: payment?.mode ?? 'test', currency: option.currency, totalMinor: total.toString(), contact: body.contact,
         destination: { country: q.destination.country, postalCode: q.destination.postalCode, city: q.destination.city, state: q.destination.state, ...body.address },
-        shipping: { carrierName: option.carrierName, serviceName: option.serviceName, amountMinor: money(option.amountMinor).toString(), currency: option.currency, pickupPoint }, lines };
+        shipping: { carrierName: option.carrierName, serviceName: option.serviceName, amountMinor: money(option.amountMinor).toString(), currency: option.currency, pickupPoint }, lines, cartLines: cartLines(q.lines) };
       await tx.query('INSERT INTO checkout_orders (id, session_id, quote_id, idempotency_key_hash, body_hash, created_at, currency, total_minor, snapshot, payment_mode, payment_seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [orderId, sessionId, body.quoteId, keyHash, bodyHash, new Date(createdAt), option.currency, total.toString(), JSON.stringify({ result, quote: q, selection: { optionId: body.optionId, pickupPointId: body.pickupPointId } }), payment?.mode ?? 'test', payment?.sellerId ?? null]);
       if (payment) await reserveOrder(tx, orderId, reserved);
       return result;
@@ -138,8 +140,9 @@ export class OrdersService {
       if (!sessions.length) throw new ConflictException('Checkout session unavailable');
       const rows = await tx.query(`SELECT snapshot, ${statusColumns} FROM checkout_orders WHERE session_id = ? AND idempotency_key_hash = ?`, [sessionId, hash(idempotencyKey)]);
       if (!rows.length) return { status: 'unknown' as const };
-      const o = { ...JSON.parse(rows[0].snapshot).result, ...statuses(rows[0]) };
-      return { status: 'completed' as const, order: { id: o.id, orderStatus: o.orderStatus, paymentStatus: o.paymentStatus, fulfillmentStatus: o.fulfillmentStatus, shippingStatus: o.shippingStatus, testLocal: o.testLocal, currency: o.currency, totalMinor: o.totalMinor,
+      const snapshot = JSON.parse(rows[0].snapshot);
+      const o = { ...snapshot.result, ...statuses(rows[0]) };
+      return { status: 'completed' as const, order: { id: o.id, orderStatus: o.orderStatus, paymentStatus: o.paymentStatus, fulfillmentStatus: o.fulfillmentStatus, shippingStatus: o.shippingStatus, testLocal: o.testLocal, currency: o.currency, totalMinor: o.totalMinor, cartLines: snapshot.quote?.lines ? cartLines(snapshot.quote.lines) : undefined,
         checkout: { contact: o.contact, address: { street: o.destination.street, number: o.destination.number, unit: o.destination.unit }, postalCode: o.destination.postalCode, delivery: o.shipping.carrierName + ' · ' + o.shipping.serviceName, lines: o.lines } } };
     }));
   }

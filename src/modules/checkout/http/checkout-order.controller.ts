@@ -23,7 +23,7 @@ export class CheckoutOrderController {
     const payment = previous?.status === 'completed' ? undefined : await this.access?.current(req);
     const order = await this.orders.create(session.id, key(req), body, payment);
     await this.access?.existing(order.testLocal ? 'test' : 'production', req);
-    return { id: order.id, orderStatus: order.orderStatus, paymentStatus: order.paymentStatus, fulfillmentStatus: order.fulfillmentStatus, shippingStatus: order.shippingStatus, testLocal: order.testLocal, currency: order.currency, totalMinor: order.totalMinor,
+    return { id: order.id, orderStatus: order.orderStatus, paymentStatus: order.paymentStatus, fulfillmentStatus: order.fulfillmentStatus, shippingStatus: order.shippingStatus, testLocal: order.testLocal, currency: order.currency, totalMinor: order.totalMinor, cartLines: order.cartLines,
       checkout: { contact: order.contact, address: { street: order.destination.street, number: order.destination.number, unit: order.destination.unit }, postalCode: order.destination.postalCode, delivery: order.shipping.carrierName + ' · ' + order.shipping.serviceName, lines: order.lines }, ...(this.payments?.available ? { paymentAvailable: true } : {}) };
   }
 
