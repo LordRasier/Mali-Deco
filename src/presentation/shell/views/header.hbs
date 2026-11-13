@@ -1,5 +1,5 @@
 <header class="site-header" {{#if visualPreview}}data-editor-path="blocks.header"{{/if}} data-site-header {{#if cartDisabled}}data-store-cart-disabled{{/if}}>
-  <a {{#if visualPreview}}data-editor-path="source.brand"{{/if}} class="site-brand" href="{{routes.home}}" aria-label="{{brand}}" title="{{brand}}"><img {{#if visualPreview}}data-editor-path="source.logo"{{/if}} src="/api/v1/catalog/branding/logo" alt=""> <span>{{brand}}</span></a>
+  <a {{#if visualPreview}}data-editor-path="source.brand"{{/if}} class="site-brand" data-brand-display="{{headerBrand.mode}}" href="{{routes.home}}" aria-label="{{brand}}" title="{{brand}}">{{#unless headerBrand.textOnly}}<img data-brand-logo {{#if visualPreview}}data-editor-path="source.logo"{{/if}} src="/api/v1/catalog/branding/logo" alt="">{{/unless}}<span data-brand-name {{#if headerBrand.logoOnly}}hidden{{/if}}>{{brand}}</span></a>
   <nav id="main-nav" class="site-nav" aria-label="Navegación principal">
     {{#unless catalogDisabled}}<a {{#if visualPreview}}data-editor-path="copy.catalog.headerLink"{{/if}} href="{{routes.catalog}}">{{copy.catalog.headerLink}}</a>{{/unless}}
   </nav>

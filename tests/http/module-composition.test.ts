@@ -36,7 +36,7 @@ test('feature factories use the shared database token and preserve the postal ov
       .overrideProvider(PostalCodeResolver).useValue(postal).compile();
     assert.deepEqual(await module.get(PublicCatalog).settings(), { name: 'Synthetic store' });
     assert.deepEqual(await module.get(StoreSettings).get(), {
-      name: 'Synthetic store', primaryColor: '#073dcc', whatsappNumber: null, instagramUsername: null,
+      name: 'Synthetic store', primaryColor: '#073dcc', headerBrandMode: 'logo_text', whatsappNumber: null, instagramUsername: null,
     });
     assert.deepEqual((await module.get(PublicFacets).get()).categories, []);
     assert.ok(queries.length > 1);

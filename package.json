@@ -38,6 +38,8 @@
     "emails:check": "node --env-file=.env --import tsx scripts/check-order-emails.ts",
     "migration:order-tracking": "node --env-file=.env --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/order-tracking-data-source.ts",
     "migration:order-tracking:local-root": "node --env-file=.env --import ./scripts/migration-local-root.mjs --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/order-tracking-data-source.ts",
+    "migration:header-brand": "node --env-file=.env --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/header-brand-data-source.ts",
+    "migration:header-brand:local-root": "node --env-file=.env --import ./scripts/migration-local-root.mjs --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/header-brand-data-source.ts",
     "emails:test": "node --env-file=.env --import tsx scripts/test-order-emails.ts",
     "migration:revert": "tsx node_modules/typeorm/cli.js migration:revert -d src/infrastructure/database/data-source.ts",
     "migration:promotions": "node --env-file=.env --import tsx node_modules/typeorm/cli.js migration:run -d src/infrastructure/database/product-promotions-data-source.ts",

@@ -1,5 +1,6 @@
 import type { SocialSettings, StoreSettings } from '../../modules/settings/store-settings';
 import { normalizeInstagramUsername, normalizeWhatsAppNumber } from '../../shared/social-links';
+import type { HeaderBrandMode, HeaderBrandSettings } from '../../shared/header-brand';
 
 export const STORE_INFORMATION = Symbol('STORE_INFORMATION');
 type Channel = { label: string; value: string; href: string };
@@ -29,6 +30,7 @@ export function storeInformation(env: NodeJS.ProcessEnv) {
       /(^|\.)(afip|arca)\.gob\.ar$/.test(url.hostname)) dataFiscalUrl = url.href;
   } catch { /* Omit an unset or invalid official link. */ }
   return Object.freeze({
+    headerBrandMode: 'logo_text' as HeaderBrandMode,
     channels, hasContact: channels.length > 0, email: channels.find(channel => channel.label === 'Email'), ...social,
     hours: (env.STORE_CONTACT_HOURS ?? '').trim(),
     legalName: (env.STORE_LEGAL_NAME ?? '').trim(),
@@ -41,12 +43,12 @@ export function storeInformation(env: NodeJS.ProcessEnv) {
 export type StoreInformation = ReturnType<typeof storeInformation>;
 
 /** Null/missing values inherit initial config; an explicitly saved empty string hides the icon. */
-export function withSocialSettings(base: StoreInformation, settings: SocialSettings): StoreInformation {
+export function withSocialSettings(base: StoreInformation, settings: SocialSettings & HeaderBrandSettings): StoreInformation {
   const social = socialChannels(settings.whatsappNumber ?? base.whatsapp?.value ?? '', settings.instagramUsername ?? base.instagram?.value ?? '');
   const channels = base.channels.filter(channel => !['WhatsApp', 'Instagram'].includes(channel.label));
   if (social.whatsapp) channels.push(social.whatsapp);
   if (social.instagram) channels.push(social.instagram);
-  return { ...base, ...social, channels, hasContact: channels.length > 0 };
+  return { ...base, ...social, channels, hasContact: channels.length > 0, headerBrandMode: settings.headerBrandMode ?? base.headerBrandMode };
 }
 
 export class StoreInformationReader {

@@ -9,6 +9,9 @@ export function mountSettings(root: HTMLElement, session: typeof sessionStore) {
   const form = root.querySelector<HTMLFormElement>('[data-settings-form]');
   const input = root.querySelector<HTMLInputElement>('[data-settings-name]');
   const color = root.querySelector<HTMLInputElement>('[data-settings-color]');
+  const headerBrand = root.querySelector<HTMLSelectElement>('[data-settings-header-brand]');
+  const headerNotice = root.querySelector<HTMLElement>('[data-settings-header-brand-notice]');
+  if (headerBrand) headerBrand.value = headerBrand.dataset.initialValue || 'logo_text';
   const whatsapp = root.querySelector<HTMLInputElement>('[data-settings-whatsapp]');
   const instagram = root.querySelector<HTMLInputElement>('[data-settings-instagram]');
   const fields = root.querySelector<HTMLFieldSetElement>('[data-settings-fields]');
@@ -20,10 +23,13 @@ export function mountSettings(root: HTMLElement, session: typeof sessionStore) {
   const disposePayments = mountPaymentsEditor(root, session);
   const schemaNotice = root.querySelector<HTMLElement>('[data-settings-schema-notice]');
   const editor = createSettingsEditor({
+    headerBrandMode: () => headerBrand?.value ?? 'logo_text', setHeaderBrandMode: value => { if (headerBrand) headerBrand.value = value; },
+    headerBrandEnabled: () => !!headerBrand && !headerBrand.disabled,
+    setHeaderBrandEnabled: value => { if (headerBrand) headerBrand.disabled = !value; if (headerNotice) headerNotice.hidden = value; },
     primaryColor: () => color.value, setPrimaryColor: value => { color.value = value; },
     socialLinksEnabled: () => !whatsapp.disabled && !instagram.disabled,
     setSocialLinksEnabled: value => { whatsapp.disabled = !value; instagram.disabled = !value; if (schemaNotice) schemaNotice.hidden = value; },
-    focusField: name => { tabs.select(name === 'name' || name === 'color' ? 'identity' : 'social'); ({ name: input, color, whatsapp, instagram })[name].focus(); },
+    focusField: name => { tabs.select(name === 'name' || name === 'color' || name === 'headerBrand' ? 'identity' : 'social'); ({ name: input, color, whatsapp, instagram, headerBrand })[name]?.focus(); },
     whatsappNumber: () => whatsapp.value, setWhatsAppNumber: value => { whatsapp.value = value; },
     instagramUsername: () => instagram.value, setInstagramUsername: value => { instagram.value = value; },
     value: () => input.value, setValue: value => { input.value = value; },

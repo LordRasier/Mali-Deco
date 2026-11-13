@@ -12,7 +12,7 @@
   <a class="skip-link" href="#main">Ir al contenido</a>
   <header class="tracking-header">
     <div class="tracking-header-inner">
-      <a class="tracking-brand" href="/" aria-label="{{brand}}"><img src="/api/v1/catalog/branding/logo" alt=""><span>{{brand}}</span></a>
+      <a class="tracking-brand" data-brand-display="{{headerBrand.mode}}" href="/" aria-label="{{brand}}" title="{{brand}}">{{#unless headerBrand.textOnly}}<img data-brand-logo src="/api/v1/catalog/branding/logo" alt="">{{/unless}}<span data-brand-name {{#if headerBrand.logoOnly}}hidden{{/if}}>{{brand}}</span></a>
       <a class="tracking-return" href="/catalogo">Volver a la tienda <span aria-hidden="true">↗</span></a>
     </div>
   </header>

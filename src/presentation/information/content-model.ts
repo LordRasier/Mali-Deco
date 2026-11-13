@@ -1,13 +1,14 @@
 import { contentHref, pagePaths, targetEnabled, targetPaths, type ContentConfig, type PageKey } from '../../modules/settings/content-config';
 import { storeInformation, type StoreInformation } from './store-information';
 import { previewAppearanceHref } from '../../modules/settings/content-appearance';
+import { headerBrandView } from '../../shared/header-brand';
 
 export function configuredInformation(base: StoreInformation, config: ContentConfig): StoreInformation {
   const fields = config.contact;
   const contacts = storeInformation({ STORE_CONTACT_EMAIL: fields.email ?? base.email?.value, STORE_CONTACT_HOURS: fields.hours ?? base.hours,
     STORE_LEGAL_NAME: fields.legalName ?? base.legalName, STORE_CUIT: fields.taxId ?? base.taxId, STORE_LEGAL_ADDRESS: fields.legalAddress ?? base.legalAddress,
     STORE_DATA_FISCAL_URL: fields.dataFiscalUrl ?? base.dataFiscalUrl, STORE_WHATSAPP_NUMBER: base.whatsapp?.value, STORE_INSTAGRAM_USERNAME: base.instagram?.value });
-  return contacts;
+  return { ...contacts, headerBrandMode: base.headerBrandMode };
 }
 export function contentPage(config: ContentConfig, key: PageKey) {
   const page = structuredClone(config.pages[key]);
@@ -20,7 +21,7 @@ export function contentPage(config: ContentConfig, key: PageKey) {
 }
 export function contentModel(config: ContentConfig, info: StoreInformation, preview = false) {
   const footer = config.footer;
-  return { content: config, copy: config.copy, listing: config.listing, appearancePreviewHref: preview ? previewAppearanceHref(config) : undefined, catalogDisabled: !config.features.catalog, cartDisabled: !targetEnabled(config, 'cart'),
+  return { content: config, copy: config.copy, listing: config.listing, headerBrand: headerBrandView(info.headerBrandMode), appearancePreviewHref: preview ? previewAppearanceHref(config) : undefined, catalogDisabled: !config.features.catalog, cartDisabled: !targetEnabled(config, 'cart'),
     contactHref: targetEnabled(config, 'contacto') ? pagePaths.contacto : '',
     footer: { ...footer,
       brandColumn: footer.brandEnabled || footer.emailEnabled && !!info.email || footer.whatsappEnabled && !!info.whatsapp || footer.instagramEnabled && !!info.instagram || footer.orderNoteEnabled && !!footer.orderNote,

@@ -1,7 +1,7 @@
 <section class="admin-main settings-page" data-admin-section="settings" aria-labelledby="settings-title">
   <div class="section-heading">
     <div><span class="eyebrow">Tienda</span><h1 id="settings-title">Configuración</h1><p>Personalizá tu marca, los canales de contacto y las imágenes de la tienda.</p></div>
-    <button type="button" data-settings-reload {{#if socialLinksAvailable}}hidden{{/if}}>Recargar configuración</button>
+    <button type="button" data-settings-reload {{#if socialLinksAvailable}}{{#if headerBrandAvailable}}hidden{{/if}}{{/if}}>Recargar configuración</button>
   </div>
   <div class="panel settings-panel">
     <div class="settings-tabs" role="tablist" aria-label="Configuración de la tienda">
@@ -23,7 +23,9 @@
           <div class="settings-grid">
             <label>Nombre visible<input class="form-control-sm" data-settings-name value="{{name}}" maxlength="510" required aria-describedby="settings-name-help"><span class="admin-hint" id="settings-name-help">Usá el nombre con el que tus clientes conocen tu marca.</span></label>
             <label>Color principal<span class="settings-color-control"><input type="color" data-settings-color value="{{primaryColor}}" aria-describedby="settings-color-help"><span aria-hidden="true">Seleccionar color</span></span><span class="admin-hint" id="settings-color-help">Se aplica a botones y acentos. Los textos se ajustan para mantener una buena lectura.</span></label>
+            <label>Marca en el encabezado<select class="form-control-sm" data-settings-header-brand data-initial-value="{{headerBrandMode}}" aria-describedby="settings-header-brand-help" {{#unless headerBrandAvailable}}disabled{{/unless}}><option value="logo_text">Logo y nombre</option><option value="logo">Solo logo</option><option value="text">Solo nombre</option></select><span class="admin-hint" id="settings-header-brand-help">Se aplica a todas las páginas, incluido el seguimiento. Cargá el logo en Imágenes. Si no está disponible, se muestra el nombre.</span></label>
           </div>
+          <p class="notice" data-settings-header-brand-notice role="status" {{#if headerBrandAvailable}}hidden{{/if}}>La opción del encabezado estará disponible después de actualizar la base de datos. Luego, recargá la configuración.</p>
         </section>
         <section class="settings-tab-panel" id="settings-panel-social" role="tabpanel" aria-labelledby="settings-tab-social" tabindex="0" data-settings-panel="social" hidden>
           <div class="settings-section-heading"><h2>Redes y contacto</h2><p>Los íconos aparecen en el footer y en Contacto. Dejá un campo vacío para ocultarlo.</p></div>
@@ -33,7 +35,7 @@
             <label>Instagram<input class="form-control-sm" type="text" data-settings-instagram value="{{instagramUsername}}" maxlength="200" placeholder="@tu_tienda o enlace del perfil" aria-describedby="settings-instagram-help" {{#unless socialLinksAvailable}}disabled{{/unless}}><span class="admin-hint" id="settings-instagram-help">Podés pegar el usuario o el enlace completo de tu perfil.</span></label>
           </div>
         </section>
-        <div class="settings-actions"><p class="admin-hint">Nombre, color y redes se guardan juntos.</p><button class="primary" type="submit">Guardar cambios</button></div>
+        <div class="settings-actions"><p class="admin-hint">Identidad, encabezado y redes se guardan juntos.</p><button class="primary" type="submit">Guardar cambios</button></div>
       </fieldset>
     </form>
     <section class="settings-tab-panel" id="settings-panel-payments" role="tabpanel" aria-labelledby="settings-tab-payments" tabindex="0" data-settings-panel="payments" hidden>
@@ -77,7 +79,7 @@
       <div class="settings-section-heading"><h2>Imágenes de la tienda</h2><p>Cada imagen se guarda por separado. Podés usar archivos JPG, PNG o WebP de hasta 5 MiB.</p></div>
       <div class="brand-assets">
         <form class="brand-asset" data-brand-form="logo">
-          <div class="brand-asset-heading"><h3>Logo de la tienda</h3><p>Se muestra junto al nombre en el encabezado.</p></div>
+          <div class="brand-asset-heading"><h3>Logo de la tienda</h3><p>Elegí en Identidad si se muestra solo o junto al nombre.</p></div>
           <div class="brand-preview-frame"><img class="brand-logo-preview" data-brand-preview="logo" src="/api/v1/catalog/branding/logo" alt="Logo actual de la tienda"></div>
           <label>Elegir logo<input type="file" accept="image/jpeg,image/png,image/webp" data-brand-file="logo"></label>
           <p class="admin-hint">Se conserva la transparencia de tu imagen.</p><p data-brand-message="logo" role="status"></p><button type="submit" data-brand-submit="logo">Guardar logo</button>

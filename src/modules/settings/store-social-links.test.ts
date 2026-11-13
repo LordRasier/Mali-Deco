@@ -45,7 +45,7 @@ test('old schema keeps appearance available and refuses to acknowledge a social 
 
 test('a migrated but empty settings table still enables the first social configuration', async () => {
   const db = { isInitialized: true, query: async () => [] } as unknown as DataSource;
-  assert.deepEqual(await new StoreSettings(db).get(), { name: null, primaryColor: '#073dcc', whatsappNumber: null, instagramUsername: null });
+  assert.deepEqual(await new StoreSettings(db).get(), { name: null, primaryColor: '#073dcc', headerBrandMode: 'logo_text', whatsappNumber: null, instagramUsername: null });
 });
 
 test('social migration only adds fields and refuses rollback of configured values', async () => {

@@ -13,6 +13,7 @@ export class SettingsPage {
     const site = await this.site?.get().catch(() => undefined);
     return { view: 'admin-settings', model: { layout: false as const, section: 'settings' as const, title: 'Configuración', message: '', available: true, name: settings.name ?? '', primaryColor: settings.primaryColor,
       whatsappNumber: settings.whatsappNumber ?? '', instagramUsername: settings.instagramUsername ?? '', emailSettings: publicEmailConfig(),
+      headerBrandMode: settings.headerBrandMode ?? 'logo_text', headerBrandAvailable: Object.hasOwn(settings, 'headerBrandMode'),
       site: site?.settings ?? defaultSiteConfig(), siteRevision: site?.revision ?? 0, siteAvailable: site?.available ?? false,
       socialLinksAvailable: Object.hasOwn(settings, 'whatsappNumber') && Object.hasOwn(settings, 'instagramUsername') } };
   }

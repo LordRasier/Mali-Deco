@@ -26,9 +26,9 @@ test('reads missing settings distinctly and writes only the supplied name', asyn
     return [];
   } } as unknown as DataSource;
   const settings = new StoreSettings(db);
-  assert.deepEqual(await settings.get(), { name: null, primaryColor: '#073dcc', whatsappNumber: null, instagramUsername: null });
+  assert.deepEqual(await settings.get(), { name: null, primaryColor: '#073dcc', headerBrandMode: 'logo_text', whatsappNumber: null, instagramUsername: null });
   assert.deepEqual(await settings.set({ name: ' Taller de prueba ' }), { name: 'Taller de prueba' });
-  assert.deepEqual(await settings.get(), { name: 'Taller de prueba', primaryColor: '#073dcc', whatsappNumber: null, instagramUsername: null });
+  assert.deepEqual(await settings.get(), { name: 'Taller de prueba', primaryColor: '#073dcc', headerBrandMode: 'logo_text', whatsappNumber: null, instagramUsername: null });
   assert.deepEqual(queries[1].params, ['Taller de prueba']);
   await assert.rejects(new StoreSettings().get(), { status: 503 });
   await assert.rejects(new StoreSettings().set({ name: 'Taller' }), { status: 503 });

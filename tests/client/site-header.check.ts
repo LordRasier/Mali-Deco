@@ -19,6 +19,21 @@ function fixture() {
   form.nodes.set('input', input);
   return { root, search, form, input, mount: () => mountSiteHeader(root as unknown as HTMLElement) };
 }
+
+test('logo-only keeps the name accessible and restores visible text if the image is missing or fails', () => {
+  for (const mode of ['logo', 'logo_text']) {
+    const root = new Node(), brand = new Node(), name = new Node();
+    const logo = Object.assign(new Node(), { complete: true, naturalWidth: 150 });
+    brand.setAttribute('data-brand-display', mode); brand.nodes.set('[data-brand-logo]', logo); brand.nodes.set('[data-brand-name]', name);
+    root.nodes.set('[data-brand-display]', brand);
+    const stop = mountSiteHeader(root as unknown as HTMLElement);
+    assert.equal(logo.hidden, false); assert.equal(name.hidden, mode === 'logo');
+    logo.naturalWidth = 1; logo.dispatchEvent(new Event('load')); assert.equal(logo.hidden, true); assert.equal(name.hidden, false);
+    logo.naturalWidth = 150; logo.dispatchEvent(new Event('load')); assert.equal(logo.hidden, false); assert.equal(name.hidden, mode === 'logo');
+    logo.dispatchEvent(new Event('error')); assert.equal(logo.hidden, true); assert.equal(name.hidden, false);
+    stop?.(); logo.dispatchEvent(new Event('load')); assert.equal(logo.hidden, true);
+  }
+});
 test('header without search is valid and does not block other storefront clients', () => {
   const root = new Node();
   assert.equal(mountSiteHeader(root as unknown as HTMLElement), undefined);

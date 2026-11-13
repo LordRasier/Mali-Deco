@@ -15,6 +15,25 @@ function fixture() {
   const editor = createSettingsEditor(view, session, async (path, options) => { calls.push({ path, options }); return response; });
   return { state, view, calls, editor, setResponse: (next: Promise<unknown>) => { response = next; }, expire: () => { epoch++; } };
 }
+
+test('header brand selection validates, confirms exact persistence and restores the saved choice', async () => {
+  const f = fixture(); f.state.name = 'Saved'; let mode = 'logo', enabled = true;
+  Object.assign(f.view, { headerBrandMode: () => mode, setHeaderBrandMode: (value: string) => { mode = value; }, headerBrandEnabled: () => enabled, setHeaderBrandEnabled: (value: boolean) => { enabled = value; } });
+  for (const choice of ['logo', 'logo_text', 'text']) {
+    mode = choice;
+    f.setResponse(Promise.resolve({ name: 'Saved', primaryColor: '#073dcc', whatsappNumber: '', instagramUsername: '', headerBrandMode: choice }));
+    await f.editor.save();
+    assert.equal((f.calls.at(-1) as { options: { body: { headerBrandMode: string } } }).options.body.headerBrandMode, choice);
+    assert.equal(mode, choice); assert.equal(enabled, true); assert.equal(f.state.reload, false);
+  }
+  mode = 'logo'; f.setResponse(Promise.resolve({ name: 'Saved', primaryColor: '#073dcc', whatsappNumber: '', instagramUsername: '', headerBrandMode: 'text' }));
+  await f.editor.save(); assert.equal(mode, 'logo'); assert.equal(f.state.reload, true);
+  await f.editor.reload(); assert.equal(mode, 'text');
+  mode = 'invalid'; const before = f.calls.length; await f.editor.save(); assert.equal(f.calls.length, before); assert.equal(f.state.focused, 'headerBrand');
+  f.setResponse(Promise.resolve({ name: 'Saved', primaryColor: '#073dcc', whatsappNumber: '', instagramUsername: '' }));
+  await f.editor.reload(); assert.equal(enabled, false); assert.equal(f.state.reload, true);
+  await f.editor.save(); assert.equal(Object.hasOwn((f.calls.at(-1) as { options: { body: object } }).options.body, 'headerBrandMode'), false);
+});
 test('settings validates before writes and keeps drafts while a single save is pending', async () => {
   const f = fixture(); f.state.name = '  '; await f.editor.save(); assert.equal(f.calls.length, 0);
   f.state.name = 'A\u0000B'; await f.editor.save(); assert.equal(f.calls.length, 0);
@@ -36,9 +55,11 @@ test('disposal or changed identity suppresses late results and synchronous dispo
 test('native settings binding disables its fieldset during save and preserves the draft after 503', async () => {
   class Control extends EventTarget {
     value = ''; disabled = false; hidden = false; textContent = ''; attributes = new Map<string, string>();
+    dataset: Record<string, string> = {};
     setAttribute(name: string, value: string) { this.attributes.set(name, value); }
   }
-  const nodes = new Map(['form', 'color', 'name', 'whatsapp', 'instagram', 'fields', 'message', 'reload'].map(name => [`[data-settings-${name}]`, new Control()]));
+  const nodes = new Map(['form', 'color', 'name', 'whatsapp', 'instagram', 'header-brand', 'fields', 'message', 'reload'].map(name => [`[data-settings-${name}]`, new Control()]));
+  nodes.get('[data-settings-header-brand]')!.dataset.initialValue = 'text';
   const input = nodes.get('[data-settings-name]')!, fields = nodes.get('[data-settings-fields]')!, form = nodes.get('[data-settings-form]')!;
   nodes.get('[data-settings-color]')!.value = '#123456'; input.value = 'Native draft'; fields.disabled = true;
   const root = { querySelector: (selector: string) => nodes.get(selector) ?? null, querySelectorAll: () => [] } as unknown as HTMLElement;
@@ -49,11 +70,13 @@ test('native settings binding disables its fieldset during save and preserves th
   const dispose = mountSettings(root, session);
   try {
     assert.equal(fields.disabled, false);
+    assert.equal(nodes.get('[data-settings-header-brand]')!.value, 'text');
     const event = new Event('submit', { cancelable: true }); form.dispatchEvent(event);
     assert.equal(event.defaultPrevented, true); assert.equal(fields.disabled, true); assert.equal(form.attributes.get('aria-busy'), 'true');
     form.dispatchEvent(new Event('submit', { cancelable: true })); assert.equal(calls, 1);
     finish(new Response('{}', { status: 503 })); await new Promise(resolve => setImmediate(resolve));
     assert.equal(fields.disabled, false); assert.equal(input.value, 'Native draft');
+    assert.equal(nodes.get('[data-settings-header-brand]')!.value, 'text');
     assert.match(nodes.get('[data-settings-message]')!.textContent, /confirmar/); assert.equal(nodes.get('[data-settings-reload]')!.hidden, false);
     assert.equal(calls, 1); dispose(); assert.equal(fields.disabled, true);
     form.dispatchEvent(new Event('submit', { cancelable: true })); assert.equal(calls, 1);

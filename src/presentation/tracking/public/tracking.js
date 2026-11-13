@@ -1,8 +1,12 @@
 /* global document, fetch, AbortSignal, URL, location, history, window, setInterval */
 const root = document.querySelector('[data-tracking]');
 if (root) {
-  const logo = document.querySelector('.tracking-brand img');
-  if (logo) { const checkLogo = () => { logo.hidden = logo.naturalWidth <= 1; }; if (logo.complete) checkLogo(); else logo.addEventListener('load', checkLogo, { once: true }); logo.addEventListener('error', () => { logo.hidden = true; }, { once: true }); }
+  const brand = document.querySelector('.tracking-brand'), logo = brand?.querySelector('[data-brand-logo]'), brandName = brand?.querySelector('[data-brand-name]');
+  if (logo && brandName) {
+    const checkLogo = () => { const missing = logo.naturalWidth <= 1; logo.hidden = missing; brandName.hidden = !missing && brand.dataset.brandDisplay === 'logo'; };
+    if (logo.complete) checkLogo(); else logo.addEventListener('load', checkLogo, { once: true });
+    logo.addEventListener('error', () => { logo.hidden = true; brandName.hidden = false; }, { once: true });
+  }
   const node = name => root.querySelector(`[data-${name}]`);
   const element = (tag, text = '', className = '') => { const el = document.createElement(tag); el.textContent = text; if (className) el.className = className; return el; };
   const money = (value, currency) => { const format = new Intl.NumberFormat('es-AR', { style: 'currency', currency }); return format.format(Number(value) / 10 ** format.resolvedOptions().maximumFractionDigits); };
