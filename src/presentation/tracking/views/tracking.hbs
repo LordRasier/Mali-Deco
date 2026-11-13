@@ -10,7 +10,12 @@
 </head>
 <body class="tracking-page">
   <a class="skip-link" href="#main">Ir al contenido</a>
-  <header class="tracking-header"><a class="tracking-brand" href="/" aria-label="{{brand}}"><img src="/api/v1/catalog/branding/logo" alt=""><span>{{brand}}</span></a><a href="/catalogo">Volver a la tienda <span aria-hidden="true">↗</span></a></header>
+  <header class="tracking-header">
+    <div class="tracking-header-inner">
+      <a class="tracking-brand" href="/" aria-label="{{brand}}"><img src="/api/v1/catalog/branding/logo" alt=""><span>{{brand}}</span></a>
+      <a class="tracking-return" href="/catalogo">Volver a la tienda <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
   <main id="main" class="tracking-main" data-tracking>
     <div class="tracking-intro"><p class="tracking-eyebrow">DE NUESTRAS MANOS A TU CASA</p><h1>Seguí tus pedidos.</h1><p>La preparación, el pago y el envío, en un solo lugar.</p></div>
     <p class="tracking-feedback" data-feedback role="status" aria-live="polite">Cargando tu acceso…</p>
