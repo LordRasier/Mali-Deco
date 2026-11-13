@@ -16,7 +16,7 @@ const token = 'a'.repeat(64), origin = config.siteUrl;
 const req = { headers: { host: 'store.dev', origin, 'content-type': 'application/json', cookie: trackingCookie + '=' + token } };
 export const trackingFixture: TrackingRow = { id: '5d4470f6-1867-490d-addb-9272cf40c9d3', createdAt: '2026-11-13T00:35:00Z', updatedAt: '2026-11-13T12:00:00Z', currency: 'ARS', totalMinor: '11124200',
   paymentMode: 'production', paymentStatus: 'approved', orderStatus: 'confirmed', fulfillmentStatus: 'preparing', shippingStatus: 'not_started',
-  trackingNumber: '', trackingUrl: '', paymentId: '1234567890123456', snapshot: JSON.stringify({ result: { ...exampleEmailOrder, contact: { name: 'Cliente', email: 'buyer@store.dev', document: 'PRIVATE_DOCUMENT', phone: 'PRIVATE_PHONE' }, internalNote: 'PRIVATE_NOTE' }, quote: { credential: 'PRIVATE_CREDENTIAL' } }) };
+  trackingNumber: '', trackingUrl: '', paymentId: '1234567890123456', snapshot: JSON.stringify({ result: { ...exampleEmailOrder, contact: { name: 'Cliente', email: 'buyer@store.dev', document: 'PRIVATE_DOCUMENT', phone: 'PRIVATE_PHONE' }, internalNote: 'PRIVATE_NOTE' }, quote: { credential: 'PRIVATE_CREDENTIAL', lines: exampleEmailOrder.lines.map(line => ({ variantId: 'variant', variantName: line.variantName })) } }) };
 
 test('tracking email canonicalization preserves dots and plus-address ownership', () => {
   assert.equal(trackingEmail(' Buyer+one@Store.Dev '), 'buyer+one@store.dev');
@@ -46,10 +46,12 @@ test('reusable access is checked by digest and expiry on every page, and filters
   const queries: { sql: string; params: unknown[] }[] = [];
   const db = { isInitialized: true, query: async (sql: string, params: unknown[]) => {
     queries.push({ sql, params });
+    if (sql.startsWith('SELECT v.id AS variantId, m.name')) return [{ variantId: 'variant', name: 'PLA' }];
     if (sql.includes('order_tracking_access')) return params[0] === trackingDigest(token) ? [{ email: 'buyer@store.dev', allowTest: 0, expiresAt: new Date(Date.now() + 86400000) }] : [];
     if (sql.includes('COUNT(*)')) return [{ total: 11 }]; return [trackingFixture];
   } } as unknown as DataSource;
   const service = new TrackingService(db, config);
+  assert.deepEqual((await service.orders(token, 1)).items[0].lines.map((line: { variant: string }) => line.variant), ['Natural', 'Terracota']);
   assert.equal((await service.orders(token, 1)).items[0].paymentId, '1234567890123456'); assert.equal((await service.orders(token, 2)).page, 2);
   assert.ok(queries.filter(q => q.sql.includes('checkout_orders')).every(q => q.sql.includes('tracking_email = ?') && q.params[0] === 'buyer@store.dev' && q.params[1] === 0));
   assert.ok(queries.filter(q => q.sql.includes('order_tracking_access')).every(q => q.sql.includes('expires_at > UTC_TIMESTAMP')));

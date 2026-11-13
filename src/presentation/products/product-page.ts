@@ -9,6 +9,7 @@ import { canonicalRoutes, type StorefrontRoutes } from '../routing/storefront-ro
 import type { PublicCartResolver } from '../../modules/catalog/cart/cart-resolver';
 import { parseVariantQuery } from '../shared/products/product-selection';
 import { formatPrice } from '../catalog/shared/cart';
+import { publicVariantName } from '../../shared/public-variant-name';
 
 type Detail = Awaited<ReturnType<PublicCatalog['detail']>>;
 type Model = { checkoutEnabled: boolean; layout: false; routes: StorefrontRoutes; mode: 'demo' | 'api'; demo: boolean; ready: boolean; brand: string; title: string; name: string; description: string;
@@ -57,6 +58,9 @@ export class ProductPage {
           material: found.material?.slug && found.material.name ? { ...found.material, slug: found.material.slug, name: found.material.name } : null,
           color: found.color?.slug && found.color.name ? { ...found.color, slug: found.color.slug, name: found.color.name } : null };
       }
+      const publicVariant = (variant: Detail['variants'][number]) => ({ ...variant, name: publicVariantName(variant.name, [variant.material?.name ?? '']) });
+      detail = { ...detail, variants: detail.variants.map(publicVariant) };
+      if (selected) selected = publicVariant(selected);
       const visible = selected && !detail.variants.some(v => v.id === selected.id) ? [...detail.variants, selected] : detail.variants;
       const availability = (v: Detail['variants'][number]) => v.supplyMode === 'made_to_order' ? 'Fabricación a pedido' : v.supplyMode === 'stock' ? v.stockQuantity > 0 ? 'En stock' : 'Sin stock' : 'Consultá disponibilidad';
       model.productDetail = { ...detail, variants: visible };

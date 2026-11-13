@@ -73,7 +73,7 @@ export class CatalogPage {
         })];
       if (query.search) model.activeFilters.push({ label: `Búsqueda: ${query.search}`, href: remove({ search: '' }) });
       for (const [key, choices] of [['category', facets.categories], ['material', facets.materials], ['color', facets.colors]] as const) {
-        for (const slug of query[key]) model.activeFilters.push({ label: choices.find(item => item.slug === slug)?.name ?? slug, href: remove({ [key]: query[key].filter(item => item !== slug) }) });
+        for (const slug of query[key]) model.activeFilters.push({ label: key === 'material' ? 'Filtro adicional' : choices.find(item => item.slug === slug)?.name ?? slug, href: remove({ [key]: query[key].filter(item => item !== slug) }) });
       }
       if (query.minPriceMinor) model.activeFilters.push({ label: 'Precio mínimo', href: remove({ minPriceMinor: '' }) });
       if (query.maxPriceMinor) model.activeFilters.push({ label: 'Precio máximo', href: remove({ maxPriceMinor: '' }) });

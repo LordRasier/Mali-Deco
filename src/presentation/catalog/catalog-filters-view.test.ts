@@ -21,12 +21,13 @@ test('color attributes accept only complete hex literals, never whitespace or ex
 
 test('filter groups remain compact without hiding an applied selection and colors are validated', () => {
   const initial = catalogFilters(emptyCatalogQuery(), facets);
-  assert.deepEqual(initial.groups.map(group => group.expanded), [true, false, true]);
+  assert.deepEqual(initial.groups.map(group => group.key), ['category', 'color']);
+  assert.deepEqual(initial.groups.map(group => group.expanded), [true, true]);
   const filtered = catalogFilters({ ...emptyCatalogQuery(), material: ['unknown'], color: ['arena'] }, facets);
   assert.equal(filtered.groups[1].expanded, true);
-  assert.equal(filtered.groups[2].choices[0].checked, true);
-  assert.equal(filtered.groups[2].choices[0].colorHex, '#d9cbbc');
-  assert.equal(filtered.groups[2].choices[1].colorHex, '');
+  assert.equal(filtered.groups[1].choices[0].checked, true);
+  assert.equal(filtered.groups[1].choices[0].colorHex, '#d9cbbc');
+  assert.equal(filtered.groups[1].choices[1].colorHex, '');
 });
 
 test('filter form preserves native labels, controls and cancel semantics without inline CSS', async () => {
@@ -39,7 +40,7 @@ test('filter form preserves native labels, controls and cancel semantics without
     assert.match(html, /<details class="filter-section" open/);
     assert.match(html, /type="checkbox" data-filter-group="color" value="arena" checked/);
     assert.match(html, /fill="#d9cbbc"/); assert.match(html, /&lt;script&gt;Bad&lt;\/script&gt;/);
-    assert.doesNotMatch(html, /untrusted.invalid|style=/);
+    assert.doesNotMatch(html, /untrusted.invalid|style=|Material|data-filter-group="material"/);
     assert.match(html, new RegExp(`for="${prefix}-min"`)); assert.match(html, /data-filter-min/);
     assert.match(html, /data-filter-fields disabled/);
     assert.equal(html.includes('data-filter-cancel'), mobile);

@@ -30,9 +30,10 @@ function globals(run: () => void) {
   }
 }
 test('native cart rows preserve links, exact amounts, stable controls and untrusted text', () => globals(() => {
-  const item = { productId: 'p1', variantId: 'v1', quantity: 2, product: { id: 'p1', slug: 'florero', name: '<img onerror=bad>', description: '', variants: [] }, variant: { id: 'v1', name: 'Coral', priceMinor: 2450000, currency: 'ARS' } };
+  const item = { productId: 'p1', variantId: 'v1', quantity: 2, product: { id: 'p1', slug: 'florero', name: '<img onerror=bad>', description: '', variants: [] }, variant: { id: 'v1', name: 'PLA / Coral', material: { id: 'pla', slug: 'pla', name: 'PLA' }, priceMinor: 2450000, currency: 'ARS' } };
   const actions: unknown[] = [], row = cartRow(item, true, (difference, current) => actions.push([difference, current.quantity]));
   row.update(item, 0); const root = row.root as unknown as NodePort, nodes = walk(root);
+  assert.doesNotMatch(text(root), /PLA|Material/);
   const link = nodes.find(node => node.tagName === 'a')!, plus = nodes.find(node => node.getAttribute('aria-label')?.startsWith('Agregar una unidad'))!;
   assert.equal(link.getAttribute('href'), '/productos/florero?variant=v1'); assert.equal(link.textContent, '<img onerror=bad>');
   assert.match(text(root), /24\.500,00/); assert.match(text(root), /49\.000,00/); assert.match(text(root), /c\/u/);

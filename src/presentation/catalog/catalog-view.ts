@@ -6,6 +6,7 @@ import { productPresentation } from './shared/editorial-art';
 import { catalogColor } from './catalog-color';
 import { cardOptions } from './shared/card-options';
 import { productSharePath } from './shared/product-sharing';
+import { publicVariantName } from '../../shared/public-variant-name';
 
 export const catalogPath = '/catalogo';
 export function catalogLink(query: CatalogQuery, path = catalogPath) {
@@ -31,6 +32,7 @@ export function publicProducts(result: Awaited<ReturnType<PublicCatalog['list']>
 
 export function catalogCards(products: Product[], demo: boolean, productPath = '/productos', fixtureId?: string) {
   return products.map(product => {
+    product = { ...product, variants: product.variants.map(variant => ({ ...variant, name: publicVariantName(variant.name, [variant.material?.name ?? '']) })) };
     const data = { id: product.id, slug: product.slug, name: product.name, description: '', variants: product.variants,
       variantCount: product.variantCount ?? (demo ? product.variants.length : undefined) };
     const choices = cardOptions(data);

@@ -11,9 +11,7 @@ export function renderPropertyChoices(root: HTMLElement, variants: Variant[], ch
     const section = document.createElement('div'); section.className = 'variant-property-group'; section.setAttribute('role', 'group'); section.setAttribute('aria-label', group.name);
     const label = document.createElement('span'); label.className = 'variant-property-label'; label.textContent = `${group.name}:`;
     const values = document.createElement('div'); values.className = 'variant-property-values'; section.append(label, values);
-    if (propertyKey(group.name) === 'material' && group.values.length === 1) {
-      const material = document.createElement('span'); material.className = 'variant-property-material'; material.textContent = group.values[0]; values.append(material);
-    } else for (const value of group.values) {
+    for (const value of group.values) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'variant-property-choice'; button.textContent = value;
       button.dataset.propertyName = group.name; button.dataset.propertyValue = value; button.setAttribute('aria-label', `${group.name}: ${value}`);
       button.addEventListener('click', () => { const variant = matchProperty(view.variants, view.selected, group.name, value); if (variant) choose(variant.id); });

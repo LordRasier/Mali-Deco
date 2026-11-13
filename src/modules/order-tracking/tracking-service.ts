@@ -6,6 +6,7 @@ import { statusColumns } from '../orders/services/order-state';
 import { trackingDigest, trackingEmail, validTrackingToken } from './tracking-security';
 import { trackingOrder, type TrackingRow } from './tracking-orders';
 import { paymentReferenceSql } from '../payments/payment-reference';
+import { publicMaterialNames } from '../catalog/queries/public-material-labels';
 
 export const trackingAcknowledgement = { message: 'Si hay pedidos asociados a ese correo, vas a recibir un enlace para consultarlos. Revisá también Spam. Si ya lo pediste, esperá unos minutos.' };
 export class TrackingService {
@@ -41,6 +42,8 @@ export class TrackingService {
     const rows: TrackingRow[] = await db.query(`SELECT id, created_at AS createdAt, updated_at AS updatedAt, currency, total_minor AS totalMinor,
       snapshot, payment_mode AS paymentMode, tracking_number AS trackingNumber, tracking_url AS trackingUrl, ${statusColumns}, ${paymentReferenceSql} AS paymentId
       FROM checkout_orders WHERE ${where} ORDER BY created_at DESC, id DESC LIMIT 10 OFFSET ?`, [...params, (Number(page) - 1) * 10]);
-    return { email: access.email, items: rows.map(trackingOrder), page: Number(page), total: Number(count.total), pageSize: 10 };
+    const variantIds = rows.flatMap(row => (JSON.parse(row.snapshot).quote?.lines ?? []).map((line: { variantId: string }) => line.variantId));
+    const materials = await publicMaterialNames(db, variantIds);
+    return { email: access.email, items: rows.map(row => trackingOrder(row, materials)), page: Number(page), total: Number(count.total), pageSize: 10 };
   }
 }

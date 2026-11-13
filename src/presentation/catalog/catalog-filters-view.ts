@@ -6,14 +6,13 @@ import { catalogColor } from './catalog-color';
 export function catalogFilters(query: CatalogQuery, facets: Facets) {
   const groups = [
     { key: 'category' as const, label: 'Categoría', choices: facets.categories, truncated: facets.truncated.categories },
-    { key: 'material' as const, label: 'Material', choices: facets.materials, truncated: facets.truncated.materials },
     { key: 'color' as const, label: 'Color', choices: facets.colors, truncated: facets.truncated.colors },
   ];
   return {
     currency: query.currency, min: minorToDisplayPrice(query.minPriceMinor, query.currency), max: minorToDisplayPrice(query.maxPriceMinor, query.currency),
     currencies: [...(query.currency && !facets.currencies.includes(query.currency) ? [{ value: query.currency, label: `${query.currency} (no disponible)`, selected: true, available: false }] : []),
       ...facets.currencies.map(value => ({ value, label: value, selected: value === query.currency, available: true }))],
-    groups: groups.map(group => ({ ...group, expanded: group.key !== 'material' || query[group.key].length > 0,
+    groups: groups.map(group => ({ ...group, expanded: true,
       choices: group.choices.map(choice => ({ value: choice.slug, label: choice.name,
       colorHex: group.key === 'color' && 'hex' in choice ? catalogColor(choice.hex) : '',
       checked: query[group.key].includes(choice.slug), disabled: !query[group.key].includes(choice.slug) && query[group.key].length >= 20 })) })),

@@ -14,11 +14,11 @@ export function groupProperties(options: { name: string; value: string }[]) {
 
 /** Values are separate from property names; selection always resolves an existing SKU. */
 export function variantProperties(variant: Variant) {
-  return [...(variant.material ? [{ name: 'Material', value: variant.material.name }] : []),
-    ...(variant.colorInfo ? [{ name: 'Color', value: variant.colorInfo.name }] : []), ...(variant.options ?? [])];
+  return [...(variant.colorInfo ? [{ name: 'Color', value: variant.colorInfo.name }] : []),
+    ...(variant.options ?? []).filter(option => propertyKey(option.name) !== 'material')];
 }
 export function selectionGroups(variants: Variant[]) {
-  if (!variants.length || variants.some(v => !v.material || (v.options?.length ?? 0) + (v.colorInfo ? 1 : 0) > 1)) return [];
+  if (!variants.length) return [];
   const groups = groupProperties(variants.flatMap(variantProperties));
   const combinations = variants.map(v => JSON.stringify(variantProperties(v).map(p => [propertyKey(p.name), propertyKey(p.value)])));
   return groups.length <= 2 && variants.every(v => variantProperties(v).length === groups.length)

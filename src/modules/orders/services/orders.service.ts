@@ -8,6 +8,7 @@ import { statusColumns, statuses } from './order-state';
 import { listOrders, orderDetail } from './orders-query';
 import type { PaymentContext } from '../../payments/payment-registry';
 import { reserveOrder, type ReservedItem } from '../../checkout/services/order-reservations';
+import { publicOrderLines } from '../../catalog/queries/public-material-labels';
 
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const keyValid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
@@ -59,7 +60,7 @@ export class OrdersService {
       if (previous.length) {
         if (previous[0].bodyHash !== bodyHash) throw new ConflictException({ code: 'KEY_USED', message: 'Idempotency key already used' });
         const snapshot = JSON.parse(previous[0].snapshot);
-        return { ...snapshot.result, cartLines: snapshot.quote?.lines ? cartLines(snapshot.quote.lines) : undefined, ...statuses(previous[0]) };
+        return { ...snapshot.result, lines: await publicOrderLines(tx, snapshot.result.lines, snapshot.quote?.lines), cartLines: snapshot.quote?.lines ? cartLines(snapshot.quote.lines) : undefined, ...statuses(previous[0]) };
       }
       if (payment) {
         // Lock the same configuration row as the admin writer. No mixed-mode order may commit.
@@ -130,7 +131,7 @@ export class OrdersService {
         shipping: { carrierName: option.carrierName, serviceName: option.serviceName, amountMinor: money(option.amountMinor).toString(), currency: option.currency, pickupPoint }, lines, cartLines: cartLines(q.lines) };
       await tx.query('INSERT INTO checkout_orders (id, session_id, quote_id, idempotency_key_hash, body_hash, created_at, currency, total_minor, snapshot, payment_mode, payment_seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [orderId, sessionId, body.quoteId, keyHash, bodyHash, new Date(createdAt), option.currency, total.toString(), JSON.stringify({ result, quote: q, selection: { optionId: body.optionId, pickupPointId: body.pickupPointId } }), payment?.mode ?? 'test', payment?.sellerId ?? null]);
       if (payment) await reserveOrder(tx, orderId, reserved);
-      return result;
+      return { ...result, lines: await publicOrderLines(tx, result.lines, q.lines) };
     }));
   }
   async findAttempt(sessionId: string, idempotencyKey: string) {
@@ -143,7 +144,7 @@ export class OrdersService {
       const snapshot = JSON.parse(rows[0].snapshot);
       const o = { ...snapshot.result, ...statuses(rows[0]) };
       return { status: 'completed' as const, order: { id: o.id, orderStatus: o.orderStatus, paymentStatus: o.paymentStatus, fulfillmentStatus: o.fulfillmentStatus, shippingStatus: o.shippingStatus, testLocal: o.testLocal, currency: o.currency, totalMinor: o.totalMinor, cartLines: snapshot.quote?.lines ? cartLines(snapshot.quote.lines) : undefined,
-        checkout: { contact: o.contact, address: { street: o.destination.street, number: o.destination.number, unit: o.destination.unit }, postalCode: o.destination.postalCode, delivery: o.shipping.carrierName + ' · ' + o.shipping.serviceName, lines: o.lines } } };
+        checkout: { contact: o.contact, address: { street: o.destination.street, number: o.destination.number, unit: o.destination.unit }, postalCode: o.destination.postalCode, delivery: o.shipping.carrierName + ' · ' + o.shipping.serviceName, lines: await publicOrderLines(tx, o.lines, snapshot.quote?.lines) } } };
     }));
   }
   async list(query: Record<string, unknown>) {

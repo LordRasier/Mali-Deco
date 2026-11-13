@@ -1,4 +1,5 @@
 import { statuses, type OrderState } from '../orders/services/order-state';
+import { publicOrderVariantName } from '../catalog/queries/public-material-labels';
 
 export type TrackingRow = OrderState & { id: string; createdAt: Date | string; updatedAt: Date | string; currency: string; totalMinor: string;
   paymentMode: string; snapshot: string; trackingNumber: string; trackingUrl: string; paymentId?: string | null };
@@ -10,8 +11,8 @@ const text = (v: unknown, length = 200) => typeof v === 'string' ? v.slice(0, le
 export function safeTrackingUrl(value: unknown) {
   try { const url = new URL(String(value)); return url.protocol === 'https:' && !url.username && !url.password ? url.href : ''; } catch { return ''; }
 }
-export function trackingOrder(row: TrackingRow) {
-  const state = statuses(row), saved = JSON.parse(row.snapshot).result;
+export function trackingOrder(row: TrackingRow, materials = new Map<string, string>()) {
+  const state = statuses(row), snapshot = JSON.parse(row.snapshot), saved = snapshot.result;
   const exception = state.orderStatus === 'cancelled' ? 'Pedido cancelado' : state.shippingStatus === 'returned' ? 'Envío devuelto'
     : ['refunded', 'charged_back', 'partially_refunded', 'in_mediation'].includes(state.paymentStatus) ? labels[state.paymentStatus] : '';
   const reached = row.shippingStatus === 'delivered' ? 4 : ['shipped', 'returned'].includes(row.shippingStatus) ? 3
@@ -30,7 +31,7 @@ export function trackingOrder(row: TrackingRow) {
       city: [saved.destination?.city, saved.destination?.state, saved.destination?.postalCode].filter(Boolean).map(v => text(v)).join(' · '),
       pickup: text(saved.shipping?.pickupPoint?.description, 400) },
     trackingNumber: text(row.trackingNumber, 160), trackingUrl: safeTrackingUrl(row.trackingUrl),
-    lines: (saved.lines ?? []).slice(0, 100).map((line: Record<string, unknown>) => ({ name: text(line.name), variant: text(line.variantName),
+    lines: (saved.lines ?? []).slice(0, 100).map((line: Record<string, unknown>) => ({ name: text(line.name), variant: publicOrderVariantName(text(line.variantName), snapshot.quote?.lines ?? [], materials),
       quantity: Number(line.quantity), unitPriceMinor: String(line.unitPriceMinor), lineTotalMinor: String(line.lineTotalMinor) })),
   };
 }

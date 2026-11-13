@@ -16,6 +16,7 @@ test('orders lock parents before variants, consume current stock once and reject
   const snapshot = { ...quote, lines: [{ ...quote.lines[0], supplyMode: 'stock', stockQuantity: 9 }] };
   const tx = { query: async (sql: string, args: unknown[]) => {
     calls.push(sql);
+    if (sql.startsWith('SELECT v.id AS variantId, m.name')) return [{ variantId: 'variant', name: 'PLA' }];
     if (sql.includes('FROM checkout_sessions')) return [{ id: 'session' }];
     if (sql.includes('FROM checkout_orders')) return stored ? [stored] : [];
     if (sql.includes('FROM checkout_quotes')) return [{ snapshot: JSON.stringify(snapshot) }];
@@ -59,6 +60,7 @@ test('document is saved in replay identity and restored only for the owning sess
 function fake(salePriceMinor?: string) {
   let stored: { quoteId: unknown; keyHash: unknown; bodyHash: unknown; snapshot: unknown; orderStatus: string; paymentStatus: string; fulfillmentStatus: string; shippingStatus: string } | undefined; let sessionAvailable = true; let quoteAvailable = true; let catalog = { ...row }; let inserts = 0;
   const tx = { query: async (sql: string, args: unknown[]) => {
+    if (sql.startsWith('SELECT v.id AS variantId, m.name')) return [{ variantId: 'variant', name: 'PLA' }];
     if (sql.includes('FROM checkout_sessions')) return sessionAvailable && typeof args[0] === 'string' && ['session', 'other'].includes(args[0]) ? [{ id: 'session' }] : [];
     if (sql.includes('FROM checkout_orders')) {
       if (!stored) return [];

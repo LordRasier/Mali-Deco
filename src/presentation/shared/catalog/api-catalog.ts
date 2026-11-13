@@ -1,4 +1,5 @@
 import { discountPercentage } from '../../../shared/product-discount';
+import { publicVariantName } from '../../../shared/public-variant-name';
 import type { CatalogQuery } from './catalog-query';
 import { catalogQueryParams } from './catalog-query';
 import type { CatalogImage, CatalogPage, ColorLookup, Facets, Lookup, PriceRange, Product, StorefrontData, Variant } from './storefront-types';
@@ -65,7 +66,7 @@ export function parseVariant(value: unknown): Variant {
       if (name.length > 60 || content.length > 100) throw new Error('Propiedad de variante inválida');
       return { name, value: content }; });
   }
-  return { id: text(item.id, 'variante id'), name: text(item.name, 'variante nombre'), priceMinor, ...discount, currency: currencyCode(item.currency), supplyMode: item.supplyMode ?? undefined, ...(item.stockQuantity !== undefined ? { stockQuantity: Number(item.stockQuantity) } : {}), ...(options ? { options } : {}), material, colorInfo, color: colorInfo?.hex ?? undefined };
+  return { id: text(item.id, 'variante id'), name: publicVariantName(text(item.name, 'variante nombre'), [material?.name ?? '']), priceMinor, ...discount, currency: currencyCode(item.currency), supplyMode: item.supplyMode ?? undefined, ...(item.stockQuantity !== undefined ? { stockQuantity: Number(item.stockQuantity) } : {}), ...(options ? { options } : {}), material, colorInfo, color: colorInfo?.hex ?? undefined };
 }
 export function parseCatalogImage(value: unknown): CatalogImage | null {
   if (value == null) return null;

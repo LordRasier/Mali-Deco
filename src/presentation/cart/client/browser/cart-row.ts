@@ -2,6 +2,7 @@ import { formatPrice } from '../../../shared/cart/cart';
 import { productPresentation } from '../../../shared/catalog/editorial-art';
 import type { CartView } from '../state/cart-snapshot';
 import { variantLimit } from '../../../shared/cart/inventory';
+import { publicVariantName } from '../../../../shared/public-variant-name';
 
 export function element<K extends keyof HTMLElementTagNameMap>(tag: K, text = '') {
   const node = document.createElement(tag); node.textContent = text; return node;
@@ -33,13 +34,13 @@ export function cartRow(item: Item, demo: boolean, act: (difference: number | nu
 
   const update = (item: Item, index: number) => {
     current = item;
-    const name = item.product?.name ?? `Artículo ${index + 1} pendiente de verificación`, variantName = item.variant?.name ?? 'Variante pendiente';
+    const name = item.product?.name ?? `Artículo ${index + 1} pendiente de verificación`, variantName = item.variant ? publicVariantName(item.variant.name, [item.variant.material?.name ?? '']) : 'Variante pendiente';
     link.textContent = name;
     if (item.product && item.variant) { link.href = `${productBase}/${encodeURIComponent(item.product.slug)}?variant=${encodeURIComponent(item.variant.id)}`; link.removeAttribute('tabindex'); }
     else { link.removeAttribute('href'); link.tabIndex = -1; }
     const color = item.variant?.colorInfo?.name;
     const extraColor = color && !variantName.toLocaleLowerCase('es').includes(color.replace(/\s*\(ejemplo\)$/i, '').toLocaleLowerCase('es')) ? ` · Color: ${color}` : '';
-    variant.textContent = variantName + (item.variant?.material?.name ? ` · ${item.variant.material.name}` : '') + extraColor;
+    variant.textContent = variantName + extraColor;
     price.textContent = item.variant ? `${formatPrice(item.variant.priceMinor, item.variant.currency)} c/u${demo ? ' · ejemplo' : ''}` : 'Precio pendiente';
     count.textContent = String(item.quantity); count.setAttribute('aria-label', `${item.quantity} ${item.quantity === 1 ? 'unidad' : 'unidades'}`);
     quantity.setAttribute('role', 'group'); quantity.setAttribute('aria-label', `Cantidad de ${name}, ${variantName}`);
