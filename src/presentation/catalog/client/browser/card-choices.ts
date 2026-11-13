@@ -34,7 +34,7 @@ export function renderCardChoices(root: HTMLElement, product: Product, choose: (
   }
   if (choices.hasMore) button(choices.kind === 'more' ? 'Ver opciones' : `+${choices.options.length - choices.visible.length} colores`, more);
   if (choices.kind === 'colors') {
-    const hint = document.createElement('small'); hint.className = 'catalog-help'; hint.textContent = 'Las fotos muestran el producto, no el color elegido.'; root.append(hint);
+    const hint = document.createElement('small'); hint.className = 'catalog-help'; hint.textContent = 'Las variantes sin foto propia muestran la portada del producto.'; root.append(hint);
   }
   root.hidden = choices.kind === 'single' || choices.kind === 'none';
 }

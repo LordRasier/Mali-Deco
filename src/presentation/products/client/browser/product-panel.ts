@@ -5,6 +5,7 @@ import { createProductStore } from '../state/product-store';
 import { mountProductGallery } from './product-gallery';
 import { STOREFRONT_DATA_MODE } from '../../../shared/runtime/data-mode';
 import { renderPropertyChoices, updatePropertyChoices } from '../../../catalog/client/browser/property-choices';
+import { variantImageId } from '../../../catalog/shared/variant-images';
 
 function required<T extends Element>(root: ParentNode, selector: string): T {
   const element = root.querySelector<T>(selector); if (!element) throw new Error(`Missing product control: ${selector}`); return element;
@@ -16,6 +17,8 @@ export function mountProductPanel(cart: ReturnType<typeof createCartStore>, open
   const mode = STOREFRONT_DATA_MODE;
   const initial = parseProductDetailResponse(JSON.parse(root.dataset.productBootstrap ?? ''));
   const product = createProductStore(initial.product, initial.total, mode);
+  const gallery = mountProductGallery(root);
+  let imageSelection: string | undefined;
   const variants = required<HTMLElement>(root, '[data-product-variants]');
   const price = required<HTMLElement>(root, '[data-product-price]'), selected = required<HTMLElement>(root, '[data-product-selected]');
   const availability = root.querySelector<HTMLElement>('[data-product-availability]');
@@ -28,6 +31,10 @@ export function mountProductPanel(cart: ReturnType<typeof createCartStore>, open
   let propertySet = '', grouped = false;
   const render = () => {
     const state = product.getSnapshot();
+    if (state.selected) {
+      const imageId = variantImageId(initial.product, state.selected), selection = `${state.selected.id}:${imageId ?? ''}`;
+      if (selection !== imageSelection) { imageSelection = selection; gallery.select(imageId); }
+    }
     const shown = state.selected && !state.variants.some(item => item.id === state.selected?.id) ? [state.selected, ...state.variants] : state.variants;
     const set = JSON.stringify(shown.map(v => [v.id, v.material, v.colorInfo, v.options]));
     if (set !== propertySet) { propertySet = set; const wasGrouped = grouped;
@@ -77,13 +84,13 @@ export function mountProductPanel(cart: ReturnType<typeof createCartStore>, open
   const retrySelection = () => product.retry(), loadMore = () => { void product.loadMore(); }, reload = () => window.location.reload();
   variants.addEventListener('click', choose); add.addEventListener('click', addItem);
   retry.addEventListener('click', retrySelection); more.addEventListener('click', loadMore); pageRetry.addEventListener('click', loadMore); reset.addEventListener('click', reload);
-  const unsubscribeProduct = product.subscribe(render), unsubscribeCart = cart.subscribe(render), disposeGallery = mountProductGallery(root);
+  const unsubscribeProduct = product.subscribe(render), unsubscribeCart = cart.subscribe(render);
   let stop: (() => void) | undefined;
   const start = () => { if (!active) { active = true; generation++; stop = product.start(); } };
   const suspend = () => { active = false; generation++; stop?.(); stop = undefined; };
   window.addEventListener('pagehide', suspend); window.addEventListener('pageshow', start); render(); start();
   return () => {
-    suspend(); unsubscribeProduct(); unsubscribeCart(); disposeGallery();
+    suspend(); unsubscribeProduct(); unsubscribeCart(); gallery();
     variants.removeEventListener('click', choose); add.removeEventListener('click', addItem); retry.removeEventListener('click', retrySelection);
     more.removeEventListener('click', loadMore); pageRetry.removeEventListener('click', loadMore); reset.removeEventListener('click', reload);
     window.removeEventListener('pagehide', suspend); window.removeEventListener('pageshow', start);

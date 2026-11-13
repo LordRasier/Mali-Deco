@@ -6,7 +6,27 @@ class Stub extends EventTarget {
   hidden = false; complete = true; naturalWidth = 100; textContent = ''; dataset: Record<string, string> = {};
   attrs = new Map<string, string>();
   setAttribute(name: string, value: string) { this.attrs.set(name, value); }
+  getAttribute(name: string) { return this.attrs.get(name) ?? null; }
 }
+
+test('variant selection moves to its assigned photo, updates zoom and preserves manual navigation until selection changes', () => {
+  const images = [new Stub(), new Stub(), new Stub()];
+  images.forEach((image, i) => { image.setAttribute('data-image-id', `image-${i}`); image.hidden = i !== 1; });
+  const next = new Stub(), previous = new Stub(), controls = new Stub(), label = new Stub(), placeholder = new Stub();
+  const values: Record<string, unknown> = { '[data-card-controls]': controls, '[data-card-previous]': previous, '[data-card-next]': next,
+    '[data-card-position]': label, '[data-card-placeholder]': placeholder };
+  const card = { querySelector: (s: string) => values[s] ?? null, querySelectorAll: () => images } as unknown as HTMLElement;
+  let zoom: HTMLImageElement | null = null;
+  const galleries = mountCatalogGalleries({ querySelectorAll: () => [card] } as unknown as ParentNode, (_card, image) => { zoom = image; });
+  assert.equal(label.textContent, 'Imagen 2 de 3'); assert.equal(zoom, images[1]);
+  galleries.select(card, 'image-2'); assert.equal(images[2].hidden, false); assert.equal(zoom, images[2]);
+  previous.dispatchEvent(new Event('click')); assert.equal(images[1].hidden, false);
+  galleries.select(card, 'image-0'); assert.equal(images[0].hidden, false);
+  galleries.select(card, 'not-public'); assert.equal(images[0].hidden, false);
+  galleries.select(card, 'image-2'); images[2].dispatchEvent(new Event('error'));
+  assert.equal(zoom, null); assert.equal(placeholder.hidden, false);
+  galleries(); galleries.select(card, 'image-0'); assert.equal(images[0].hidden, true);
+});
 test('gallery controls change photos and retain an unavailable-image fallback', () => {
   const imgs = [new Stub(), new Stub()], previous = new Stub(), next = new Stub(), controls = new Stub(), position = new Stub(), placeholder = new Stub();
   const colors = [new Stub(), new Stub()], group = new Stub(), link = new Stub(), price = new Stub(), row = new Stub(), label = new Stub();

@@ -7,6 +7,7 @@ import { mountCatalogGalleries } from './catalog-gallery';
 import { renderCardChoices, updateCardChoices } from './card-choices';
 import { mountCardInfo } from './card-info';
 import type { Product } from '../../shared/storefront-types';
+import { variantImageId } from '../../shared/variant-images';
 
 export function mountCatalogCards(cart: ReturnType<typeof createCartStore>, root: ParentNode = document) {
   const dialog = root.querySelector<HTMLDialogElement>('[data-info-dialog]');
@@ -15,7 +16,8 @@ export function mountCatalogCards(cart: ReturnType<typeof createCartStore>, root
   const start = () => {
     if (dispose) return;
     const info = mountCardInfo(dialog), zoom = mountCatalogZoom(root);
-    const cleanup: Array<() => void> = [mountCatalogGalleries(root, zoom.update), () => zoom.dispose(), () => info.dispose()];
+    const galleries = mountCatalogGalleries(root, zoom.update);
+    const cleanup: Array<() => void> = [galleries, () => zoom.dispose(), () => info.dispose()];
     for (const card of root.querySelectorAll<HTMLElement>('[data-catalog-card]')) {
       const link = card.querySelector<HTMLAnchorElement>('[data-card-link]'), options = card.querySelector<HTMLElement>('[data-card-options]');
       const infoLink = card.querySelector<HTMLAnchorElement>('[data-card-info]');
@@ -28,6 +30,7 @@ export function mountCatalogCards(cart: ReturnType<typeof createCartStore>, root
       try { initial = parseCardData(card.dataset.cardBootstrap ?? ''); } catch { continue; }
       const state = createCatalogCard(initial, cart.addVerified), path = new URL(link.href).pathname;
       let previous: Product | undefined;
+      let imageSelection: string | undefined;
       const open = (trigger: HTMLElement) => {
         const snapshot = state.snapshot();
         if (!snapshot.pending) void info.open(snapshot.product, trigger, link);
@@ -40,6 +43,9 @@ export function mountCatalogCards(cart: ReturnType<typeof createCartStore>, root
         const snapshot = state.snapshot();
         if (previous !== snapshot.product) { renderCardChoices(options, snapshot.product, state.select, choose); previous = snapshot.product; }
         updateCardChoices(options, snapshot.selected, snapshot.pending);
+        const selectedImage = variantImageId(snapshot.product, snapshot.selected);
+        const selection = `${snapshot.selected?.id ?? ''}:${selectedImage ?? ''}`;
+        if (selection !== imageSelection) { imageSelection = selection; galleries.select(card, selectedImage); }
         renderDiscountPrice(price, snapshot.selected, snapshot.product.variantCount === 0 ? 'Sin opciones disponibles' : 'Elegí una opción', card.querySelector<HTMLElement>('[data-card-discount]'));
         price.dataset.priceState = snapshot.selected ? 'price' : 'prompt';
         link.href = path + (snapshot.selected ? `?variant=${encodeURIComponent(snapshot.selected.id)}` : '');

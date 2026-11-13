@@ -1,4 +1,9 @@
 export interface PublicImage { id: string; alt: string; width: number; height: number }
+
+/** An assigned image is public only while it belongs to this product's active gallery. */
+export function publicVariantImage(imageId: string | null | undefined, images: PublicImage[]) {
+  return imageId && images.some(image => image.id === imageId) ? { imageId } : {};
+}
 type ImageRow = PublicImage & { productId: string };
 type Queryable = { query(sql: string, parameters?: unknown[]): Promise<unknown[]> };
 

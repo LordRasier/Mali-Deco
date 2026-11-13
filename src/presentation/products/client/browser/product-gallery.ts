@@ -1,14 +1,14 @@
 /** Public image order is fixed by SSR. Failed images remain neutral, never replaced with invented media. */
 export function mountProductGallery(root: ParentNode) {
   const gallery = root.querySelector<HTMLElement>('[data-product-gallery]');
-  if (!gallery) return () => {};
+  if (!gallery) return Object.assign(() => {}, { select() {} });
   const images = Array.from(gallery.querySelectorAll<HTMLImageElement>('[data-product-image]'));
   const thumbnails = Array.from(gallery.querySelectorAll<HTMLButtonElement>('[data-gallery-thumb]'));
   const placeholder = gallery.querySelector<HTMLElement>('[data-gallery-placeholder]');
   const label = gallery.querySelector<HTMLElement>('[data-gallery-position]');
   const previous = gallery.querySelector<HTMLButtonElement>('[data-gallery-previous]'), next = gallery.querySelector<HTMLButtonElement>('[data-gallery-next]');
   const illustration = gallery.querySelector<HTMLElement>('[data-gallery-illustration]');
-  let index = 0;
+  let index = Math.max(0, images.findIndex(image => !image.hidden));
   const failed = new Set<number>();
   const render = () => {
     images.forEach((image, position) => { image.hidden = position !== index || failed.has(position); });
@@ -36,5 +36,7 @@ export function mountProductGallery(root: ParentNode) {
   if (previous) { previous.disabled = false; previous.addEventListener('click', back); }
   if (next) { next.disabled = false; next.addEventListener('click', forward); }
   gallery.addEventListener('keydown', keyboard); render();
-  return () => { handlers.forEach(cleanup => cleanup()); thumbHandlers.forEach(cleanup => cleanup()); previous?.removeEventListener('click', back); next?.removeEventListener('click', forward); gallery.removeEventListener('keydown', keyboard); };
+  return Object.assign(() => { handlers.forEach(cleanup => cleanup()); thumbHandlers.forEach(cleanup => cleanup()); previous?.removeEventListener('click', back); next?.removeEventListener('click', forward); gallery.removeEventListener('keydown', keyboard); }, {
+    select(imageId?: string) { index = Math.max(0, images.findIndex(image => image.getAttribute('data-image-id') === imageId)); render(); },
+  });
 }

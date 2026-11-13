@@ -2,6 +2,7 @@ import { fetchProductDetail } from '../../../shared/catalog/api-catalog';
 import { parseVariantQuery, resolveRequestedVariant } from '../../../shared/products/product-selection';
 import type { Product, Variant } from '../../../shared/catalog/storefront-types';
 import { browserProductRuntime, type ProductRuntime } from './product-runtime';
+import { defaultVariant } from '../../../catalog/shared/variant-images';
 
 export type ProductSnapshot = {
   variants: Variant[];
@@ -46,7 +47,9 @@ export function createProductStore(initial: Product, total: number, mode: 'demo'
         if (id !== undefined) runtime.choose(id);
         const query = parseVariantQuery(new URLSearchParams(runtime.search()));
         if (!current()) return;
-        const result = await resolve(initial.id, snapshot.variants, query, mode, controller.signal);
+        const preferred = defaultVariant(snapshot.variants, initial.images?.[0]?.id ?? initial.primaryImage?.id);
+        const requested = query.kind === 'none' && preferred ? { kind: 'id' as const, id: preferred.id } : query;
+        const result = await resolve(initial.id, snapshot.variants, requested, mode, controller.signal);
         if (current()) publish({ selected: result.variant, warning: result.warning, status: 'ready' });
       } catch {
         if (current()) publish({ selected: null, status: 'error' });

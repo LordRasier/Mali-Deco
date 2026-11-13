@@ -6,10 +6,12 @@ class ElementStub extends EventTarget {
   hidden = false; disabled = true; complete = true; naturalWidth = 100; textContent = '';
   attributes = new Map<string, string>();
   setAttribute(name: string, value: string) { this.attributes.set(name, value); }
+  getAttribute(name: string) { return this.attributes.get(name) ?? null; }
 }
 
 test('thumbnails select the same image as keyboard and previous/next controls', () => {
   const images = [new ElementStub(), new ElementStub(), new ElementStub()];
+  images.forEach((image, i) => { image.setAttribute('data-image-id', `image-${i}`); });
   const thumbs = images.map(() => new ElementStub());
   const previous = new ElementStub(), next = new ElementStub(), placeholder = new ElementStub(), label = new ElementStub();
   const gallery = new ElementStub() as ElementStub & { querySelector: (s: string) => unknown; querySelectorAll: (s: string) => unknown[] };
@@ -27,5 +29,9 @@ test('thumbnails select the same image as keyboard and previous/next controls', 
   gallery.dispatchEvent(arrow); assert.equal(images[2].hidden, false); assert.equal(arrow.defaultPrevented, true);
   previous.dispatchEvent(new Event('click'));
   images[1].dispatchEvent(new Event('error')); assert.equal(placeholder.hidden, false);
+  dispose.select('image-2'); assert.equal(images[2].hidden, false); assert.equal(thumbs[2].attributes.get('aria-pressed'), 'true');
+  assert.equal(placeholder.hidden, true);
+  dispose.select('missing'); assert.equal(images[0].hidden, false);
+  dispose.select('image-2');
   dispose(); thumbs[0].dispatchEvent(new Event('click')); assert.equal(images[0].hidden, true);
 });

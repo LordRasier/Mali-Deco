@@ -46,6 +46,7 @@ function parseRange(value: unknown): PriceRange | null {
 }
 export function parseVariant(value: unknown): Variant {
   const item = object(value, 'variante');
+  if (item.imageId != null && (typeof item.imageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.imageId))) throw new Error('Imagen de variante inválida');
   const priceMinor = integer(item.priceMinor, 'precio');
   let discount: Pick<Variant, 'regularPriceMinor' | 'discountPercent'> = {};
   if (item.regularPriceMinor !== undefined || item.discountPercent !== undefined) {
@@ -66,7 +67,7 @@ export function parseVariant(value: unknown): Variant {
       if (name.length > 60 || content.length > 100) throw new Error('Propiedad de variante inválida');
       return { name, value: content }; });
   }
-  return { id: text(item.id, 'variante id'), name: publicVariantName(text(item.name, 'variante nombre'), [material?.name ?? '']), priceMinor, ...discount, currency: currencyCode(item.currency), supplyMode: item.supplyMode ?? undefined, ...(item.stockQuantity !== undefined ? { stockQuantity: Number(item.stockQuantity) } : {}), ...(options ? { options } : {}), material, colorInfo, color: colorInfo?.hex ?? undefined };
+  return { id: text(item.id, 'variante id'), name: publicVariantName(text(item.name, 'variante nombre'), [material?.name ?? '']), ...(item.imageId ? { imageId: item.imageId as string } : {}), priceMinor, ...discount, currency: currencyCode(item.currency), supplyMode: item.supplyMode ?? undefined, ...(item.stockQuantity !== undefined ? { stockQuantity: Number(item.stockQuantity) } : {}), ...(options ? { options } : {}), material, colorInfo, color: colorInfo?.hex ?? undefined };
 }
 export function parseCatalogImage(value: unknown): CatalogImage | null {
   if (value == null) return null;

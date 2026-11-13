@@ -1,11 +1,12 @@
 import { BadRequestException, Body, Controller, HttpCode, Inject, Post, ServiceUnavailableException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { productPrice } from '../models/product-price';
-import { readPublicImages } from '../queries/public-images';
+import { readPublicImages, publicVariantImage } from '../queries/public-images';
 import { publicVariantOptions } from '../queries/public-variant-options';
 
 export interface CartPair { productId: string; variantId: string }
 interface ResolvedRow {
+  imageId?: string | null;
   optionsJson?: unknown;
   salePriceMinor?: string | number | null;
   productId: string; productSlug: string; productName: string; productDescription: string;
@@ -56,7 +57,7 @@ export class PublicCartResolver {
     try {
       rows = await this.db.query(`SELECT
       p.id AS productId, p.slug AS productSlug, p.name AS productName, p.description AS productDescription,
-      v.id AS variantId, v.name AS variantName, v.price_minor AS priceMinor, v.sale_price_minor AS salePriceMinor, v.currency AS currency,
+      v.id AS variantId, v.name AS variantName, v.image_id AS imageId, v.price_minor AS priceMinor, v.sale_price_minor AS salePriceMinor, v.currency AS currency,
       v.supply_mode AS supplyMode, v.stock_quantity AS stockQuantity, v.options_json AS optionsJson,
       p.bulk_warning_threshold AS bulkWarningThreshold, p.bulk_warning_message AS bulkWarningMessage,
       m.id AS materialId, m.slug AS materialSlug, m.name AS materialName,
@@ -87,7 +88,7 @@ export class PublicCartResolver {
         product: { id: row.productId, slug: row.productSlug, name: row.productName, description: row.productDescription, bulkWarningThreshold: row.bulkWarningThreshold ?? null, bulkWarningMessage: row.bulkWarningMessage ?? null, primaryImage: images.get(row.productId)?.[0] ?? null },
         variant: {
           id: row.variantId, name: row.variantName, ...productPrice(row.priceMinor, row.salePriceMinor), currency: row.currency, supplyMode: row.supplyMode, stockQuantity: row.stockQuantity ?? 0, ...publicVariantOptions(row.optionsJson),
-          material: row.materialId === null ? null : { id: row.materialId, slug: row.materialSlug, name: row.materialName },
+          ...publicVariantImage(row.imageId, images.get(row.productId) ?? []), material: row.materialId === null ? null : { id: row.materialId, slug: row.materialSlug, name: row.materialName },
           color: row.colorId === null ? null : { id: row.colorId, slug: row.colorSlug, name: row.colorName, hex: row.colorHex },
         },
       });

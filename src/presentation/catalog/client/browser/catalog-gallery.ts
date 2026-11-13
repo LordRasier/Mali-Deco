@@ -1,6 +1,7 @@
 /** Enhance only server-rendered, eligible controls. Product links remain usable without JavaScript. */
 export function mountCatalogGalleries(root: ParentNode = document, onImage?: (card: HTMLElement, image: HTMLImageElement | null) => void) {
   const cleanup: Array<() => void> = [];
+  const selectors = new Map<HTMLElement, (imageId?: string) => void>();
   for (const card of root.querySelectorAll<HTMLElement>('[data-catalog-card]')) {
     const images = Array.from(card.querySelectorAll<HTMLImageElement>('[data-card-image]'));
     const controls = card.querySelector<HTMLElement>('[data-card-controls]');
@@ -13,7 +14,7 @@ export function mountCatalogGalleries(root: ParentNode = document, onImage?: (ca
       if (image.complete && !image.naturalWidth) fail(); else onImage?.(card, image);
     }
     if (controls && previous && next && images.length > 1) {
-      let index = 0; const failed = new Set<number>(); let animations: Animation[] = [];
+      let index = Math.max(0, images.findIndex(image => !image.hidden)); const failed = new Set<number>(); let animations: Animation[] = [];
       const stop = () => { const active = animations; animations = []; active.forEach(animation => animation.cancel()); };
       const render = () => {
         onImage?.(card, failed.has(index) ? null : images[index]);
@@ -21,8 +22,9 @@ export function mountCatalogGalleries(root: ParentNode = document, onImage?: (ca
         if (placeholder) placeholder.hidden = !failed.has(index);
         if (position) position.textContent = `Imagen ${index + 1} de ${images.length}`;
       };
-      const move = (step: -1 | 1) => {
-        stop(); render(); const old = index; index = (index + step + images.length) % images.length;
+      const show = (target: number, step: -1 | 1) => {
+        if (target === index) return;
+        stop(); render(); const old = index; index = target;
         const outgoing = images[old], incoming = images[index];
         const reduced = typeof globalThis.matchMedia === 'function' && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (reduced || failed.has(old) || failed.has(index) || typeof outgoing.animate !== 'function' || typeof incoming.animate !== 'function') { render(); return; }
@@ -33,6 +35,11 @@ export function mountCatalogGalleries(root: ParentNode = document, onImage?: (ca
         const enter = incoming.animate([{ transform: `translateX(${100 * step}%)` }, { transform: 'translateX(0%)' }], options);
         animations = [leave, enter]; enter.onfinish = () => { animations = []; render(); };
       };
+      const move = (step: -1 | 1) => show((index + step + images.length) % images.length, step);
+      selectors.set(card, imageId => {
+        const target = Math.max(0, images.findIndex(image => image.getAttribute('data-image-id') === imageId));
+        show(target, target < index ? -1 : 1);
+      });
       const back = () => move(-1), forward = () => move(1);
       previous.addEventListener('click', back); next.addEventListener('click', forward);
       cleanup.push(() => { stop(); render(); previous.removeEventListener('click', back); next.removeEventListener('click', forward); });
@@ -44,5 +51,7 @@ export function mountCatalogGalleries(root: ParentNode = document, onImage?: (ca
       render(); controls.hidden = false;
     }
   }
-  return () => cleanup.forEach(dispose => dispose());
+  return Object.assign(() => { cleanup.forEach(dispose => dispose()); selectors.clear(); }, {
+    select: (card: HTMLElement, imageId?: string) => selectors.get(card)?.(imageId),
+  });
 }

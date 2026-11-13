@@ -10,13 +10,14 @@ import type { PublicCartResolver } from '../../modules/catalog/cart/cart-resolve
 import { parseVariantQuery } from '../shared/products/product-selection';
 import { formatPrice } from '../catalog/shared/cart';
 import { publicVariantName } from '../../shared/public-variant-name';
+import { defaultVariant, variantImageId } from '../catalog/shared/variant-images';
 
 type Detail = Awaited<ReturnType<PublicCatalog['detail']>>;
 type Model = { checkoutEnabled: boolean; layout: false; routes: StorefrontRoutes; mode: 'demo' | 'api'; demo: boolean; ready: boolean; brand: string; title: string; name: string; description: string;
   productDetail?: Detail; selectedVariantId?: string; regularPriceLabel?: string; discountPercent?: string; priceLabel: string; selectedName: string; availability: string; noindex: boolean; categoryName: string; categoryHref: string;
   variantSummary: { name: string; href: string; price: string; availability: string }[];
   bootstrap: string; variants: { name: string; id: string }[]; hasVariants: boolean; moreImages: boolean;
-  images: { url: string; srcset: string; alt: string; first: boolean; illustration: boolean; position: number }[];
+  images: { id?: string; url: string; srcset: string; alt: string; first: boolean; illustration: boolean; position: number }[];
   dimensions: { width: string; height: string; length: string }; message: string; canonical: string; retry: boolean };
 
 function demoDetail(product: Product): Detail {
@@ -50,7 +51,7 @@ export class ProductPage {
       } else detail = await this.catalog.detail(slug, { page: '1', limit: '100' });
       model.title = model.name = detail.name; model.description = detail.description;
       const requested = parseVariantQuery(params);
-      let selected = requested.kind === 'none' ? detail.variants[0] : requested.kind === 'id' ? detail.variants.find(v => v.id === requested.id) : undefined;
+      let selected = requested.kind === 'none' ? defaultVariant(detail.variants, detail.images[0]?.id) : requested.kind === 'id' ? detail.variants.find(v => v.id === requested.id) : undefined;
       if (!selected && requested.kind === 'id' && this.mode === 'api' && this.resolver) {
         const resolved = await this.resolver.resolve({ lines: [{ productId: detail.id, variantId: requested.id }] });
         const found = resolved.resolved[0]?.variant;
@@ -73,8 +74,9 @@ export class ProductPage {
       model.variants = detail.variants.map(({ id, name }) => ({ id, name })); model.hasVariants = !!detail.variants.length;
       const dimension = (value: number | null) => this.mode === 'demo' ? 'No disponible en esta vista' : value === null ? 'No informado' : `${value} mm`;
       model.dimensions = { width: dimension(detail.productWidthMm), height: dimension(detail.productHeightMm), length: dimension(detail.productLengthMm) };
-      model.images = detail.images.map((image, index) => ({ url: catalogImageUrl(image.id, 800), srcset: `${catalogImageUrl(image.id, 800)} 800w, ${catalogImageUrl(image.id, 1600)} 1600w`,
-        alt: image.alt || `${detail.name}, imagen del producto`, first: index === 0, illustration: false, position: index + 1 }));
+      const selectedImageId = variantImageId(detail, selected);
+      model.images = detail.images.map((image, index) => ({ id: image.id, url: catalogImageUrl(image.id, 800), srcset: `${catalogImageUrl(image.id, 800)} 800w, ${catalogImageUrl(image.id, 1600)} 1600w`,
+        alt: image.alt || `${detail.name}, imagen del producto`, first: selectedImageId ? image.id === selectedImageId : index === 0, illustration: false, position: index + 1 }));
       if (!model.images.length) {
         const product = demo ?? { id: detail.id, slug: detail.slug, name: detail.name, description: detail.description, variants: [] };
         const fallback = productPresentation(product, this.mode, fixtureImageId(this.environment));

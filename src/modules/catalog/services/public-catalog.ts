@@ -4,7 +4,7 @@ import { ProductSchema, SettingsSchema, VariantSchema } from '../models/catalog.
 import { parseCatalogQuery } from '../validation/catalog-validation';
 import { productPrice } from '../models/product-price';
 import { listPublicProducts, selectedPublicProducts } from '../queries/public-listing';
-import { readPublicImages } from '../queries/public-images';
+import { readPublicImages, publicVariantImage } from '../queries/public-images';
 import { publicVariantOptions } from '../queries/public-variant-options';
 
 type Listing = Awaited<ReturnType<typeof listPublicProducts>>;
@@ -63,7 +63,7 @@ export class PublicCatalog {
       category: product.categoryId ? categories.get(product.categoryId) ?? null : null,
       variants: variants.filter(v => v.productId === product.id).map(v => {
         return { id: v.id, name: v.name, ...productPrice(v.priceMinor, v.salePriceMinor), currency: v.currency, supplyMode: v.supplyMode, stockQuantity: v.stockQuantity ?? 0, ...publicVariantOptions(v.options),
-          material: v.materialId ? materials.get(v.materialId) ?? null : null,
+          ...publicVariantImage(v.imageId, images.get(product.id) ?? []), material: v.materialId ? materials.get(v.materialId) ?? null : null,
           color: v.colorId ? colors.get(v.colorId) ?? null : null };
       }), page, limit, total };
   }

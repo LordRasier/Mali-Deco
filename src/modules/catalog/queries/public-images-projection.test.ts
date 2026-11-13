@@ -23,3 +23,27 @@ test('detail exposes only the public image fields', async () => {
   const detail = await new PublicCatalog(db).detail('p');
   assert.deepEqual(detail.images, [expected]);
 });
+
+test('listing, detail and cart expose assigned variant photos only from the same active product gallery', async () => {
+  const variants = ['i', 'foreign', 'retired'].map((imageId, i) => ({ id: `v${i}`, variantId: `v${i}`, productId: 'p', imageId,
+    name: 'V', variantName: 'V', productSlug: 'p', productName: 'P', productDescription: '', priceMinor: 100, currency: 'ARS',
+    supplyMode: null, materialId: null, colorId: null, materialSlug: null, materialName: null, colorSlug: null, colorName: null, colorHex: null }));
+  const product = { id: 'p', slug: 'p', name: 'P', description: '', categoryId: null, minPrice: null, maxPrice: null, variantCount: 3 };
+  const images = [image, { ...image, id: 'foreign', productId: 'other' }];
+  const manager = { query: async (sql: string) => {
+    if (sql.includes('COUNT(*)')) return [{ total: 1 }];
+    if (sql.includes('FROM product_images')) return images;
+    if (sql.includes('ROW_NUMBER()')) { assert.match(sql, /v.image_id AS imageId/); return variants; }
+    return [product];
+  } };
+  const db = { isInitialized: true, transaction: async (_isolation: string, run: (manager: unknown) => unknown) => run(manager),
+    getRepository: () => ({ findOneBy: async () => product, findAndCount: async () => [variants, 3] }),
+    query: async (sql: string) => { if (sql.includes('FROM product_images')) return images; assert.match(sql, /v.image_id AS imageId/); return variants; },
+  } as unknown as DataSource;
+  const listing = await listPublicProducts(db, {}), detail = await new PublicCatalog(db).detail('p');
+  const cart = await new PublicCartResolver(db).resolve({ lines: variants.map(v => ({ productId: 'p', variantId: v.id })) });
+  for (const options of [listing.items[0].matchedVariants, detail.variants, cart.resolved.map(line => line.variant)]) {
+    assert.deepEqual(options.map(variant => variant.imageId), ['i', undefined, undefined]);
+    assert.doesNotMatch(JSON.stringify(options), /foreign|retired|secret/);
+  }
+});

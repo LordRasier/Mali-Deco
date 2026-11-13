@@ -2,7 +2,7 @@ export type Lookup = { id: string; slug: string; name: string; sortOrder?: numbe
 export type ColorLookup = Lookup & { hex: string | null };
 export type PriceRange = { currency: string; minMinor: number; maxMinor: number };
 export type Variant = {
-  id: string; name: string; color?: string; priceMinor: number; currency: string;
+  id: string; name: string; color?: string; imageId?: string; priceMinor: number; currency: string;
   regularPriceMinor?: number; discountPercent?: string;
   supplyMode?: 'stock' | 'made_to_order'; material?: Lookup | null; colorInfo?: ColorLookup | null;
   stockQuantity?: number;

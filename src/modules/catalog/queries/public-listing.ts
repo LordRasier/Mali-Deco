@@ -2,13 +2,13 @@ import { DataSource, EntityManager } from 'typeorm';
 import { assertMinorUnits } from '../models/price';
 import { productPrice } from '../models/product-price';
 import { effectiveVariantPriceSql } from './effective-price-sql';
-import { readPublicImages } from './public-images';
+import { readPublicImages, publicVariantImage, type PublicImage } from './public-images';
 import { ListingQuery, parseListingQuery } from './listing-query';
 import { productOrder, productPredicate, variantPredicate } from './listing-sql';
 import { publicVariantOptions } from './public-variant-options';
 
 type Lookup = { id: string; slug: string; name: string };
-type Variant = { salePriceMinor?: string | null; optionsJson?: unknown; stockQuantity?: number; productId: string; id: string; name: string; priceMinor: string; currency: string; supplyMode: 'stock' | 'made_to_order' | null;
+type Variant = { imageId?: string | null; salePriceMinor?: string | null; optionsJson?: unknown; stockQuantity?: number; productId: string; id: string; name: string; priceMinor: string; currency: string; supplyMode: 'stock' | 'made_to_order' | null;
   materialId: string | null; materialSlug: string | null; materialName: string | null;
   colorId: string | null; colorSlug: string | null; colorName: string | null; colorHex: string | null };
 type Product = { bulkWarningThreshold?: number | null; bulkWarningMessage?: string | null; id: string; slug: string; name: string; description: string; categoryId: string | null; categorySlug: string | null; categoryName: string | null; minPrice: string | null; maxPrice: string | null; variantCount: string | number;
@@ -20,10 +20,10 @@ export function priceNumber(value: string | number): number {
 function lookup(id: string | null, slug: string | null, name: string | null): Lookup | null {
   return id && slug && name ? { id, slug, name } : null;
 }
-export function publicVariant(row: Variant) {
+export function publicVariant(row: Variant, images: PublicImage[] = []) {
   const color = lookup(row.colorId, row.colorSlug, row.colorName);
   return { id: row.id, name: row.name, ...productPrice(row.priceMinor, row.salePriceMinor), currency: row.currency, supplyMode: row.supplyMode, stockQuantity: row.stockQuantity ?? 0, ...publicVariantOptions(row.optionsJson),
-    material: lookup(row.materialId, row.materialSlug, row.materialName), color: color ? { ...color, hex: row.colorHex } : null };
+    ...publicVariantImage(row.imageId, images), material: lookup(row.materialId, row.materialSlug, row.materialName), color: color ? { ...color, hex: row.colorHex } : null };
 }
 
 const variantJoins = `LEFT JOIN materials m ON m.id = v.material_id AND m.archived_at IS NULL
@@ -66,7 +66,7 @@ async function listSnapshot(db: EntityManager, query: ListingQuery, ids?: string
   let representatives: Variant[] = [];
   if (rows.length) {
     const order = query.currency ? `${effectiveVariantPriceSql} ASC, v.id ASC` : 'v.id ASC';
-    representatives = await db.query(`SELECT * FROM (SELECT v.product_id AS productId, v.id, v.name,
+    representatives = await db.query(`SELECT * FROM (SELECT v.product_id AS productId, v.id, v.name, v.image_id AS imageId,
       v.price_minor AS priceMinor, v.sale_price_minor AS salePriceMinor, v.currency, v.supply_mode AS supplyMode, v.stock_quantity AS stockQuantity, v.options_json AS optionsJson,
       m.id AS materialId, m.slug AS materialSlug, m.name AS materialName,
       co.id AS colorId, co.slug AS colorSlug, co.name AS colorName, co.hex AS colorHex,
@@ -77,7 +77,7 @@ async function listSnapshot(db: EntityManager, query: ListingQuery, ids?: string
   }
   const images = await readPublicImages(db, rows.map(row => row.id));
   const byProduct = new Map<string, ReturnType<typeof publicVariant>[]>();
-  for (const row of representatives) { const options = byProduct.get(row.productId) ?? []; options.push(publicVariant(row)); byProduct.set(row.productId, options); }
+  for (const row of representatives) { const options = byProduct.get(row.productId) ?? []; options.push(publicVariant(row, images.get(row.productId) ?? [])); byProduct.set(row.productId, options); }
   return { items: rows.map(row => ({ id: row.id, slug: row.slug, name: row.name, description: row.description, bulkWarningThreshold: row.bulkWarningThreshold ?? null, bulkWarningMessage: row.bulkWarningMessage ?? null,
     productWidthMm: row.productWidthMm ?? null, productHeightMm: row.productHeightMm ?? null, productLengthMm: row.productLengthMm ?? null,
     primaryImage: images.get(row.id)?.[0] ?? null, images: images.get(row.id) ?? [], variantCount: Number(row.variantCount) || 0,

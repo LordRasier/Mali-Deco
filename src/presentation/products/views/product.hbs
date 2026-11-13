@@ -17,7 +17,7 @@
     {{#if ready}}
     <div class="product-layout-grid">
       <section data-product-gallery aria-label="Imágenes del producto">
-        {{#each images}}<img data-product-image src="{{url}}" {{#if srcset}}srcset="{{srcset}}" sizes="(max-width:760px) 100vw, 60vw"{{/if}} alt="{{alt}}" {{#unless first}}hidden{{/unless}}>{{/each}}
+        {{#each images}}<img data-product-image data-image-id="{{id}}" src="{{url}}" {{#if srcset}}srcset="{{srcset}}" sizes="(max-width:760px) 100vw, 60vw"{{/if}} alt="{{alt}}" {{#unless first}}hidden{{/unless}}>{{/each}}
         <div data-gallery-placeholder class="product-image-placeholder" role="img" aria-label="Imagen no disponible" {{#if images}}hidden{{/if}}>Imagen no disponible</div>
         {{#if moreImages}}<div class="gallery-controls" role="group" aria-label="Controles de imágenes"><button type="button" data-gallery-previous disabled aria-label="Imagen anterior">Anterior</button><span data-gallery-position aria-live="polite"></span><button type="button" data-gallery-next disabled aria-label="Imagen siguiente">Siguiente</button></div>{{/if}}
         {{#if moreImages}}<div class="gallery-thumbnails" role="group" aria-label="Elegir imagen">{{#each images}}<button type="button" data-gallery-thumb disabled aria-label="Ver imagen {{position}}" aria-pressed="{{#if first}}true{{else}}false{{/if}}"><img src="{{url}}" alt="" loading="lazy"></button>{{/each}}</div>{{/if}}
