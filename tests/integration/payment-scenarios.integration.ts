@@ -68,7 +68,7 @@ test('local payment scenarios: real MariaDB and HTTP, simulated Mercado Pago res
     async function make(start = true) {
       const session = await sessions.start({ method: 'POST', headers: { host: '127.0.0.1:3000', origin: 'http://127.0.0.1:3000', 'content-type': 'application/json' }, socket: { remoteAddress: '127.0.0.1' } });
       const quote = await quotes.quote(session, { lines: [{ productId, variantId, quantity: 2 }], destination: { postalCode: '7600', candidateId: 'fixture' } });
-      const body = { quoteId: quote.quoteId, optionId: quote.options[0].id, pickupPointId: null, contact: { name: 'Cliente de prueba', email: 'scenario@example.test', phone: '000' }, address: { street: 'Synthetic', number: '1', unit: '' } };
+      const body = { quoteId: quote.quoteId, optionId: quote.options[0].id, pickupPointId: null, contact: { name: 'Cliente de prueba', email: 'scenario@example.test', phone: '000', document: '00123456' }, address: { street: 'Synthetic', number: '1', unit: '' } };
       const key = randomUUID(), order = await orders.create(session.id, key, body);
       const payment: RemotePayment = { id: nextPayment++, collector_id: 123, live_mode: false, external_reference: order.id, currency_id: 'ARS', transaction_amount: 2.5, status: 'pending' };
       remote.set(order.id, [payment]); if (start) assert.equal((await payments.start(session.id, order.id)).status, 'ready');

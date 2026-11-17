@@ -7,7 +7,7 @@ import { OrdersService, parseOrder } from './orders.service';
 import { OrdersGuard } from '../http/orders.guard';
 
 const key = 'b957d5e1-17af-4cb6-8f3f-0af2b8ee5891';
-const body = { quoteId: 'quote', optionId: 'ship', pickupPointId: null, contact: { name: 'A', email: 'a@example.com', phone: '123' }, address: { street: 'S', number: '1', unit: '' } };
+const body = { quoteId: 'quote', optionId: 'ship', pickupPointId: null, contact: { name: 'A', email: 'a@example.com', phone: '123', document: '00123456' }, address: { street: 'S', number: '1', unit: '' } };
 const row = { name: 'Chair', variantName: 'Oak', priceMinor: '100', currency: 'ARS', supplyMode: 'made_to_order', weightGrams: 100, widthMm: 10, heightMm: 20, lengthMm: 30 };
 const quote = { validUntil: 32472144000000, destination: { country: 'AR', postalCode: '1000', city: 'C', state: 'S' }, lines: [{ productId: 'p', variantId: 'v', quantity: 2, ...row }], options: [{ id: 'ship', carrierName: 'Carrier', serviceName: 'Home', currency: 'ARS', amountMinor: '50' }] };
 
@@ -35,17 +35,26 @@ test('orders lock parents before variants, consume current stock once and reject
   assert.equal(inserts, 1);
 });
 
-test('optional DNI/CUIL preserves old request hashes and accepts only bounded numeric documents', () => {
+test('new orders require a numeric DNI/CUIL and preserve leading zeros', () => {
   assert.deepEqual(parseOrder(body), body);
-  assert.deepEqual(parseOrder({ ...body, contact: { ...body.contact, document: '' } }), body);
+  const { name, email, phone } = body.contact;
+  assert.throws(() => parseOrder({ ...body, contact: { name, email, phone } }), { status: 400 });
   for (const document of ['1234567', '00123456', '20123456786']) {
     const parsed = parseOrder({ ...body, contact: { ...body.contact, document: ` ${document} ` } });
     assert.equal((parsed.contact as { document?: string }).document, document);
   }
-  for (const document of [null, 12345678, {}, '123456', '123456789', '123456789012', '12.345.678', '1234567\n', '<script>']) {
+  for (const document of [undefined, null, '', '   ', 12345678, {}, '123456', '123456789', '123456789012', '12.345.678', '1234567\n', '<script>']) {
     assert.throws(() => parseOrder({ ...body, contact: { ...body.contact, document } }), { status: 400 });
   }
   assert.throws(() => parseOrder({ ...body, contact: { ...body.contact, document: '12345678', extra: true } }), { status: 400 });
+});
+
+test('an order without a document is rejected before database access', async () => {
+  const { name, email, phone } = body.contact;
+  const service = new OrdersService();
+  for (const contact of [{ name, email, phone }, { ...body.contact, document: '' }, { ...body.contact, document: '   ' }]) {
+    await assert.rejects(service.create('session', key, { ...body, contact }), { status: 400 });
+  }
 });
 
 test('document is saved in replay identity and restored only for the owning session', async () => {

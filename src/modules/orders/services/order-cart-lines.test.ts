@@ -9,7 +9,7 @@ import type { SessionService } from '../../checkout/sessions/session';
 
 test('historical orders recover purchased identifiers only through their owning checkout session', async () => {
   const key = 'b957d5e1-17af-4cb6-8f3f-0af2b8ee5891';
-  const body = { quoteId: 'quote', optionId: 'ship', pickupPointId: null, contact: { name: 'Buyer', email: 'buyer@example.com', phone: '123' }, address: { street: 'Street', number: '1', unit: '' } };
+  const body = { quoteId: 'quote', optionId: 'ship', pickupPointId: null, contact: { name: 'Buyer', email: 'buyer@example.com', phone: '123', document: '00123456' }, address: { street: 'Street', number: '1', unit: '' } };
   const purchased = [{ productId: 'product', variantId: 'variant', quantity: 2 }];
   const result = { id: 'order', currency: 'ARS', totalMinor: '200', testLocal: false, contact: body.contact, destination: { ...body.address, postalCode: '7600' }, shipping: { carrierName: 'Carrier', serviceName: 'Home' }, lines: [{ name: 'Product', variantName: 'PLA / Navidad', quantity: 2, unitPriceMinor: '100', lineTotalMinor: '200', currency: 'ARS' }] };
   const tx = { async query(sql: string, args: unknown[]) {

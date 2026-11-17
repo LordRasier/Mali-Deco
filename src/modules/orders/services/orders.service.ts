@@ -20,16 +20,15 @@ const object = (v: unknown, keys: string[]): Record<string, unknown> => {
 const text = (v: unknown, max: number, empty = false): v is string => typeof v === 'string' && v.length <= max && (empty || !!v.trim()) && ![...v].some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127);
 export function parseOrder(value: unknown) {
   const b = object(value, ['quoteId', 'optionId', 'pickupPointId', 'contact', 'address']);
-  const hasDocument = !!b.contact && typeof b.contact === 'object' && Object.hasOwn(b.contact, 'document');
-  const c = object(b.contact, ['name', 'email', 'phone', ...(hasDocument ? ['document'] : [])]);
-  if (hasDocument && (!text(c.document, 32, true) || (c.document.trim() !== '' && !/^(?:[0-9]{7,8}|[0-9]{11})$/.test(c.document.trim())))) throw new BadRequestException('Invalid document');
-  const document = hasDocument ? (c.document as string).trim() : '';
+  const c = object(b.contact, ['name', 'email', 'phone', 'document']);
+  if (!text(c.document, 32) || !/^(?:[0-9]{7,8}|[0-9]{11})$/.test(c.document.trim())) throw new BadRequestException('Ingresá tu DNI de 7 u 8 dígitos o CUIL de 11 dígitos, sin puntos ni guiones.');
+  const document = c.document.trim();
   const a = object(b.address, ['street', 'number', 'unit']);
   if (!id(b.quoteId) || !text(b.optionId, 255) || !(b.pickupPointId === null || (typeof b.pickupPointId === 'number' && Number.isSafeInteger(b.pickupPointId) && b.pickupPointId > 0)) ||
       !text(c.name, 255) || !text(c.email, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email) || !text(c.phone, 64) ||
       !text(a.street, 255) || !text(a.number, 64) || !text(a.unit, 255, true)) throw new BadRequestException('Invalid order');
   return { quoteId: b.quoteId, optionId: b.optionId, pickupPointId: b.pickupPointId as number | null,
-    contact: { name: c.name, email: c.email, phone: c.phone, ...(document ? { document } : {}) }, address: { street: a.street, number: a.number, unit: a.unit } };
+    contact: { name: c.name, email: c.email, phone: c.phone, document }, address: { street: a.street, number: a.number, unit: a.unit } };
 }
 const conflict = (): never => { throw new ConflictException({ code: 'QUOTE_CHANGED', message: 'Quote changed or expired; quote again' }); };
 const money = (v: unknown): bigint => {

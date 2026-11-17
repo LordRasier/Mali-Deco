@@ -203,7 +203,7 @@ export function createCheckoutView(root: HTMLElement, recoveryAvailable = checko
     node('total-message').textContent = selected && !shippingIncluded && !cart.unresolved ? !pickupReady ? 'Elegí un punto de retiro para calcular el total.' : 'No se puede sumar el envío a los subtotales en distintas monedas.' : '';
     const method = root.querySelector<HTMLInputElement>('[data-checkout-payment]');
     if (method) { method.checked = state.paymentMethod === 'mercadopago'; method.disabled = locked || root.dataset.paymentAvailable !== 'true'; }
-    const complete = [input('name').value, input('phone').value, input('street').value, input('number').value].every(v => !!v.trim()) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input('email').value) && (!input('document').value || /^(?:[0-9]{7,8}|[0-9]{11})$/.test(input('document').value));
+    const complete = [input('name').value, input('phone').value, input('street').value, input('number').value].every(v => !!v.trim()) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input('email').value) && /^(?:[0-9]{7,8}|[0-9]{11})$/.test(input('document').value);
     button('submit').disabled = locked || !cart.ready || !cart.items.length || !shippingIncluded || !validQuote || state.quoteBusy || !complete || (!!method && state.paymentMethod !== 'mercadopago');
     button('submit').hidden = !!state.order;
     button('submit').textContent = state.sending ? 'Procesando…' : shippingIncluded ? `Pagar ${formatPrice(cart.totals[selected!.currency] + BigInt(selected!.amountMinor), selected!.currency)}` : 'Pagar';

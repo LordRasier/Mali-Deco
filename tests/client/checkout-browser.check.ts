@@ -62,7 +62,7 @@ function dom() {
 function snapshot(): CheckoutSnapshot {
   return { quote: { quoteId: 'q', validUntil: Date.now() + 10000, options: [{ id: 'o', carrierName: '<img src=x>', serviceName: 'Home', serviceCode: 'home', amountMinor: '100', currency: 'ARS' }] }, expired: false,
     option: 'o', point: '', quoteBusy: false, sending: false, error: '', invalidSession: false, order: null, pending: null, loaded: true, focusRequest: 0,
-    contact: { name: 'Private', email: 'a@example.invalid', phone: '123' }, address: { street: 'Street', number: '1', unit: '' }, canRetry: false, locked: false };
+    contact: { name: 'Private', email: 'a@example.invalid', phone: '123', document: '00123456' }, address: { street: 'Street', number: '1', unit: '' }, canRetry: false, locked: false };
 }
 const shipping: ShippingSnapshot = { mode: 'api', cartKey: null, postalCode: '1000', candidateId: 'city', lookup: { status: 'resolved', candidates: [{ id: 'city', label: '<script>City</script>' }] }, quote: null, selection: null, loading: false, error: false, expired: false, estimateEnabled: false };
 const cart: CartView = { stockShortage: false, bulkWarnings: [], ready: true, status: 'idle', removedNotice: 0, storageUnavailable: false, storageTabOnly: false, unresolved: false, count: 1,
@@ -198,7 +198,7 @@ test('native submit reads current fields/autofill, validates, prevents navigatio
     placeOrder: () => calls.push(['order']), requestQuote: () => calls.push(['quote']), findDestination() {}, setPostalCode() {}, selectDestination() {}, selectOption() {}, selectPoint() {}, retryAttempt() {}, checkPending() {}, discardSession() {} };
   view.bind(actions); view.render(snapshot(), shipping, cart); assert.deepEqual(calls, []);
   d.get('name').value = 'Autofilled'; const submit = new Event('submit', { cancelable: true }); d.get('form').dispatchEvent(submit);
-  assert.equal(submit.defaultPrevented, true); assert.deepEqual(calls[0], ['contact', { name: 'Autofilled', email: 'a@example.invalid', phone: '123', document: '' }]); assert.deepEqual(calls.at(-1), ['order']);
+  assert.equal(submit.defaultPrevented, true); assert.deepEqual(calls[0], ['contact', { name: 'Autofilled', email: 'a@example.invalid', phone: '123', document: '00123456' }]); assert.deepEqual(calls.at(-1), ['order']);
   calls.length = 0; d.get('form').validity = false; d.get('form').dispatchEvent(new Event('submit', { cancelable: true })); assert.deepEqual(calls, []);
   view.dispose(); d.get('quote').dispatchEvent(new Event('click')); assert.deepEqual(calls, []);
 });
@@ -265,6 +265,26 @@ test('checkout mount shares the supplied owners, pauses on pagehide and restores
   lifecycle.dispatchEvent(new Event('pagehide')); assert.equal(store.getSnapshot().loaded, false); assert.equal(session.getSnapshot().estimateEnabled, true); assert.equal(d.get('name').value, '');
   lifecycle.dispatchEvent(new Event('pageshow')); assert.equal(store.getSnapshot().loaded, true); assert.equal(store.getSnapshot().canRetry, false);
   mount.dispose(); assert.equal(listeners.size, 0); assert.equal(locked, false); lifecycle.dispatchEvent(new Event('pageshow')); assert.equal(store.getSnapshot().loaded, false); session.dispose();
+});
+
+test('pay stays disabled until a required DNI/CUIL is valid and blocks an empty submit', () => {
+  const d = dom(), view = createCheckoutView(d.root), state = snapshot();
+  let orders = 0;
+  view.bind({ setContact() {}, setAddress() {}, placeOrder() { orders++; }, requestQuote() {}, findDestination() {},
+    setPostalCode() {}, selectDestination() {}, selectOption() {}, selectPoint() {}, retryAttempt() {}, checkPending() {}, discardSession() {} });
+  for (const document of ['', '   ', '123456', '123456789', '12.345.678', '201234567890']) {
+    view.render({ ...state, contact: { ...state.contact, document } }, shipping, cart);
+    assert.equal(d.get('submit').disabled, true, `Invalid document: ${document}`);
+    d.get('form').dispatchEvent(new Event('submit', { cancelable: true }));
+  }
+  assert.equal(orders, 0);
+  for (const document of ['1234567', '00123456', '20123456786']) {
+    view.render({ ...state, contact: { ...state.contact, document } }, shipping, cart);
+    assert.equal(d.get('submit').disabled, false);
+  }
+  view.render({ ...state, contact: { ...state.contact, document: '' } }, shipping, cart);
+  assert.equal(d.get('submit').disabled, true);
+  view.dispose();
 });
 
 test('document captures native edits and autofill and is cleared with the private draft', () => {

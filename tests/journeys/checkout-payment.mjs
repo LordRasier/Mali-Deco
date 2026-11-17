@@ -60,7 +60,7 @@ try {
   assert.equal(await page.locator('[data-checkout-payment]').isChecked(), true);
   assert.equal(await page.locator('[data-checkout-payment]').isDisabled(), false);
   assert.equal(await page.locator('[data-checkout-submit]').isDisabled(), true);
-  for (const [name, value] of Object.entries({ name:'Comprador de prueba',email:'buyer@example.test',phone:'2230000000',street:'Calle de prueba',number:'123' })) await page.locator('[data-checkout-' + name + ']').fill(value);
+  for (const [name, value] of Object.entries({ name:'Comprador de prueba',email:'buyer@example.test',phone:'2230000000',document:'00123456',street:'Calle de prueba',number:'123' })) await page.locator('[data-checkout-' + name + ']').fill(value);
   await page.waitForFunction(() => !globalThis.document.querySelector('[data-checkout-submit]').disabled);
   assert.match(await page.locator('[data-checkout-submit]').textContent(), /20.500,00/);
   mkdirSync('.local-tools/checkout-ui', { recursive: true });

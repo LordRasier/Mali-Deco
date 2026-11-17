@@ -33,7 +33,7 @@ test('checkout lifecycle with real isolated MariaDB and simulated provider', {
     const quotes = new CheckoutQuoteService(db, postal, provider, env);
     const quote = () => quotes.quote(first, { lines: [{ productId, variantId, quantity: 2 }], destination: { postalCode: '1000', candidateId: 'synthetic' } });
     const orders = new OrdersService(db);
-    const bodyFor = (q: Awaited<ReturnType<typeof quote>>) => ({ quoteId: q.quoteId, optionId: q.options[0].id, pickupPointId: null, contact: { name: 'Synthetic', email: 'synthetic@example.test', phone: '123' }, address: { street: 'Street', number: '1', unit: '' } });
+    const bodyFor = (q: Awaited<ReturnType<typeof quote>>) => ({ quoteId: q.quoteId, optionId: q.options[0].id, pickupPointId: null, contact: { name: 'Synthetic', email: 'synthetic@example.test', phone: '123', document: '00123456' }, address: { street: 'Street', number: '1', unit: '' } });
     const q = await quote(), body = bodyFor(q), key = randomUUID();
     const [a, b] = await Promise.all([orders.create(first.id, key, body), orders.create(first.id, key, body)]);
     assert.equal(a.id, b.id); assert.equal(a.totalMinor, '250');
