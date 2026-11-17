@@ -5,6 +5,7 @@ import type { CartLine, StorefrontData } from '../../../shared/catalog/storefron
 import { browserCartRuntime, type CartRuntime } from './cart-runtime';
 import { cartSnapshot, type CartFlags } from './cart-snapshot';
 import { variantLimit } from '../../../shared/cart/inventory';
+import { commerceData, trackCommerce } from '../../../shared/analytics/commerce';
 
 type Options = { runtime?: CartRuntime; resolve?: typeof resolveCartPairs };
 
@@ -40,6 +41,15 @@ export function createCartStore(mode: StorefrontData['mode'], options: Options =
     if (!next) loseStorage();
     adopt(next ?? { lines, version: `memory:${++revision}`, removed: 0 });
     if (next) runtime.notify();
+  };
+  const measureChange = (before: CartLine[], after: CartLine[]) => {
+    if (mode !== 'api') return;
+    for (const line of [...before, ...after.filter(l => !before.some(b => pairKey(b) === pairKey(l)))]) {
+      const previous = before.find(l => pairKey(l) === pairKey(line))?.quantity ?? 0;
+      const next = after.find(l => pairKey(l) === pairKey(line))?.quantity ?? 0;
+      const receipt = cache.get(pairKey(line));
+      if (receipt && next !== previous) trackCommerce(next > previous ? 'add_to_cart' : 'remove_from_cart', commerceData([{ ...receipt, quantity: Math.abs(next - previous) }]));
+    }
   };
   const sync = () => {
     if (!active || memoryOnly) return;
@@ -98,7 +108,7 @@ export function createCartStore(mode: StorefrontData['mode'], options: Options =
         if (!current) { loseStorage(); current = saved; }
         const next = await transform(current.lines);
         if (!active || lifecycle !== generation) return;
-        flags.mutationError = ''; persist(next);
+        flags.mutationError = ''; persist(next); measureChange(current.lines, next);
       });
     } catch (error) {
       if (active && lifecycle === generation) { flags.mutationError = error instanceof Error ? error.message : 'No se pudo actualizar el carrito.'; publish(); }
@@ -111,6 +121,7 @@ export function createCartStore(mode: StorefrontData['mode'], options: Options =
     if (!receipt || result.missing.length) throw new Error('Esta opción ya no está disponible. Elegí otra opción.');
     const quantity = (lines.find(line => line.productId === productId && line.variantId === variantId)?.quantity ?? 0) + difference;
     if (quantity > variantLimit(receipt.variant)) throw new Error('La cantidad supera el stock disponible o el límite de unidades de esta opción.');
+    cache.set(pairKey(receipt), receipt);
     return receipt;
   }
 
@@ -181,7 +192,8 @@ export function createCartStore(mode: StorefrontData['mode'], options: Options =
           if (!existing && lines.length >= 1000) throw new Error('El carrito alcanzó su límite de productos.');
           receipt = await verifyIncrease(lines, productId, variantId, 1, signal); check(); flags.mutationError = '';
           cache.set(pairKey(receipt), receipt);
-          persist(addToCart(lines, productId, variantId));
+          const next = addToCart(lines, productId, variantId);
+          persist(next); measureChange(lines, next);
         });
         return receipt;
       } finally { endMutation(lifecycle); }

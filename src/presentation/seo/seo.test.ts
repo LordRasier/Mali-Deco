@@ -14,7 +14,10 @@ test('SEO excludes filtered, unavailable, private and demo pages and keeps clean
   assert.equal(metadata('catalog', { defaultCurrency: 'ARS' }, 'page=3&currency=ARS&utm_source=instagram').canonical, 'https://shop.example/catalogo?page=3');
   assert.equal(metadata('catalog', { defaultCurrency: 'ARS' }, 'currency=USD').canonical, 'https://shop.example/catalogo?currency=USD');
   for (const params of ['search=florero', 'category=deco', 'sort=name_desc', 'color=rojo', 'material=pla']) { assert.equal(metadata('catalog', {}, params).noindex, true); assert.equal(metadata('catalog', {}, params).canonical, ''); }
-  for (const view of ['admin', 'cart', 'checkout']) { assert.equal(metadata(view).analyticsId, ''); assert.equal(metadata(view).jsonLd, ''); assert.equal(metadata(view).noindex, true); }
+  assert.equal(metadata('admin').analyticsId, '');
+  for (const view of ['admin', 'cart', 'checkout']) { assert.equal(metadata(view).jsonLd, ''); assert.equal(metadata(view).noindex, true); }
+  for (const view of ['cart', 'checkout']) assert.equal(metadata(view).analyticsId, config.ga4Id);
+  assert.equal(metadata('checkout', { testMode: true }).analyticsId, '');
   assert.equal(metadata('home', {}, '', 503).analyticsId, ''); assert.equal(metadata('home', { demo: true }).analyticsId, '');
   assert.equal(metadata('home', {}, '', 200, { NODE_ENV: 'development' }).analyticsId, '');
   assert.equal(metadata('home').analyticsId, 'G-TEST12345');

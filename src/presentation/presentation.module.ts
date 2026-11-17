@@ -49,7 +49,7 @@ export class PresentationModule {
     const paymentAvailable = !!paymentConfig(env);
     const initialInformation = storeInformation(env);
     return { module: PresentationModule, controllers: mode === 'api' ? [MvcCheckoutController] : [], providers: [
-      { provide: SEO_ENV, useValue: Object.freeze({ NODE_ENV: env.NODE_ENV, PUBLIC_SITE_URL: env.PUBLIC_SITE_URL }) },
+      { provide: SEO_ENV, useValue: Object.freeze({ NODE_ENV: env.NODE_ENV, PUBLIC_SITE_URL: env.PUBLIC_SITE_URL, GA4_MEASUREMENT_ID: env.GA4_MEASUREMENT_ID }) },
       ...(mode === 'api' ? [{ provide: CheckoutPage, useFactory: (catalog: PublicCatalog, access: CheckoutAccess) => new CheckoutPage(catalog, mode, config, canonicalRoutes, paymentAvailable, access), inject: [PublicCatalog, CheckoutAccess] }] : []),
       { provide: MVC_CART_MODE, useValue: mode }, { provide: STOREFRONT_ROUTES, useValue: canonicalRoutes },
       { provide: INFORMATION_CHECKOUT_ENABLED, useValue: checkout },

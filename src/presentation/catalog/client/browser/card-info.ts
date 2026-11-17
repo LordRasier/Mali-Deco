@@ -1,6 +1,7 @@
 import { createCardDetails } from '../state/card-details';
 import { formatPrice } from '../../../shared/cart/cart';
 import type { Product } from '../../shared/storefront-types';
+import { itemData, trackCommerce } from '../../../shared/analytics/commerce';
 
 type DialogView = { kind: 'information' } | { kind: 'options'; receive: (product: Product, id: string) => void };
 
@@ -72,6 +73,7 @@ export function mountCardInfo(dialog: HTMLDialogElement) {
     close.setAttribute('aria-label', view.kind === 'options' ? 'Cerrar opciones' : 'Cerrar información');
     overflow = document.documentElement.style.overflow;
     dialog.showModal(); document.documentElement.style.overflow = 'hidden'; close.focus({ preventScroll: true });
+    if (view.kind === 'information') trackCommerce('view_item', { items: [itemData(product)] });
     return state.open(product);
   };
   return {

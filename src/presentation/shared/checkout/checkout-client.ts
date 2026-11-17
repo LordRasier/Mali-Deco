@@ -1,5 +1,6 @@
 import { parseLookup, type PostalCandidate } from '../shipping/postal-lookup';
 import type { CartLine } from '../catalog/storefront-types';
+import { checkoutAnalyticsContext } from '../analytics/commerce';
 
 export type Destination = PostalCandidate;
 export type DestinationResult = {status:'resolved';candidate:Destination}|{status:'ambiguous';candidates:Destination[]}|{status:'unavailable'|'invalid'|'not_found'|'too_many'};
@@ -85,6 +86,16 @@ export async function lookupDestination(postalCode: string, signal?: AbortSignal
   return {status:result.status};
 }
 export async function getQuote(csrf: string, lines: {productId:string;variantId:string;quantity:number}[], destination: {postalCode:string;candidateId:string}, signal?: AbortSignal) { return validateQuote(await post('/api/v1/checkout/quotes', { lines, destination }, { 'X-CSRF-Token': csrf }, signal)); }
-export async function createOrder(csrf: string, key: string, input: OrderInput) { return validateOrder(await post('/api/v1/checkout/orders', input, { 'X-CSRF-Token': csrf, 'Idempotency-Key': key })); }
+export async function createOrder(csrf: string, key: string, input: OrderInput) {
+  const order = validateOrder(await post('/api/v1/checkout/orders', input, { 'X-CSRF-Token': csrf, 'Idempotency-Key': key }));
+  // Attach consented identifiers before opening the payment provider. Never forward the order/contact payload.
+  if (!order.testLocal) {
+    try {
+      const context = await checkoutAnalyticsContext();
+      if (context) await post('/api/v1/checkout/analytics-context', { orderId: order.id, ...context }, { 'X-CSRF-Token': csrf }, AbortSignal.timeout(1200));
+    } catch { /* Analytics failure must not turn an existing order into an uncertain purchase. */ }
+  }
+  return order;
+}
 export async function resumeCheckoutSession() { return token(await post('/api/v1/checkout/session/resume', {})); }
 export async function checkOrderAttempt(csrf: string, key: string): Promise<{status:'completed';order:Order}|{status:'unknown'}> { const v = await post('/api/v1/checkout/order-attempt', {}, { 'X-CSRF-Token':csrf, 'Idempotency-Key':key }); if (object(v) && v.status === 'unknown') return {status:'unknown'}; if (object(v) && v.status === 'completed') return {status:'completed',order:validateOrder(v.order)}; throw new Error('Invalid attempt response'); }

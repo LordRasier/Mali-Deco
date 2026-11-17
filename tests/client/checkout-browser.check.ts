@@ -31,6 +31,7 @@ test('checkout quantity controls stay compact and stable, respect stock and lock
 
 // Controlled DOM ports test binding, retained nodes and text safety, not layout/browser parsing.
 class NodeDouble extends EventTarget {
+  dataset: Record<string, string> = {};
   hidden = false; disabled = false; value = ''; checked = false; type = ''; name = ''; className = '';
   private ownText = '';
   get textContent() { return this.ownText + this.children.map(node => node.textContent).join(''); }

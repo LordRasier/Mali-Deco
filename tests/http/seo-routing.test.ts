@@ -52,7 +52,8 @@ test('real SSR pipeline serves SEO, discovery, consent bootstrap and protected s
       assert.doesNotMatch(head, /(?:name="description"|property="og:image:alt") content=""/);
     }
     assert.equal((await request('/categorias/missing')).status, 404);
-    for (const path of ['/carrito', '/admin', '/productos/missing']) {
+    const cart = await request('/carrito'); assert.match(cart.text, /data-site-analytics="ga4"/); assert.doesNotMatch(cart.text, /application\/ld\+json/);
+    for (const path of ['/admin', '/productos/missing']) {
       const response = await request(path); assert.doesNotMatch(response.text, /data-site-analytics|application\/ld\+json/);
     }
     const robots = await request('/robots.txt'); assert.equal(robots.status, 200); assert.match(robots.text, /Sitemap: https:\/\/shop.example\/sitemap.xml/);

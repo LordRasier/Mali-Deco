@@ -51,7 +51,7 @@ Esta implementación no ejecutó migraciones ni reinició procesos del servidor.
 - No se solicita ningún script de Google antes de aceptar. Aceptar y rechazar son acciones visibles equivalentes.
 - La preferencia se conserva durante 180 días en almacenamiento local, separada por modo e ID. Un cambio de ID solicita una nueva elección.
 - El botón «Preferencias de medición» del footer permite cambiarla. Revocar envía el estado denegado, borra cookies `_ga` accesibles y recarga para detener etiquetas ya cargadas.
-- Administración, carrito, checkout, errores, modo demo y entornos que no sean producción quedan fuera de la carga.
+- Administración, seguimiento privado, retorno de pago, errores, modo demo y entornos que no sean producción quedan fuera de la carga. Carrito y checkout incorporan medición consentida de ecommerce y conservan `noindex`.
 - GA4 directo configura una vista de página por carga. Se emite `contact_click` con canal (`instagram`, `whatsapp` o `email`) y ruta, sin el teléfono, dirección de email ni destino completo.
 - En GTM, `contact_click` es un evento de `dataLayer`: crear el disparador de evento personalizado y su etiqueta de evento GA4. El sitio no configura automáticamente el contenedor remoto.
 - Se conserva atribución UTM mediante etiquetas de campaña acotadas. Se omiten de la URL enviada las búsquedas, parámetros arbitrarios, fragmentos e identificadores publicitarios. Usar nombres de campaña sin datos personales.
@@ -59,7 +59,7 @@ Esta implementación no ejecutó migraciones ni reinició procesos del servidor.
 
 El contenedor debe configurarse para analítica y respetar consentimiento. Sus etiquetas pueden requerir ajustes adicionales: la CSP permite los destinos de GA/GTM y nonce, no habilita `unsafe-inline`, `unsafe-eval` ni cualquier dominio de terceros. Revisar también la medición mejorada del flujo GA4 para evitar eventos duplicados o captura no deseada de formularios/búsquedas. Los controles del sitio no auditan lo que el owner publica en Google.
 
-No se emiten `purchase` ni ventas inferidas desde un clic: el flujo comercial continúa por Instagram. `contact_click` mide intención de contacto, no una venta confirmada. Los eventos de ecommerce y confirmación comercial quedan para otra etapa.
+`contact_click` mide intención de contacto, no una venta confirmada. La [integración de ecommerce](analytics-ecommerce.md) incorpora pasos del catálogo/carrito/checkout y compras/reembolsos totales confirmados por MercadoPago desde el servidor. Requiere desplegar el código, migrar y configurar el secreto privado de Measurement Protocol; no se infieren ventas de clics ni del retorno del pago.
 
 ## Base técnica de SEO incluida
 

@@ -6,6 +6,7 @@ import { mountProductGallery } from './product-gallery';
 import { STOREFRONT_DATA_MODE } from '../../../shared/runtime/data-mode';
 import { renderPropertyChoices, updatePropertyChoices } from '../../../catalog/client/browser/property-choices';
 import { variantImageId } from '../../../catalog/shared/variant-images';
+import { commerceData, trackCommerce, onAnalyticsReady } from '../../../shared/analytics/commerce';
 
 function required<T extends Element>(root: ParentNode, selector: string): T {
   const element = root.querySelector<T>(selector); if (!element) throw new Error(`Missing product control: ${selector}`); return element;
@@ -29,7 +30,15 @@ export function mountProductPanel(cart: ReturnType<typeof createCartStore>, open
   const buttons = new Map(Array.from(variants.querySelectorAll<HTMLButtonElement>('[data-product-variant]')).map(button => [button.dataset.productVariant!, button]));
   let active = false, generation = 0, pendingFocus: string | undefined;
   let propertySet = '', grouped = false;
+  let viewedItem = '';
+  const measureItem = () => {
+    const current = product.getSnapshot();
+    if (active && current.status === 'ready' && current.selected && viewedItem !== current.selected.id &&
+      trackCommerce('view_item', commerceData([{ product: initial.product, variant: current.selected, quantity: 1 }]))) viewedItem = current.selected.id;
+  };
+  const removeAnalyticsListener = onAnalyticsReady(measureItem);
   const render = () => {
+    measureItem();
     const state = product.getSnapshot();
     if (state.selected) {
       const imageId = variantImageId(initial.product, state.selected), selection = `${state.selected.id}:${imageId ?? ''}`;
@@ -91,6 +100,7 @@ export function mountProductPanel(cart: ReturnType<typeof createCartStore>, open
   window.addEventListener('pagehide', suspend); window.addEventListener('pageshow', start); render(); start();
   return () => {
     suspend(); unsubscribeProduct(); unsubscribeCart(); gallery();
+    removeAnalyticsListener();
     variants.removeEventListener('click', choose); add.removeEventListener('click', addItem); retry.removeEventListener('click', retrySelection);
     more.removeEventListener('click', loadMore); pageRetry.removeEventListener('click', loadMore); reset.removeEventListener('click', reload);
     window.removeEventListener('pagehide', suspend); window.removeEventListener('pageshow', start);

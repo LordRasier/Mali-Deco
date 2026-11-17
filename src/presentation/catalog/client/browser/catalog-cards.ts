@@ -8,6 +8,7 @@ import { renderCardChoices, updateCardChoices } from './card-choices';
 import { mountCardInfo } from './card-info';
 import type { Product } from '../../shared/storefront-types';
 import { variantImageId } from '../../shared/variant-images';
+import { itemData, trackCommerce, onAnalyticsReady } from '../../../shared/analytics/commerce';
 
 export function mountCatalogCards(cart: ReturnType<typeof createCartStore>, root: ParentNode = document) {
   const dialog = root.querySelector<HTMLDialogElement>('[data-info-dialog]');
@@ -18,6 +19,10 @@ export function mountCatalogCards(cart: ReturnType<typeof createCartStore>, root
     const info = mountCardInfo(dialog), zoom = mountCatalogZoom(root);
     const galleries = mountCatalogGalleries(root, zoom.update);
     const cleanup: Array<() => void> = [galleries, () => zoom.dispose(), () => info.dispose()];
+    const listed: Product[] = [];
+    let measuredList = false;
+    const measureList = () => { if (!measuredList && listed.length) measuredList = trackCommerce('view_item_list', { item_list_id: 'catalog', items: listed.slice(0, 200).map(p => itemData(p)) }); };
+    cleanup.push(onAnalyticsReady(measureList));
     for (const card of root.querySelectorAll<HTMLElement>('[data-catalog-card]')) {
       const link = card.querySelector<HTMLAnchorElement>('[data-card-link]'), options = card.querySelector<HTMLElement>('[data-card-options]');
       const infoLink = card.querySelector<HTMLAnchorElement>('[data-card-info]');
@@ -28,12 +33,16 @@ export function mountCatalogCards(cart: ReturnType<typeof createCartStore>, root
       if (!link || !options || !purchase || !add || !price || !status || !error) continue;
       let initial: Product;
       try { initial = parseCardData(card.dataset.cardBootstrap ?? ''); } catch { continue; }
+      listed.push(initial);
       const state = createCatalogCard(initial, cart.addVerified), path = new URL(link.href).pathname;
       let previous: Product | undefined;
       let imageSelection: string | undefined;
       const open = (trigger: HTMLElement) => {
         const snapshot = state.snapshot();
-        if (!snapshot.pending) void info.open(snapshot.product, trigger, link);
+        if (!snapshot.pending) {
+          trackCommerce('select_item', { item_list_id: 'catalog', items: [itemData(snapshot.product, snapshot.selected)] });
+          void info.open(snapshot.product, trigger, link);
+        }
       };
       const choose = (trigger: HTMLElement) => {
         const snapshot = state.snapshot();
@@ -68,6 +77,7 @@ export function mountCatalogCards(cart: ReturnType<typeof createCartStore>, root
       const unsubscribe = state.subscribe(render), unsubscribeCart = cart.subscribe(render); render();
       cleanup.push(() => { state.dispose(); unsubscribe(); unsubscribeCart(); add.removeEventListener('click', onAdd); });
     }
+    measureList();
     dispose = () => cleanup.forEach(clean => clean());
   };
   const suspend = () => { dispose?.(); dispose = undefined; };

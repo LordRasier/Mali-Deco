@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  {{#if seo.analyticsId}}<link rel="stylesheet" href="/assets/storefront/analytics.css"><script src="/assets/storefront/generated/analytics.js" data-site-analytics="{{seo.analyticsMode}}" data-measurement-id="{{seo.analyticsId}}" data-ga4-id="{{seo.analyticsGa4Id}}" nonce="{{seo.nonce}}" defer></script>{{/if}}
   <title>Finalizar compra | {{brand}}</title>
   <link rel="stylesheet" href="/assets/storefront/cart.css">
   <link rel="stylesheet" href="/assets/storefront/shell.css">

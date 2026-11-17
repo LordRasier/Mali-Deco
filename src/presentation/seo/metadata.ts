@@ -7,7 +7,7 @@ import { defaultContentConfig, type ContentConfig } from '../../modules/settings
 import { productSharePath, type SharedProduct } from '../catalog/shared/product-sharing';
 
 export const SEO_ENV = Symbol('SEO_ENV');
-export type SeoEnvironment = { NODE_ENV?: string; PUBLIC_SITE_URL?: string };
+export type SeoEnvironment = { NODE_ENV?: string; PUBLIC_SITE_URL?: string; GA4_MEASUREMENT_ID?: string };
 type Model = Record<string, unknown> & { brand?: string; name?: string; title?: string; description?: string; noindex?: boolean; demo?: boolean; empty?: boolean; currencyUnavailable?: boolean; unpublished?: boolean; defaultCurrency?: string; page?: { title: string; intro: string }; productDetail?: Awaited<ReturnType<PublicCatalog['detail']>> };
 const publicViews = new Set(['home', 'catalog', 'product', 'information-page', 'shipping-returns']);
 const descriptionText = (value: string) => value.replace(/\s+/g, ' ').trim().slice(0, 300);
@@ -56,11 +56,13 @@ export function pageMetadata(view: string, model: Model, path: string, params: U
       graph.push({ '@type': 'BreadcrumbList', itemListElement: entries.map((entry, i) => ({ '@type': 'ListItem', position: i + 1, ...entry })) });
     }
   }
-  const tracking = !privatePage && !error && env.NODE_ENV === 'production' && config.analyticsMode !== 'off' && content.pages['politica-de-privacidad'].enabled;
+  const commercePage = (view === 'cart' || view === 'checkout') && model.testMode !== true;
+  const tracking = (!privatePage || commercePage) && !error && env.NODE_ENV === 'production' && config.analyticsMode !== 'off' && content.pages['politica-de-privacidad'].enabled;
+  const ga4Id = config.ga4Id || env.GA4_MEASUREMENT_ID || '';
   return { title, description, canonical, origin, socialUrl: shared ? absoluteUrl(origin, productSharePath(shared.id).split('#')[0]) : canonical,
     noindex, robots: noindex ? privatePage || error ? 'noindex, nofollow' : 'noindex, follow' : 'index, follow, max-image-preview:large', image, imageAlt, brand,
     socialType: view === 'product' || shared ? 'product' : 'website', jsonLd: graph.length ? serializedJson({ '@context': 'https://schema.org', '@graph': graph }) : '',
-    analyticsMode: tracking ? config.analyticsMode : '', analyticsId: tracking ? config.analyticsMode === 'ga4' ? config.ga4Id : config.gtmId : '' };
+    analyticsMode: tracking ? config.analyticsMode : '', analyticsGa4Id: tracking && /^G-[A-Z0-9]{6,20}$/.test(ga4Id) ? ga4Id : '', analyticsId: tracking ? config.analyticsMode === 'ga4' ? config.ga4Id : config.gtmId : '' };
 }
 
 export function publicCsp(nonce: string, analytics: boolean): string {

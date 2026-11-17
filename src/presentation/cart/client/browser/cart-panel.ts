@@ -8,6 +8,7 @@ import { renderCartChrome } from './cart-chrome';
 import { STOREFRONT_DATA_MODE } from '../../../shared/runtime/data-mode';
 import { createDeliveryHint, deliveryHintKey } from '../../../shared/checkout/checkout-handoff';
 import { cartShippingIdentity, shippingPanelState } from '../../../shipping/client/state/shipping-presentation';
+import { commerceData, trackCommerce, onAnalyticsReady } from '../../../shared/analytics/commerce';
 
 function required<T extends Element>(selector: string): T {
   const node = document.querySelector<T>(selector);
@@ -30,6 +31,11 @@ export function mountCartPanel() {
   const retry = required<HTMLButtonElement>('[data-cart-retry]'), announcement = required<HTMLElement>('[data-cart-announcement]');
   const rows = new Map<string, ReturnType<typeof cartRow>>();
   let pending: { key: string; index: number; name: string } | undefined;
+  let viewedCart = false;
+  const measureCart = () => {
+    const current = store.getSnapshot();
+    if (!viewedCart && surface.visible() && current.ready && !current.unresolved) viewedCart = trackCommerce('view_cart', commerceData(current.items));
+  };
   const render = () => {
     const state = store.getSnapshot();
     open.disabled = !state.ready || surface.isLocked();
@@ -69,9 +75,11 @@ export function mountCartPanel() {
       }
       pending = undefined;
     }
+    measureCart();
   };
-  const show = () => { if (!surface.isLocked()) { surface.open(); close.focus(); } };
-  const hide = () => surface.close();
+  const show = () => { if (!surface.isLocked()) { surface.open(); close.focus(); measureCart(); } };
+  const hide = () => { surface.close(); viewedCart = false; };
+  const removeAnalyticsListener = onAnalyticsReady(measureCart);
   const escape = (event: KeyboardEvent) => {
     if (event.key === 'Escape' && dialog.open) { event.preventDefault(); hide(); }
   };
@@ -100,6 +108,7 @@ export function mountCartPanel() {
     open.removeEventListener('click', show); close.removeEventListener('click', hide); retry.removeEventListener('click', again);
     dialog.removeEventListener('keydown', escape);
     surface.dispose();
+    removeAnalyticsListener();
     checkout?.removeEventListener('click', saveDelivery);
   };
   return { store, shippingSession: shipping.session, open: show, close: hide, setLocked(value: boolean) { surface.setLocked(value); render(); }, dispose };

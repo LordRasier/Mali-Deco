@@ -14,6 +14,8 @@
 
 ## Contratos de negocio
 
+- Analytics de ecommerce: [eventos, instalación, consentimiento y validación](analytics-ecommerce.md).
+
 - Catálogo: [API](catalog-public-api.md), [detalle](product-detail.md), [clasificaciones](catalog-taxonomy-admin.md), [medios](product-media-development.md).
 - Compra: [carrito](cart-experience.md), [checkout local](checkout-local.md), [cotizaciones](shipping-quote-foundation.md), [Zipnova](zipnova-quote-foundation.md).
 - Seguridad: [identidad](identity-status.md), [arquitectura](architecture.md).

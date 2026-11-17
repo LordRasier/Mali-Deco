@@ -1,27 +1,31 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mountAnalytics } from './analytics';
+import type { AnalyticsBridge } from '../../shared/analytics/commerce';
 
 class Node extends EventTarget {
   children: Node[] = []; dataset: Record<string, string> = {}; hidden = false; textContent = ''; className = ''; id = ''; type = ''; href = ''; src = ''; nonce = ''; async = false;
   append(...children: Node[]) { this.children.push(...children); }
   setAttribute() {} focus() {}
 }
-test('GA4 and GTM load once only after consent; rejection and private routes never load scripts', () => {
-  const globals = ['document', 'window', 'location', 'localStorage'] as const;
+test('GA4 and GTM load once only after consent; rejection and private routes never load scripts', async () => {
+  const globals = ['document', 'window', 'location', 'localStorage', 'fetch'] as const;
   const original = globals.map(key => Object.getOwnPropertyDescriptor(globalThis, key));
   try {
     for (const mode of ['ga4', 'gtm']) {
       const head = new Node(), body = new Node(), footer = new Node(), script = new Node(), events = new EventTarget();
       script.dataset = { siteAnalytics: mode, measurementId: mode === 'ga4' ? 'G-TEST12345' : 'GTM-TEST123' }; script.nonce = 'test-nonce';
-      const storage = new Map<string, string>(); let reloads = 0;
+      const storage = new Map<string, string>(), revocations: unknown[] = []; let reloads = 0;
       const location = { href: 'https://shop.example/catalogo?utm_source=instagram&search=private', pathname: '/catalogo', origin: 'https://shop.example', hostname: 'shop.example', reload: () => { reloads++; } };
       const doc = { head, body, referrer: 'https://origin.example/private?email=secret', cookie: '_ga=example', createElement: () => new Node(),
         querySelector: (selector: string) => selector === 'script[data-site-analytics]' ? script : selector === '.site-footer-bottom' ? footer : null,
         addEventListener: events.addEventListener.bind(events) };
-      const win = Object.assign(new EventTarget(), { dataLayer: undefined as unknown[] | undefined });
+      const win = Object.assign(new EventTarget(), { dataLayer: undefined as unknown[] | undefined, maliAnalytics: undefined as AnalyticsBridge | undefined });
       Object.defineProperties(globalThis, { document: { configurable: true, value: doc }, window: { configurable: true, value: win }, location: { configurable: true, value: location }, localStorage: { configurable: true, value: { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value) } } });
+      Object.defineProperty(globalThis, 'fetch', { configurable: true, value: async (url: string, init: RequestInit) => { assert.equal(url, '/api/v1/checkout/analytics-revoke'); revocations.push(JSON.parse(String(init.body))); return Response.json({ revoked: true }); } });
       mountAnalytics(); assert.equal(head.children.length, 0); assert.equal(win.dataLayer, undefined);
+      const commerce = { currency: 'ARS', value: 12.34, items: [{ item_id: 'p', item_name: 'Florero', item_variant: 'v', price: 12.34, quantity: 1 }] };
+      assert.equal(win.maliAnalytics!.track('add_to_cart', commerce), false);
       const panel = body.children[0], controls = panel.children[3], reject = controls.children[0], accept = controls.children[1];
       reject.dispatchEvent(new Event('click')); assert.equal(head.children.length, 0);
       accept.dispatchEvent(new Event('click')); accept.dispatchEvent(new Event('click'));
@@ -30,7 +34,15 @@ test('GA4 and GTM load once only after consent; rejection and private routes nev
       const commands = win.dataLayer!.map(item => Array.from(item as ArrayLike<unknown>));
       assert.equal(commands.filter(item => item[0] === 'config').length, mode === 'ga4' ? 1 : 0);
       assert.doesNotMatch(JSON.stringify(win.dataLayer), /search=private|email=secret/);
-      reject.dispatchEvent(new Event('click')); assert.equal(reloads, 1); assert.match([...storage.values()][0], /rejected/);
+      assert.equal(win.maliAnalytics!.track('add_to_cart', commerce), true);
+      if (mode === 'gtm') {
+        assert.deepEqual(win.dataLayer!.slice(-2), [{ ecommerce: null }, { event: 'add_to_cart', ecommerce: { items: commerce.items, value: 12.34, currency: 'ARS' } }]);
+      } else assert.deepEqual(Array.from(win.dataLayer!.at(-1) as ArrayLike<unknown>), ['event', 'add_to_cart', commerce]);
+      const revokeKey = `mali-analytics-revoke:${mode}:${script.dataset.measurementId}`;
+      storage.set(revokeKey, 'a'.repeat(64));
+      reject.dispatchEvent(new Event('click')); await new Promise(resolve => setImmediate(resolve)); assert.equal(reloads, 1); assert.match([...storage.values()][0], /rejected/);
+      assert.deepEqual(revocations, [{ token: 'a'.repeat(64) }]); assert.equal(storage.get(revokeKey), ''); assert.equal(storage.get(`${revokeKey}:pending`), '');
+      assert.equal(win.maliAnalytics!.track('add_to_cart', commerce), false);
       assert.deepEqual(Array.from(win.dataLayer!.at(-1) as ArrayLike<unknown>).slice(0, 2), ['consent', 'update']);
       head.children.length = 0; location.pathname = '/admin'; mountAnalytics(); assert.equal(head.children.length, 0);
     }

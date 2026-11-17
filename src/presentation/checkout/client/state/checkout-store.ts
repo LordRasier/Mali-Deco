@@ -34,7 +34,7 @@ const browserRuntime: CheckoutRuntime = {
 
 /** Renderer-neutral owner. Start only after mounting; stop retains the opaque pending key,
  * but drops private retry data. Neither mounting nor restarting sends any order request. */
-export function createCheckoutStore(shipping: CheckoutShippingPort, options: { runtime?: CheckoutRuntime; transport?: CheckoutTransport; paymentEnabled?: boolean; recoverOnStart?: boolean; navigate?: (url: string) => void } = {}) {
+export function createCheckoutStore(shipping: CheckoutShippingPort, options: { runtime?: CheckoutRuntime; transport?: CheckoutTransport; paymentEnabled?: boolean; recoverOnStart?: boolean; navigate?: (url: string) => void; onSubmit?: (shipping: string, payment: string) => void } = {}) {
   const runtime = options.runtime ?? browserRuntime, transport = options.transport ?? client;
   const listeners = new Set<() => void>();
   const serverSnapshot: CheckoutSnapshot = {
@@ -219,6 +219,7 @@ export function createCheckoutStore(shipping: CheckoutShippingPort, options: { r
     catch { critical(storageError); return; }
     const epoch = generation;
     attempt = input;
+    try { options.onSubmit?.(selected.serviceCode, state.paymentMethod || ''); } catch { /* Optional telemetry never changes checkout. */ }
     publish({ pending: key, canRetry: true, sending: true });
     if (current(epoch)) await submit(input, key);
   }

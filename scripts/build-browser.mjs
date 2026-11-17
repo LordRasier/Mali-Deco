@@ -21,7 +21,8 @@ for (const output of Object.values(result.metafile.outputs)) if (output.imports.
 // Checkout now restores a server-owned draft and coordinates payment/return states (~3 KB above the previous ceiling).
 // Verified purchase reconciliation includes a durable cart receipt; still no new dependencies.
 // Variant image selection and matching cover defaults add ~1.5 KB; no new dependencies.
-if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 116000) throw new Error('Unexpected browser output size');
+// Consented commerce events and bounded server attribution add ~4 KB; no external SDKs.
+if (result.outputFiles.length !== 1 || result.outputFiles[0].contents.length > 121000) throw new Error('Unexpected browser output size');
 const file = result.outputFiles[0];
 if (/process\.env|sourceMappingURL|__webpack_require__/.test(file.text)) throw new Error('Unexpected runtime or environment dependency');
 const destination = resolve(root, 'src/presentation/cart/public/generated/cart.js');

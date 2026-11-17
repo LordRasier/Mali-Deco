@@ -14,7 +14,7 @@ export function configureSeo(app: NestExpressApplication) {
   }, next: (error?: unknown) => void) => {
     const render = response.render.bind(response);
     response.render = (view, model, callback) => {
-      if (model.visualPreview === true || !['home', 'catalog', 'product', 'information-page', 'shipping-returns'].includes(view)) return render(view, model, callback);
+      if (model.visualPreview === true || !['home', 'catalog', 'product', 'information-page', 'shipping-returns', 'cart', 'checkout'].includes(view)) return render(view, model, callback);
       void settings.publicSettings().then(config => {
         const url = new URL(request.originalUrl, 'https://local.invalid');
         const seo = pageMetadata(view, { ...response.locals, ...model }, url.pathname, url.searchParams, response.statusCode, config, env, response.locals.storeInfo as StoreInformation | undefined);

@@ -13,11 +13,15 @@ import { PaymentsModule } from '../payments/payments.module';
 import { PaymentRegistry } from '../payments/payment-registry';
 import { PaymentWebhook, PaymentWebhookController } from '../payments/payment-webhook';
 import { OrderReservationWorker } from './services/order-reservations';
+import { CheckoutAnalytics, CheckoutAnalyticsController } from '../analytics/analytics-context';
+import { AnalyticsWorker } from '../analytics/analytics-worker';
 
 @Module({
   imports: [ShippingModule, OrdersModule, PaymentsModule],
-  controllers: [SessionController, CheckoutQuoteController, CheckoutOrderController, PaymentController, PaymentWebhookController],
+  controllers: [SessionController, CheckoutQuoteController, CheckoutOrderController, PaymentController, PaymentWebhookController, CheckoutAnalyticsController],
   providers: [
+    { provide: CheckoutAnalytics, useFactory: (db?: DataSource) => new CheckoutAnalytics(db), inject: [{ token: DataSource, optional: true }] },
+    { provide: AnalyticsWorker, useFactory: (db?: DataSource) => new AnalyticsWorker(db), inject: [{ token: DataSource, optional: true }] },
     { provide: OrderReservationWorker, useFactory: (registry: PaymentRegistry, db?: DataSource) => new OrderReservationWorker(db, registry), inject: [PaymentRegistry, { token: DataSource, optional: true }] },
     { provide: PaymentWebhook, useFactory: (registry: PaymentRegistry, db?: DataSource) => new PaymentWebhook(db, registry), inject: [PaymentRegistry, { token: DataSource, optional: true }] },
     { provide: PaymentService, useFactory: (registry: PaymentRegistry, db?: DataSource) => new PaymentService(db, registry), inject: [PaymentRegistry, { token: DataSource, optional: true }] },

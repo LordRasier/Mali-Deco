@@ -30,6 +30,26 @@ const resolved = (lines: CartPair[]): CartResolution => ({ missing: [], resolved
 })) });
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
 
+test('commerce reports only successful explicit quantity changes, never refresh or purchase clearing', async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  const events: { name: string; value: number | undefined; quantity: number }[] = [];
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: { maliAnalytics: { track: (name: string, data: { value?: number; items: { quantity: number }[] }) => { events.push({ name, value: data.value, quantity: data.items[0].quantity }); return true; } } } });
+  let stop: (() => void) | undefined;
+  try {
+    const f = fixture([]);
+    const runtime: CartRuntime = { ...f.runtime, completePurchase: (key, _id, _lines, area) => f.runtime.write(key, [], area) };
+    const store = createCartStore('api', { runtime, resolve: async lines => { const result = resolved(lines); result.resolved.forEach(item => Object.assign(item.variant, { priceMinor: 12345, supplyMode: 'stock', stockQuantity: 3 })); return result; } });
+    stop = store.start(); await store.addVerified('p1', 'v1'); await tick();
+    await store.adjust('p1', 'v1', 1); await tick(); store.retry(); await tick();
+    await store.adjust('p1', 'v1', 5); await tick(); // Rejected by verified stock.
+    await store.remove('p1', 'v1'); await tick();
+    assert.deepEqual(events, [{ name: 'add_to_cart', value: 123.45, quantity: 1 }, { name: 'add_to_cart', value: 123.45, quantity: 1 }, { name: 'remove_from_cart', value: 246.9, quantity: 2 }]);
+    await store.addVerified('p1', 'v1'); await tick(); const count = events.length;
+    await store.completePurchase('paid-order', [line()]); await tick();
+    assert.equal(store.getSnapshot().count, 0); assert.equal(events.length, count);
+  } finally { stop?.(); if (original) Object.defineProperty(globalThis, 'window', original); else Reflect.deleteProperty(globalThis, 'window'); }
+});
+
 test('all cart increases use fresh stock, shortages preserve rows and decreases/removal remain possible', async () => {
   const f = fixture([]); let stockQuantity = 2;
   const store = createCartStore('api', { runtime: f.runtime, resolve: async lines => {

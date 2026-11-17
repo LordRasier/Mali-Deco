@@ -3,6 +3,7 @@ import { cartShippingIdentity } from '../../../shipping/client/state/shipping-pr
 import { createCheckoutStore, type CheckoutShippingPort, type CheckoutStore } from '../state/checkout-store';
 import { createCheckoutView } from './checkout-view';
 import type { CartLine } from '../../../shared/catalog/storefront-types';
+import { commerceData, trackCommerce, onAnalyticsReady } from '../../../shared/analytics/commerce';
 
 type CartPort = { getSnapshot(): CartView; subscribe(listener: () => void): () => void; completePurchase?(orderId: string, purchased: CartLine[]): Promise<void>; adjust?(productId: string, variantId: string, difference: number): Promise<unknown>; remove?(productId: string, variantId: string): Promise<unknown>; retry?(): void };
 type Options = {
@@ -12,12 +13,28 @@ type Options = {
 
 /** Shares the cart owners. A valid cart preference may refresh a quote; orders always require submission. */
 export function mountCheckout(root: HTMLElement, options: Options) {
-  const store = options.store ?? createCheckoutStore(options.shippingSession, { paymentEnabled: root.dataset.paymentAvailable === 'true', recoverOnStart: true, navigate: url => window.location.assign(url) }), view = createCheckoutView(root);
+  const measureSubmit = (shipping: string, payment: string) => {
+    if (root.dataset.testMode === 'true') return;
+    const data = commerceData(options.cart.getSnapshot().items);
+    if (data) {
+      trackCommerce('add_shipping_info', { ...data, shipping_tier: shipping });
+      if (payment) trackCommerce('add_payment_info', { ...data, payment_type: payment });
+    }
+  };
+  const store = options.store ?? createCheckoutStore(options.shippingSession, { paymentEnabled: root.dataset.paymentAvailable === 'true', recoverOnStart: true, navigate: url => window.location.assign(url), onSubmit: measureSubmit }), view = createCheckoutView(root);
   const lifecycle = options.lifecycle ?? window, subscriptions: (() => void)[] = [];
   const reconciled = new Set<string>();
   let active = false, disposed = false, generation = 0, stopStore: (() => void) | undefined, wasLocked = false;
+  let began = false;
+  const measureBegin = () => {
+    const state = store.getSnapshot(), cart = options.cart.getSnapshot();
+    if (active && !began && root.dataset.testMode !== 'true' && state.loaded && !state.pending && !state.order && cart.ready && !cart.unresolved)
+      began = trackCommerce('begin_checkout', commerceData(cart.items));
+  };
+  const removeAnalyticsListener = onAnalyticsReady(measureBegin);
   const render = () => {
     if (!active) return;
+    measureBegin();
     const state = store.getSnapshot();
     options.setCartLocked(state.locked);
     if (state.locked && !wasLocked) options.closeCart?.();
@@ -65,6 +82,7 @@ export function mountCheckout(root: HTMLElement, options: Options) {
     store, dispose() {
       if (disposed) return;
       disposed = true; stop(); view.dispose(); store.dispose();
+      removeAnalyticsListener();
       lifecycle.removeEventListener('pagehide', stop); lifecycle.removeEventListener('pageshow', start);
     },
   };
