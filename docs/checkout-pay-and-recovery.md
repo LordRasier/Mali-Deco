@@ -4,6 +4,8 @@ El método de pago se elige en el paso 03. Mercado Pago queda seleccionado cuand
 
 ## Despliegue
 
+El carrito compartido y el aviso del footer consultan la configuración vigente de pagos al renderizar cada página. Inicio, catálogo, categorías, productos, carrito, checkout y páginas informativas muestran `Continuar al checkout` cuando los pagos están habilitados en producción. No dependen de `LOCAL_TEST_CHECKOUT_ENABLED`. Al pausar pagos, pasar a test o fallar la lectura de configuración, se oculta el acceso público; la API conserva sus controles de acceso. Este ajuste requiere compilar y reiniciar, sin migraciones adicionales.
+
 Desde el 17/11/2026 el DNI/CUIL es obligatorio para crear pedidos. El formulario exige DNI de 7 u 8 dígitos o CUIL de 11, sin puntos ni guiones, y el servidor rechaza valores ausentes, vacíos o inválidos antes de acceder a la base. Se conservan los ceros iniciales. Este cambio requiere compilar y reiniciar; no agrega migraciones ni modifica pedidos existentes. El documento permanece fuera de Analytics.
 
 Con las migraciones anteriores aplicadas, ejecutar antes de reiniciar la aplicación:

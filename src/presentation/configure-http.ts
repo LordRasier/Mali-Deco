@@ -10,6 +10,7 @@ import { configureSeo } from './seo/middleware';
 import { ContentSettings } from '../modules/settings/content-settings';
 import { pagePaths, targetEnabled, type PageKey } from '../modules/settings/content-config';
 import { configuredInformation, contentModel } from './information/content-model';
+import { configureCheckoutPresentation } from './checkout/checkout-presentation';
 
 /** Permanent HTML and fixed assets coexist with the unchanged prefixed JSON API. */
 export function configureHttp(app: NestExpressApplication): void {
@@ -48,6 +49,7 @@ export function configureHttp(app: NestExpressApplication): void {
       response.locals.storeYear = new Date().getFullYear(); next();
     } catch (error) { next(error); }
   });
+  configureCheckoutPresentation(app);
   configureSeo(app);
   const partial = (path: string) => readFileSync(join(__dirname, path), 'utf8');
   const engine = createViewEngine({
